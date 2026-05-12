@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: internship_monitoring_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: internship_monitoring
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: internship_monitoring_backend
+    restart: unless-stopped #copiei do de cima
+    command: /bin/sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build: ./frontend
+    container_name: internship_monitoring_frontend
+    restart: unless-stopped #copiei do de cima
+    command: npm run dev -- --host 0.0.0.0
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
