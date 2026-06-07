@@ -1,19 +1,22 @@
 from rest_framework import serializers
-
-from .models import Student
+from .models import Student, Documents, DocActivity
 
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = [
-            "id",
-            "user",
-            "registration_number",
-            "name",
-            "email",
-            "phone",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        fields = '__all__'
+
+
+class DocumentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Documents
+        fields = '__all__'
+        read_only_fields = ['documents_id', 'server_timestamp']
+
+
+class DocActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocActivity
+        fields = '__all__'
+        read_only_fields = ['doc_activity_id', 'server_timestamp']
