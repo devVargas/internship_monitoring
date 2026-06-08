@@ -19,4 +19,4 @@ class DocActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = DocActivity
         fields = '__all__'
-        read_only_fields = ['doc_activity_id', 'server_timestamp']
+        read_only_fields = ['doc_activity_id', 'server_timestamp'] 
