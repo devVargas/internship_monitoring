@@ -8,14 +8,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     # path("api/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),   
     path("api/students/", include("apps.students.urls")),
-    # path("api/internships/", include("apps.internships.urls")),
-    # path("api/documents/", include("apps.documents.urls")),
-    # path("", TemplateView.as_view(template_name="index.html"), name="frontend"),
 ]
 
 if settings.DEBUG:
