@@ -25,8 +25,9 @@ INSTALLED_APPS = [
     "drf_spectacular",
     
     
-    "apps.students",
-    # "apps.internships",
+    "apps.students.apps.StudentsConfig",
+    "apps.documents.apps.DocumentsConfig",
+    "apps.doc_activity.apps.DocActivityConfig"
     
 ]
 
