@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import DocActivityViewSet
 
 router = DefaultRouter()
-router.register(r"doc-activities", DocActivityViewSet, basename="docactivity")
+router.register("doc-activities", DocActivityViewSet, basename="docactivity")
 
 urlpatterns = [
     path("", include(router.urls)),
