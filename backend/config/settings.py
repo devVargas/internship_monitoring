@@ -23,11 +23,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_spectacular",
-    
-    
     "apps.students",
-    # "apps.internships",
-    
+    "apps.accounts",
 ]
 
 MIDDLEWARE = [
