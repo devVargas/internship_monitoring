@@ -23,12 +23,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_spectacular",
-    
-    
-    "apps.students.apps.StudentsConfig",
-    "apps.documents.apps.DocumentsConfig",
-    "apps.doc_activity.apps.DocActivityConfig"
-    
+    "apps.students",
+    "apps.accounts",
 ]
 
 MIDDLEWARE = [
