@@ -3,9 +3,6 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
-import Button from './components/ui/Button.tsx'
-import ArrowButton from './components/ui/ArrowButton.tsx'
-import LoginForm from './components/ui/LoginForm.tsx'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -31,9 +28,6 @@ function App() {
         >
           Count is {count}
         </button>
-        <Button LinkTo="/teste" text="Botão verde"/>
-        <ArrowButton LinkTo="/teste" text="Botão com setinha"/>
-        <Button text="Botão amarelo" color="yellow"/>
       </section>
 
       <div className="ticks"></div>

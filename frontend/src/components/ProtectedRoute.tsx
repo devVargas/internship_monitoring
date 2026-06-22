@@ -1,9 +1,13 @@
-import {Navigate} from 'react-router-dom';
+import { Navigate } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { useAuth } from '../hooks/useAuth.ts'
 
-export default function ProtectedRoute({children}) {
-    const token = localStorage.getItem("accessToken")
-    if(!token) {
-        return (<Navigate to='/login' replace />);
-    }
-    return children;
+export default function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
 }
