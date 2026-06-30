@@ -3,6 +3,37 @@ type LoginResponse = {
   refresh: string
 }
 
+export type RegisterStudentData = {
+  email: string
+  first_name: string
+  last_name: string
+  password: string
+  registration_number: string
+  course: string
+  phone_number: string
+}
+
+export async function registerStudentRequest(
+  data: RegisterStudentData,
+): Promise<void> {
+  const response = await fetch('/api/auth/register/student/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    if (errorData) {
+      const messages = Object.values(errorData).flat().join(' ')
+      throw new Error(messages || 'Erro ao cadastrar estudante')
+    }
+    throw new Error('Erro ao cadastrar estudante')
+  }
+}
+
 export async function loginRequest(
   username: string,
   password: string,

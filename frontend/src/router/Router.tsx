@@ -3,12 +3,15 @@ import App from '../App.tsx'
 import ProtectedRoute from '../components/ProtectedRoute.tsx'
 import Login from '../components/layout/Login.tsx'
 import LoginForm from '../components/ui/LoginForm.tsx'
+import NewStudent from '../components/layout/NewStudent.tsx'
+import StudentsTable from '../components/layout/StudentsTable.tsx'
 
 export default function Router() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/cadastro" element={<NewStudent />} />
         <Route
           path="/"
           element={
