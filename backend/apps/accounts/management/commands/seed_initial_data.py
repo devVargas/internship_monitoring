@@ -39,7 +39,7 @@ class Command(BaseCommand):
             )
         ) + list(
             get_permissions(
-                "documents",
+                "document",
                 [
                     "add_document",
                     "change_document",
@@ -50,7 +50,7 @@ class Command(BaseCommand):
 
         supervisor_permissions = list(
             get_permissions(
-                "documents",
+                "document",
                 [
                     "add_document",
                     "change_document",
@@ -68,7 +68,7 @@ class Command(BaseCommand):
             )
         ) + list(
             get_permissions(
-                "documents",
+                "document",
                 [
                     "view_document",
                     "review_document",
@@ -90,7 +90,7 @@ class Command(BaseCommand):
             )
         ) + list(
             get_permissions(
-                "documents",
+                "document",
                 [
                     "add_document",
                     "change_document",

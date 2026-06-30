@@ -155,7 +155,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def review(self, request, pk=None):
-        self.check_document_permission("documents.review_document")
+        self.check_document_permission("document.review_document")
         document = self.get_object()
         set_document_status(
             document=document,
@@ -167,7 +167,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
-        self.check_document_permission("documents.approve_document")
+        self.check_document_permission("document.approve_document")
         document = self.get_object()
 
         if document.supervisor_id and document.document_type != DocumentType.SUPERVISOR_EVALUATION:
@@ -189,7 +189,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
-        self.check_document_permission("documents.reject_document")
+        self.check_document_permission("document.reject_document")
         document = self.get_object()
         set_document_status(
             document=document,

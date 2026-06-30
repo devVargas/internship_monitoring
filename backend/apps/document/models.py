@@ -60,4 +60,8 @@ class Document(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        permissions = [ "review_document", "approve_document", "reject_document" ]
+        permissions = [
+        ("review_document", "Can review document"),
+        ("approve_document", "Can approve document"),
+        ("reject_document", "Can reject document"),
+    ]
