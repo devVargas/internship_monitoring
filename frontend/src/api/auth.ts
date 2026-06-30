@@ -34,6 +34,37 @@ export async function registerStudentRequest(
   }
 }
 
+export type RegisterProfessorData = {
+  email: string
+  first_name: string
+  last_name: string
+  password: string
+}
+
+export async function registerProfessorRequest(
+  data: RegisterProfessorData,
+  fetchFn: typeof fetch = fetch,
+): Promise<void> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  const response = await fetchFn('/api/auth/register/professor/', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    if (errorData) {
+      const messages = Object.values(errorData).flat().join(' ')
+      throw new Error(messages || 'Erro ao cadastrar professor')
+    }
+    throw new Error('Erro ao cadastrar professor')
+  }
+}
+
 export async function loginRequest(
   username: string,
   password: string,
