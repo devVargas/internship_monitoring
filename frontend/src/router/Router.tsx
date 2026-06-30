@@ -17,6 +17,14 @@ export default function Router() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/alunos"
+          element={
+            <ProtectedRoute>
+              <StudentsTable />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   )
