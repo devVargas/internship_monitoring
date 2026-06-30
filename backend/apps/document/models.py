@@ -4,7 +4,7 @@ class DocumentType(models.TextChoices):
     MANDATORY_INTERNSHIP = "mandatory_internship",
     NON_MANDATORY_INTERNSHIP_CREDIT = "non_mandatory_internship_credit",
     PROFESSIONAL_PRACTICE_CREDIT = "professional_practice_credit",
-    SUPERVISOR_EVALUATION = "supervisor_evaluation", "Supervisor evaluation"
+    SUPERVISOR_EVALUATION = "supervisor_evaluation",
 
 class DocumentStatus(models.TextChoices):
     SUBMITTED = "submitted",
