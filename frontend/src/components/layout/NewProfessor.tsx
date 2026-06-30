@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ProfessorBar from '../ui/ProfessorBar.tsx'
 import Input from '../ui/Input.tsx'
 import Button from '../ui/Button.tsx'
 import HideIcon from '../ui/HideIcon.tsx'
@@ -50,7 +51,9 @@ export default function NewProfessor() {
   const displayError = validationError || error
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-green-900 px-6">
+    <div className="flex min-h-screen">
+      <ProfessorBar />
+      <div className="flex-1 flex items-center justify-center bg-green-900 px-6">
       <form
         onSubmit={handleSubmit}
         className="flex w-full max-w-sm flex-col gap-4 bg-white p-8 rounded-lg"
@@ -125,6 +128,7 @@ export default function NewProfessor() {
           <p className="text-red-600 text-center">{displayError}</p>
         )}
       </form>
+      </div>
     </div>
   )
 }
