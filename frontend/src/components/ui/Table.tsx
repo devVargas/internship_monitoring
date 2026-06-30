@@ -61,12 +61,12 @@ export default function Table<T extends Record<string, unknown>>({
           {data.map((row, rowIndex) => (
             <tr
               key={rowIndex}
-              className="hover:bg-gray-50 transition-colors"
+              className="hover:bg-gray-100 transition-colors"
             >
               {columns.map((col) => (
                 <td
                   key={String(col.key)}
-                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-outfit"
+                  className="px-6 py-4 whitespace-nowrap text-sm text-left text-gray-900 font-outfit"
                 >
                   {String(row[col.key] ?? '')}
                 </td>

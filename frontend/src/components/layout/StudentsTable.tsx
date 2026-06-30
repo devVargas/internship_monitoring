@@ -12,10 +12,7 @@ export default function StudentsTable() {
   const { students, isLoading, error } = useStudents()
 
   return (
-    <div className="p-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900 font-outfit">
-        Alunos
-      </h1>
+    <div className="p-6 bg-green-900 min-h-screen">
       <Table
         columns={columns}
         data={students}

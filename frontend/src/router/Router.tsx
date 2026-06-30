@@ -33,9 +33,9 @@ export default function Router() {
         <Route
           path="/alunos"
           element={
-            <ProtectedRoute>
+            <StaffRoute>
               <StudentsTable />
-            </ProtectedRoute>
+            </StaffRoute>
           }
         />
       </Routes>
