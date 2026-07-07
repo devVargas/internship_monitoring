@@ -25,6 +25,8 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.students",
     "apps.accounts",
+    "apps.document",
+    "apps.doc_activity",
 ]
 
 MIDDLEWARE = [
@@ -105,7 +107,7 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Internship Monitoring API",
-    "DESCRIPTION": "API inicial para acompanhamento de estágios.",
+    "DESCRIPTION": "Internship monitoring API.",
     "VERSION": "0.1.0",
 }
 

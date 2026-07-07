@@ -1,11 +1,20 @@
 from rest_framework import serializers
-from .models import DocActivity
+from apps.doc_activity.models import DocumentActivity
 
-
-class DocActivitySerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
+class DocumentActivitySerializer(serializers.ModelSerializer):
+    performed_by_name = serializers.SerializerMethodField()
 
     class Meta:
-        model = DocActivity
-        fields = "__all__"
-        read_only_fields = ["doc_activity_id", "server_timestamp", "last_update", "alter_by_user"]
+        model = DocumentActivity
+        fields = (
+            "id",
+            "document",
+            "action",
+            "description",
+            "performed_by_name",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_performed_by_name(self, obj):
+        return obj.performed_by.get_full_name() or obj.performed_by.email

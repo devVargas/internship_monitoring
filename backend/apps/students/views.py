@@ -4,15 +4,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.constants import GROUP_PROFESSOR, GROUP_STUDENT
-from apps.accounts.permissions import DjangoModelPermissionsWithView
 from apps.students.models import StudentProfile
 from apps.students.serializers import StudentProfileSerializer
 
 
 class StudentProfileViewSet(viewsets.ModelViewSet):
     serializer_class = StudentProfileSerializer
-    permission_classes = [permissions.IsAuthenticated, DjangoModelPermissionsWithView]
-    http_method_names = ["get", "patch"]
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "put"]
 
     def get_queryset(self):
         user = self.request.user

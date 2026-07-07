@@ -15,19 +15,18 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='StudentProfile',
+            name='SupervisorProfile',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('registration_number', models.CharField(max_length=50, unique=True)),
-                ('course', models.CharField(max_length=150)),
-                ('campus', models.CharField(max_length=150)),
+                ('company_name', models.CharField(max_length=150)),
+                ('company_cnpj', models.CharField(blank=True, max_length=20)),
                 ('phone_number', models.CharField(blank=True, max_length=30)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='student_profile', to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='supervisor_profile', to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'ordering': ['user__first_name', 'user__last_name', 'user__email'],
+                'ordering': ['company_name', 'user__first_name', 'user__last_name'],
             },
         ),
     ]

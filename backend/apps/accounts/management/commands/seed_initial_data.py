@@ -1,7 +1,13 @@
 from django.contrib.auth.models import Group, Permission
 from django.core.management.base import BaseCommand
 
-from apps.accounts.constants import DEFAULT_GROUPS, GROUP_COORDINATOR, GROUP_PROFESSOR, GROUP_STUDENT
+from apps.accounts.constants import (
+    DEFAULT_GROUPS,
+    GROUP_COORDINATOR,
+    GROUP_PROFESSOR,
+    GROUP_STUDENT,
+    GROUP_SUPERVISOR,
+)
 
 
 def get_permissions(app_label: str, codenames: list[str]):
@@ -14,63 +20,101 @@ def get_permissions(app_label: str, codenames: list[str]):
 class Command(BaseCommand):
     help = f"start seed_initial_data"
 
-    def handle(self, *args, **options):  # noqa: ARG002
+    def handle(self, *args, **options):
         groups = {}
 
         for group_name in DEFAULT_GROUPS:
             group, created = Group.objects.get_or_create(name=group_name)
             groups[group_name] = group
-            status = "criado" if created else "já existia"
-            self.stdout.write(self.style.SUCCESS(f"Grupo {group_name}: {status}"))
+            status = "created" if created else "already existed"
+            self.stdout.write(self.style.SUCCESS(f"Group {group_name}: {status}"))
 
-        student_profile_permissions_for_student = get_permissions(
-            "students",
-            [
-                "view_studentprofile",
-                "change_studentprofile",
-            ],
+        student_permissions = list(
+            get_permissions(
+                "students",
+                [
+                    "view_studentprofile",
+                    "change_studentprofile",
+                ],
+            )
+        ) + list(
+            get_permissions(
+                "document",
+                [
+                    "add_document",
+                    "change_document",
+                    "view_document",
+                ],
+            )
         )
 
-        student_profile_permissions_for_professor = get_permissions(
-            "students",
-            [
-                "view_studentprofile",
-            ],
+        supervisor_permissions = list(
+            get_permissions(
+                "document",
+                [
+                    "add_document",
+                    "change_document",
+                    "view_document",
+                ],
+            )
         )
 
-        student_profile_permissions_for_coordinator = get_permissions(
-            "students",
-            [
-                "add_studentprofile",
-                "change_studentprofile",
-                "delete_studentprofile",
-                "view_studentprofile",
-            ],
+        professor_permissions = list(
+            get_permissions(
+                "students",
+                [
+                    "view_studentprofile",
+                ],
+            )
+        ) + list(
+            get_permissions(
+                "document",
+                [
+                    "view_document",
+                    "review_document",
+                    "approve_document",
+                    "reject_document",
+                ],
+            )
         )
 
-        user_permissions_for_professor = get_permissions(
-            "auth",
-            [
-                "add_user",
-                "view_user",
-            ],
+        coordinator_permissions = list(
+            get_permissions(
+                "students",
+                [
+                    "add_studentprofile",
+                    "change_studentprofile",
+                    "delete_studentprofile",
+                    "view_studentprofile",
+                ],
+            )
+        ) + list(
+            get_permissions(
+                "document",
+                [
+                    "add_document",
+                    "change_document",
+                    "delete_document",
+                    "view_document",
+                    "review_document",
+                    "approve_document",
+                    "reject_document",
+                ],
+            )
+        ) + list(
+            get_permissions(
+                "auth",
+                [
+                    "add_user",
+                    "change_user",
+                    "view_user",
+                ],
+            )
         )
 
-        user_permissions_for_coordinator = get_permissions(
-            "auth",
-            [
-                "add_user",
-                "change_user",
-                "view_user",
-            ],
-        )
+        groups[GROUP_STUDENT].permissions.set(student_permissions)
+        groups[GROUP_SUPERVISOR].permissions.set(supervisor_permissions)
+        groups[GROUP_PROFESSOR].permissions.set(professor_permissions)
+        groups[GROUP_COORDINATOR].permissions.set(coordinator_permissions)
 
-        groups[GROUP_STUDENT].permissions.set(student_profile_permissions_for_student)
-        groups[GROUP_PROFESSOR].permissions.set(
-            list(student_profile_permissions_for_professor) + list(user_permissions_for_professor)
-        )
-        groups[GROUP_COORDINATOR].permissions.set(
-            list(student_profile_permissions_for_coordinator) + list(user_permissions_for_coordinator)
-        )
-
-        self.stdout.write(self.style.SUCCESS("finish"))
+        self.stdout.write(self.style.SUCCESS("Initial permissions configured."))

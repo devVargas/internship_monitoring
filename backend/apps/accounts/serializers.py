@@ -3,12 +3,11 @@ from django.contrib.auth.models import Group
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
-from apps.accounts.constants import GROUP_PROFESSOR, GROUP_STUDENT
+from apps.accounts.constants import GROUP_PROFESSOR, GROUP_STUDENT, GROUP_SUPERVISOR
+from apps.accounts.models import SupervisorProfile
 from apps.students.models import StudentProfile
 
 User = get_user_model()
-
 
 class UserSerializer(serializers.ModelSerializer):
     groups = serializers.SerializerMethodField()
@@ -27,13 +26,11 @@ class UserSerializer(serializers.ModelSerializer):
     def get_groups(self, obj):
         return list(obj.groups.values_list("name", flat=True))
 
-
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         return data
-
 
 class StudentRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -42,25 +39,26 @@ class StudentRegistrationSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=8)
     registration_number = serializers.CharField(max_length=50)
     course = serializers.CharField(max_length=150)
+    campus = serializers.CharField(max_length=150)
     phone_number = serializers.CharField(max_length=30, required=False, allow_blank=True)
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Já existe um usuário com este e-mail.")
+            raise serializers.ValidationError("A user with this email already exists.")
         return value
 
     def validate_registration_number(self, value):
         if StudentProfile.objects.filter(registration_number=value).exists():
-            raise serializers.ValidationError("Já existe um estudante com esta matrícula.")
+            raise serializers.ValidationError("A student with this registration number already exists.")
         return value
 
     @transaction.atomic
     def create(self, validated_data):
         registration_number = validated_data.pop("registration_number")
         course = validated_data.pop("course")
+        campus = validated_data.pop("campus")
         phone_number = validated_data.pop("phone_number", "")
         password = validated_data.pop("password")
-
         email = validated_data["email"]
 
         user = User.objects.create_user(
@@ -76,6 +74,7 @@ class StudentRegistrationSerializer(serializers.Serializer):
             user=user,
             registration_number=registration_number,
             course=course,
+            campus=campus,
             phone_number=phone_number,
         )
 
@@ -83,7 +82,6 @@ class StudentRegistrationSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return UserSerializer(instance).data
-
 
 class ProfessorRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -93,7 +91,7 @@ class ProfessorRegistrationSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Já existe um usuário com este e-mail.")
+            raise serializers.ValidationError("A user with this email already exists.")
         return value
 
     @transaction.atomic
@@ -106,12 +104,54 @@ class ProfessorRegistrationSerializer(serializers.Serializer):
             password=password,
             **validated_data,
         )
-
         user.is_staff = True
         user.save(update_fields=["is_staff"])
 
         professor_group, _ = Group.objects.get_or_create(name=GROUP_PROFESSOR)
         user.groups.add(professor_group)
+
+        return user
+
+    def to_representation(self, instance):
+        return UserSerializer(instance).data
+
+class SupervisorRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, min_length=8)
+    company_name = serializers.CharField(max_length=150)
+    company_cnpj = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    phone_number = serializers.CharField(max_length=30, required=False, allow_blank=True)
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    @transaction.atomic
+    def create(self, validated_data):
+        company_name = validated_data.pop("company_name")
+        company_cnpj = validated_data.pop("company_cnpj", "")
+        phone_number = validated_data.pop("phone_number", "")
+        password = validated_data.pop("password")
+        email = validated_data["email"]
+
+        user = User.objects.create_user(
+            username=email,
+            password=password,
+            **validated_data,
+        )
+
+        supervisor_group, _ = Group.objects.get_or_create(name=GROUP_SUPERVISOR)
+        user.groups.add(supervisor_group)
+
+        SupervisorProfile.objects.create(
+            user=user,
+            company_name=company_name,
+            company_cnpj=company_cnpj,
+            phone_number=phone_number,
+        )
 
         return user
 

@@ -1,9 +1,9 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from apps.doc_activity.views import DocumentActivityViewSet
+from apps.document.views import DocumentViewSet
 
 router = DefaultRouter()
-router.register("document-activities", DocumentActivityViewSet, basename="document-activities")
+router.register("documents", DocumentViewSet, basename="documents")
 
 urlpatterns = [
     path("", include(router.urls)),
