@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react'
 
-function Button(props) {
+function Button(props: { color?: string; LinkTo?: string; children?: ReactNode; text?: string; type?: 'button' | 'submit' | 'reset' }) {
     let className: string;
     if(props.color === "yellow")
         className = "inline-flex items-center justify-center gap-2 bg-yellow-600 hover:bg-transparent hover:text-yellow-600 border-2 border-transparent hover:border-yellow-600 text-white font-outfit font-semibold py-2 px-10 rounded-lg"

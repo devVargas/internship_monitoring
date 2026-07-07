@@ -65,6 +65,40 @@ export async function registerProfessorRequest(
   }
 }
 
+export type RegisterSupervisorData = {
+  email: string
+  first_name: string
+  last_name: string
+  password: string
+  company_name: string
+  company_cnpj?: string
+  phone_number?: string
+}
+
+export async function registerSupervisorRequest(
+  data: RegisterSupervisorData,
+  fetchFn: typeof fetch = fetch,
+): Promise<void> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  const response = await fetchFn('/api/auth/register/supervisor/', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    if (errorData) {
+      const messages = Object.values(errorData).flat().join(' ')
+      throw new Error(messages || 'Erro ao cadastrar supervisor')
+    }
+    throw new Error('Erro ao cadastrar supervisor')
+  }
+}
+
 export async function loginRequest(
   username: string,
   password: string,

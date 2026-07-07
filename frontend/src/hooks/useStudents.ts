@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAPI } from '../context/APIProvider.tsx'
-import type { AuthError } from '../context/APIProvider.tsx'
 
 type StudentUser = {
   id: number

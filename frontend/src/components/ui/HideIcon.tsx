@@ -1,4 +1,4 @@
-export default function HideIcon(props) {
+export default function HideIcon(props: { visible: boolean; toggleFunction: () => void }) {
       return (<button
         className="absolute bg-transparent right-3 top-3 p-1.5 text-input-text transition-all disabled:pointer-events-none disabled:opacity-50" 
         type="button"

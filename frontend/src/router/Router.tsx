@@ -3,9 +3,8 @@ import App from '../App.tsx'
 import ProtectedRoute from '../components/ProtectedRoute.tsx'
 import StaffRoute from '../components/StaffRoute.tsx'
 import Login from '../components/layout/Login.tsx'
-import LoginForm from '../components/ui/LoginForm.tsx'
-import NewProfessor from '../components/layout/NewProfessor.tsx'
 import NewStudent from '../components/layout/NewStudent.tsx'
+import NewUser from '../components/layout/NewUser.tsx'
 import StudentsTable from '../components/layout/StudentsTable.tsx'
 
 export default function Router() {
@@ -15,10 +14,10 @@ export default function Router() {
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<NewStudent />} />
         <Route
-          path="/cadastro-professor"
+          path="/cadastro-usuario"
           element={
             <StaffRoute>
-              <NewProfessor />
+              <NewUser />
             </StaffRoute>
           }
         />

@@ -23,7 +23,7 @@ export class AuthError extends Error {
 
 type APIContextValue = {
   auth: AuthState
-  fetchWithAuth: (input: RequestInfo, init?: RequestInit) => Promise<Response>
+  fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 }
 
 const APIContext = createContext<APIContextValue | null>(null)
@@ -55,7 +55,7 @@ export function APIProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const fetchWithAuth = useCallback(
-    async (input: RequestInfo, init?: RequestInit) => {
+    async (input: RequestInfo | URL, init?: RequestInit) => {
       const token = localStorage.getItem('accessToken')
       if (!token) {
         throw new AuthError()
