@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -153,6 +154,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(request=None)
     @action(detail=True, methods=["post"])
     def review(self, request, pk=None):
         self.check_document_permission("document.review_document")
@@ -165,6 +167,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
         return Response(DocumentSerializer(document, context={"request": request}).data)
 
+    @extend_schema(request=None)
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         self.check_document_permission("document.approve_document")
@@ -187,6 +190,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
         return Response(DocumentSerializer(document, context={"request": request}).data)
 
+    @extend_schema(request=None)
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         self.check_document_permission("document.reject_document")

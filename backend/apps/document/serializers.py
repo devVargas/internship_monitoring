@@ -40,6 +40,8 @@ class DocumentSerializer(serializers.ModelSerializer):
     supervisor_name = serializers.SerializerMethodField()
     supervisor_email = serializers.SerializerMethodField()
     supervisor_company = serializers.SerializerMethodField()
+    document_type_display = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
     activities = DocumentActivitySerializer(many=True, read_only=True)
 
     class Meta:
@@ -85,3 +87,9 @@ class DocumentSerializer(serializers.ModelSerializer):
         if not obj.supervisor:
             return None
         return obj.supervisor.company_name
+
+    def get_document_type_display(self, obj):
+        return obj.get_document_type_display()
+
+    def get_status_display(self, obj):
+        return obj.get_status_display()
