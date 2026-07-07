@@ -70,8 +70,33 @@ export function APIProvider({ children }: { children: ReactNode }) {
       const response = await fetch(input, { ...init, headers })
 
       if (response.status === 401) {
-        logout()
-        throw new AuthError()
+        const refreshToken = localStorage.getItem('refreshToken')
+        if (!refreshToken) {
+          logout()
+          throw new AuthError()
+        }
+
+        const refreshRes = await fetch('/api/auth/refresh/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        })
+
+        if (!refreshRes.ok) {
+          logout()
+          throw new AuthError()
+        }
+
+        const data = await refreshRes.json()
+        localStorage.setItem('accessToken', data.access)
+
+        const retryHeaders = new Headers(init?.headers)
+        retryHeaders.set('Authorization', `Bearer ${data.access}`)
+        if (!retryHeaders.has('Content-Type')) {
+          retryHeaders.set('Content-Type', 'application/json')
+        }
+
+        return fetch(input, { ...init, headers: retryHeaders })
       }
 
       return response
