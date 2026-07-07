@@ -46,6 +46,59 @@ export function APIProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false)
   }, [])
 
+<<<<<<< Updated upstream
+=======
+  const fetchWithAuth = useCallback(
+    async (input: RequestInfo, init?: RequestInit) => {
+      const token = localStorage.getItem('accessToken')
+      if (!token) {
+        throw new AuthError()
+      }
+
+      const headers = new Headers(init?.headers)
+      headers.set('Authorization', `Bearer ${token}`)
+      if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json')
+      }
+
+      const response = await fetch(input, { ...init, headers })
+
+      if (response.status === 401) {
+        const refreshToken = localStorage.getItem('refreshToken')
+        if (!refreshToken) {
+          logout()
+          throw new AuthError()
+        }
+
+        const refreshRes = await fetch('/api/auth/refresh/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        })
+
+        if (!refreshRes.ok) {
+          logout()
+          throw new AuthError()
+        }
+
+        const data = await refreshRes.json()
+        localStorage.setItem('accessToken', data.access)
+
+        const retryHeaders = new Headers(init?.headers)
+        retryHeaders.set('Authorization', `Bearer ${data.access}`)
+        if (!retryHeaders.has('Content-Type')) {
+          retryHeaders.set('Content-Type', 'application/json')
+        }
+
+        return fetch(input, { ...init, headers: retryHeaders })
+      }
+
+      return response
+    },
+    [logout],
+  )
+
+>>>>>>> Stashed changes
   const value = useMemo<APIContextValue>(
     () => ({
       auth: {
