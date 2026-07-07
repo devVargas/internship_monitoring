@@ -14,8 +14,16 @@ type AuthState = {
   logout: () => void
 }
 
+export class AuthError extends Error {
+  constructor() {
+    super('Not authenticated')
+    this.name = 'AuthError'
+  }
+}
+
 type APIContextValue = {
   auth: AuthState
+  fetchWithAuth: (input: RequestInfo, init?: RequestInit) => Promise<Response>
 }
 
 const APIContext = createContext<APIContextValue | null>(null)
@@ -46,6 +54,31 @@ export function APIProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false)
   }, [])
 
+  const fetchWithAuth = useCallback(
+    async (input: RequestInfo, init?: RequestInit) => {
+      const token = localStorage.getItem('accessToken')
+      if (!token) {
+        throw new AuthError()
+      }
+
+      const headers = new Headers(init?.headers)
+      headers.set('Authorization', `Bearer ${token}`)
+      if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json')
+      }
+
+      const response = await fetch(input, { ...init, headers })
+
+      if (response.status === 401) {
+        logout()
+        throw new AuthError()
+      }
+
+      return response
+    },
+    [logout],
+  )
+
   const value = useMemo<APIContextValue>(
     () => ({
       auth: {
@@ -53,8 +86,9 @@ export function APIProvider({ children }: { children: ReactNode }) {
         login,
         logout,
       },
+      fetchWithAuth,
     }),
-    [isAuthenticated, login, logout],
+    [isAuthenticated, login, logout, fetchWithAuth],
   )
 
   return <APIContext.Provider value={value}>{children}</APIContext.Provider>
