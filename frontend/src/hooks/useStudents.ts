@@ -49,11 +49,7 @@ export function useStudents() {
         })),
       )
     } catch (err) {
-      if ((err as AuthError).name === 'AuthError') {
-        setError('Sessão expirada. Faça login novamente.')
-      } else {
-        setError((err as Error).message)
-      }
+      setError((err as Error).message)
     } finally {
       setIsLoading(false)
     }

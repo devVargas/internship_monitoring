@@ -15,6 +15,7 @@ export default function NewStudent() {
   const [registrationNumber, setRegistrationNumber] = useState('')
   const [course, setCourse] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [campus, setCampus] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -40,6 +41,7 @@ export default function NewStudent() {
       last_name: lastName,
       password,
       registration_number: registrationNumber,
+      campus,
       course,
       phone_number: phoneNumber,
     })
@@ -119,6 +121,15 @@ export default function NewStudent() {
               value={registrationNumber}
               onChange={(e) => setRegistrationNumber(e.target.value)}
               placeholder="Insira sua matrícula"
+            />
+          </div>
+
+          <div>
+            <Label text="Campus" />
+            <Input
+              value={campus}
+              onChange={(e) => setCampus(e.target.value)}
+              placeholder="Insira seu campus"
             />
           </div>
 
