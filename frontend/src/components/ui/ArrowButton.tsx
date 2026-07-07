@@ -1,6 +1,6 @@
 import Button from './Button.tsx'
 
-export default function ArrowButton(props) {
+export default function ArrowButton(props: { LinkTo: string; text: string }) {
     return (
     <Button LinkTo={props.LinkTo}>
         <span>{props.text}</span>

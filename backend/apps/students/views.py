@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -32,6 +33,7 @@ class StudentProfileViewSet(viewsets.ModelViewSet):
 class MyStudentProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=StudentProfileSerializer)
     def get(self, request):
         try:
             profile = request.user.student_profile
