@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
             name='Document',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('document_type', models.CharField(choices=[('mandatory_internship', 'Mandatory Internship'), ('non_mandatory_internship_credit', 'Non Mandatory Internship Credit'), ('professional_practice_credit', 'Professional Practice Credit'), ('supervisor_evaluation', 'Supervisor evaluation')], max_length=60)),
+                ('document_type', models.CharField(choices=[('mandatory_internship', 'Mandatory Internship'), ('non_mandatory_internship_credit', 'Non Mandatory Internship Credit'), ('professional_practice_credit', 'Professional Practice Credit'), ('supervisor_evaluation', 'Supervisor Evaluation')], max_length=60)),
                 ('student_name', models.CharField(max_length=150)),
                 ('student_email', models.EmailField(max_length=254)),
                 ('student_registration_number', models.CharField(max_length=50)),
