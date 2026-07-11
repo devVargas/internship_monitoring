@@ -20,10 +20,6 @@ export default function HomePage() {
           Área autenticada
         </p>
         <h1 className="mt-3 text-3xl font-semibold text-neutral-950">Acompanhamento de Estágio</h1>
-        <p className="mx-auto mt-3 max-w-lg text-neutral-600">
-          A estrutura inicial está pronta. O dashboard será desenvolvido na próxima etapa do
-          projeto.
-        </p>
 
         <Button type="button" variant="secondary" onClick={handleLogout} className="mt-7">
           <FontAwesomeIcon icon={faArrowRightFromBracket} />
