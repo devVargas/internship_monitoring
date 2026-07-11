@@ -34,4 +34,4 @@ class ProfessorRegistrationView(generics.CreateAPIView):
 
 class SupervisorRegistrationView(generics.CreateAPIView):
     serializer_class = SupervisorRegistrationSerializer
-    permission_classes = [CanCreateUser]
+    permission_classes = [permissions.AllowAny]

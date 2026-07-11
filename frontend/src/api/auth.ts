@@ -108,13 +108,11 @@ export function registerProfessorRequest(
 
 export function registerSupervisorRequest(
   data: RegisterSupervisorData,
-  httpClient: HttpClient,
 ): Promise<void> {
   return registerRequest(
     '/api/auth/register/supervisor/',
     data,
     'Erro ao cadastrar supervisor',
-    httpClient,
   )
 }
 

@@ -10,7 +10,7 @@ import { useAuth } from '../../hooks/useAuth.ts'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Início', icon: faHouse },
-  { to: '/cadastro-usuario', label: 'Cadastrar usuário', icon: faUserPlus },
+  { to: '/cadastro-professor', label: 'Cadastrar professor', icon: faUserPlus, },
   { to: '/alunos', label: 'Alunos', icon: faUsers },
 ]
 
