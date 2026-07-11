@@ -54,15 +54,37 @@ export default function LoginPage() {
 
           <LoginForm />
 
-          <p className="mt-6 text-center text-sm text-neutral-600">
-            Ainda não possui uma conta?{' '}
-            <Link
-              to="/cadastro"
-              className="font-semibold text-green-900 underline-offset-4 hover:underline"
-            >
-              Cadastre-se
-            </Link>
+          <div className="mt-7 border-t border-neutral-200 pt-6">
+          <p className="mb-3 text-center text-sm text-neutral-600">
+            Ainda não possui uma conta?
           </p>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              to="/cadastro/aluno"
+              className="
+                rounded-lg border border-neutral-300
+                px-4 py-3 text-center text-sm font-semibold
+                text-green-950 transition
+                hover:border-green-800 hover:bg-green-50
+              "
+            >
+              Sou aluno
+            </Link>
+
+            <Link
+              to="/cadastro/supervisor"
+              className="
+                rounded-lg border border-neutral-300
+                px-4 py-3 text-center text-sm font-semibold
+                text-green-950 transition
+                hover:border-green-800 hover:bg-green-50
+              "
+            >
+              Sou supervisor
+            </Link>
+          </div>
+        </div>
         </div>
       </section>
     </main>

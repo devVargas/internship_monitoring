@@ -1,18 +1,46 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom'
 import ProtectedRoute from '../components/routing/ProtectedRoute.tsx'
 import StaffRoute from '../components/routing/StaffRoute.tsx'
 import HomePage from '../pages/HomePage.tsx'
 import LoginPage from '../pages/LoginPage.tsx'
+import RegisterProfessorPage from '../pages/RegisterProfessorPage.tsx'
 import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
-import RegisterUserPage from '../pages/RegisterUserPage.tsx'
+import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
 
 export default function Router() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/cadastro" element={<RegisterStudentPage />} />
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+
+        <Route
+          path="/cadastro"
+          element={
+            <Navigate
+              to="/cadastro/aluno"
+              replace
+            />
+          }
+        />
+
+        <Route
+          path="/cadastro/aluno"
+          element={<RegisterStudentPage />}
+        />
+
+        <Route
+          path="/cadastro/supervisor"
+          element={<RegisterSupervisorPage />}
+        />
 
         <Route
           path="/"
@@ -24,10 +52,10 @@ export default function Router() {
         />
 
         <Route
-          path="/cadastro-usuario"
+          path="/cadastro-professor"
           element={
             <StaffRoute>
-              <RegisterUserPage />
+              <RegisterProfessorPage />
             </StaffRoute>
           }
         />
@@ -41,7 +69,15 @@ export default function Router() {
           }
         />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
+        />
       </Routes>
     </BrowserRouter>
   )
