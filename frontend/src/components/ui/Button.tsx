@@ -1,21 +1,36 @@
-import { Link } from 'react-router-dom';
-import type { ReactNode } from 'react'
+import type { ComponentProps } from 'react'
 
-function Button(props: { color?: string; LinkTo?: string; children?: ReactNode; text?: string; type?: 'button' | 'submit' | 'reset' }) {
-    let className: string;
-    if(props.color === "yellow")
-        className = "inline-flex items-center justify-center gap-2 bg-yellow-600 hover:bg-transparent hover:text-yellow-600 border-2 border-transparent hover:border-yellow-600 text-white font-outfit font-semibold py-2 px-10 rounded-lg"
-    else if(props.color === "white")
-        className = "inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-500 border-2 border-white  text-neutral-500 hover:text-white font-outfit font-semibold py-2 px-10 rounded-lg"
-    else
-        className = "inline-flex items-center justify-center gap-2 bg-green-900 hover:bg-transparent hover:text-green-900 border-2 border-transparent hover:border-green-900 text-white font-outfit font-semibold py-2 px-10 rounded-lg"
+type ButtonVariant = 'primary' | 'secondary'
 
-    if(props.LinkTo) {
-        return (<Link className={className} to={props.LinkTo} >{props.children ? props.children : props.text}</Link>);
-    }
-    else {
-        return (<button className={className} type={props.type ? props.type : "button"} >{props.children ? props.children : props.text}</button>);
-    }
+type ButtonProps = ComponentProps<'button'> & {
+  variant?: ButtonVariant
 }
 
-export default Button;
+const VARIANT_CLASSES: Record<ButtonVariant, string> = {
+  primary:
+    'border-green-900 bg-green-900 text-white hover:bg-green-950 focus-visible:ring-green-100',
+  secondary:
+    'border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 focus-visible:ring-neutral-200',
+}
+
+export default function Button({
+  variant = 'primary',
+  type = 'button',
+  className = '',
+  ...buttonProps
+}: ButtonProps) {
+  return (
+    <button
+      {...buttonProps}
+      type={type}
+      className={`
+        inline-flex min-h-11 items-center justify-center gap-2
+        rounded-lg border px-5 py-2.5 font-semibold transition
+        focus-visible:outline-none focus-visible:ring-4
+        disabled:cursor-not-allowed disabled:opacity-60
+        ${VARIANT_CLASSES[variant]}
+        ${className}
+      `}
+    />
+  )
+}

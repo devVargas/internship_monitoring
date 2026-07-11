@@ -1,18 +1,1 @@
-@import "tailwindcss";
-
-@font-face {
-  font-family: 'Outfit';
-  src: url('assets/fonts/outfit/Outfit-Variable.woff2') format('woff2'),
-       url('assets/fonts/outfit/Outfit-Variable.woff') format('woff'),
-       url('assets/fonts/outfit/Outfit-Variable.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@theme {
-    --font-outfit: 'Outfit', system-ui, 'Segoe UI', Roboto, sans-serif;
-    --color-input-bg: #f2f2f2;
-    --color-input-text: #808080;
-    --color-input-border: #E5E5E5;
-}
+@import 'tailwindcss';

@@ -1,34 +1,25 @@
 import { useState } from 'react'
-import { registerStudentRequest } from '../api/auth.ts'
+import { registerStudentRequest, type RegisterStudentData } from '../api/auth.ts'
+import { getErrorMessage } from '../utils/errors.ts'
 
 export function useRegisterStudent() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
-  const register = async (data: {
-    email: string
-    first_name: string
-    last_name: string
-    password: string
-    registration_number: string
-    campus: string
-    course: string
-    phone_number: string
-  }) => {
+  async function register(data: RegisterStudentData): Promise<boolean> {
     setIsLoading(true)
     setError(null)
-    setSuccess(false)
 
     try {
       await registerStudentRequest(data)
-      setSuccess(true)
-    } catch (err) {
-      setError((err as Error).message)
+      return true
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Erro ao cadastrar estudante'))
+      return false
     } finally {
       setIsLoading(false)
     }
   }
 
-  return { register, isLoading, error, success }
+  return { register, isLoading, error }
 }
