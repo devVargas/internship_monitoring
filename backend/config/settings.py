@@ -1,17 +1,28 @@
 from pathlib import Path
-
 from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 def csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
-
 
 SECRET_KEY = config("SECRET_KEY", default="unsafe-dev-secret-key")
 DEBUG = config("DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=csv)
+
+MASTER_USER_USERNAME = config(
+    "MASTER_USER_USERNAME",
+    default="master",
+)
+
+MASTER_USER_EMAIL = config(
+    "MASTER_USER_EMAIL",
+    default="master@internship.local",
+)
+
+MASTER_USER_PASSWORD = config(
+    "MASTER_USER_PASSWORD",
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
