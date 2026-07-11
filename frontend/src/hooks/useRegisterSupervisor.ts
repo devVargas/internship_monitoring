@@ -1,28 +1,27 @@
 import { useState } from 'react'
-import { registerSupervisorRequest } from '../api/auth.ts'
-import type { RegisterSupervisorData } from '../api/auth.ts'
-import { useAPI } from '../context/APIProvider.tsx'
+import { registerSupervisorRequest, type RegisterSupervisorData } from '../api/auth.ts'
+import { useAPI } from '../context/api-context.ts'
+import { getErrorMessage } from '../utils/errors.ts'
 
 export function useRegisterSupervisor() {
   const { fetchWithAuth } = useAPI()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
-  const register = async (data: RegisterSupervisorData) => {
+  async function register(data: RegisterSupervisorData): Promise<boolean> {
     setIsLoading(true)
     setError(null)
-    setSuccess(false)
 
     try {
       await registerSupervisorRequest(data, fetchWithAuth)
-      setSuccess(true)
-    } catch (err) {
-      setError((err as Error).message)
+      return true
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Erro ao cadastrar supervisor'))
+      return false
     } finally {
       setIsLoading(false)
     }
   }
 
-  return { register, isLoading, error, success }
+  return { register, isLoading, error }
 }

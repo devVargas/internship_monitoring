@@ -1,32 +1,27 @@
 import { useState } from 'react'
-import { registerProfessorRequest } from '../api/auth.ts'
-import { useAPI } from '../context/APIProvider.tsx'
+import { registerProfessorRequest, type RegisterProfessorData } from '../api/auth.ts'
+import { useAPI } from '../context/api-context.ts'
+import { getErrorMessage } from '../utils/errors.ts'
 
 export function useRegisterProfessor() {
   const { fetchWithAuth } = useAPI()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
-  const register = async (data: {
-    email: string
-    first_name: string
-    last_name: string
-    password: string
-  }) => {
+  async function register(data: RegisterProfessorData): Promise<boolean> {
     setIsLoading(true)
     setError(null)
-    setSuccess(false)
 
     try {
       await registerProfessorRequest(data, fetchWithAuth)
-      setSuccess(true)
-    } catch (err) {
-      setError((err as Error).message)
+      return true
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Erro ao cadastrar professor'))
+      return false
     } finally {
       setIsLoading(false)
     }
   }
 
-  return { register, isLoading, error, success }
+  return { register, isLoading, error }
 }

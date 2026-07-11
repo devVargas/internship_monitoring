@@ -1,6 +1,21 @@
+import { getApiErrorMessage, isRecord, readJson, type HttpClient } from './http.ts'
+
 type LoginResponse = {
   access: string
   refresh: string
+}
+
+type RefreshResponse = {
+  access: string
+}
+
+export type CurrentUser = {
+  email: string
+  first_name: string
+  last_name: string
+  groups: string[]
+  is_staff: boolean
+  is_superuser: boolean
 }
 
 export type RegisterStudentData = {
@@ -9,29 +24,9 @@ export type RegisterStudentData = {
   last_name: string
   password: string
   registration_number: string
+  campus: string
   course: string
   phone_number: string
-}
-
-export async function registerStudentRequest(
-  data: RegisterStudentData,
-): Promise<void> {
-  const response = await fetch('/api/auth/register/student/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    if (errorData) {
-      const messages = Object.values(errorData).flat().join(' ')
-      throw new Error(messages || 'Erro ao cadastrar estudante')
-    }
-    throw new Error('Erro ao cadastrar estudante')
-  }
 }
 
 export type RegisterProfessorData = {
@@ -41,68 +36,89 @@ export type RegisterProfessorData = {
   password: string
 }
 
-export async function registerProfessorRequest(
-  data: RegisterProfessorData,
-  fetchFn: typeof fetch = fetch,
-): Promise<void> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-
-  const response = await fetchFn('/api/auth/register/professor/', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(data),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    if (errorData) {
-      const messages = Object.values(errorData).flat().join(' ')
-      throw new Error(messages || 'Erro ao cadastrar professor')
-    }
-    throw new Error('Erro ao cadastrar professor')
-  }
-}
-
-export type RegisterSupervisorData = {
-  email: string
-  first_name: string
-  last_name: string
-  password: string
+export type RegisterSupervisorData = RegisterProfessorData & {
   company_name: string
-  company_cnpj?: string
-  phone_number?: string
+  company_cnpj: string
+  phone_number: string
 }
 
-export async function registerSupervisorRequest(
-  data: RegisterSupervisorData,
-  fetchFn: typeof fetch = fetch,
-): Promise<void> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+function isLoginResponse(value: unknown): value is LoginResponse {
+  return isRecord(value) && typeof value.access === 'string' && typeof value.refresh === 'string'
+}
+
+function isRefreshResponse(value: unknown): value is RefreshResponse {
+  return isRecord(value) && typeof value.access === 'string'
+}
+
+function isCurrentUser(value: unknown): value is CurrentUser {
+  if (!isRecord(value)) {
+    return false
   }
 
-  const response = await fetchFn('/api/auth/register/supervisor/', {
+  const groupsAreValid =
+    Array.isArray(value.groups) && value.groups.every((group) => typeof group === 'string')
+
+  return (
+    typeof value.email === 'string' &&
+    typeof value.first_name === 'string' &&
+    typeof value.last_name === 'string' &&
+    groupsAreValid &&
+    typeof value.is_staff === 'boolean' &&
+    typeof value.is_superuser === 'boolean'
+  )
+}
+
+async function registerRequest(
+  url: string,
+  data: object,
+  fallbackMessage: string,
+  httpClient: HttpClient = fetch,
+): Promise<void> {
+  const response = await httpClient(url, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(data),
   })
 
-  if (!response.ok) {
-    const errorData = await response.json()
-    if (errorData) {
-      const messages = Object.values(errorData).flat().join(' ')
-      throw new Error(messages || 'Erro ao cadastrar supervisor')
-    }
-    throw new Error('Erro ao cadastrar supervisor')
+  if (response.ok) {
+    return
   }
+
+  const payload = await readJson(response)
+  throw new Error(getApiErrorMessage(payload, fallbackMessage))
 }
 
-export async function loginRequest(
-  username: string,
-  password: string,
-): Promise<LoginResponse> {
+export function registerStudentRequest(data: RegisterStudentData): Promise<void> {
+  return registerRequest('/api/auth/register/student/', data, 'Erro ao cadastrar estudante')
+}
+
+export function registerProfessorRequest(
+  data: RegisterProfessorData,
+  httpClient: HttpClient,
+): Promise<void> {
+  return registerRequest(
+    '/api/auth/register/professor/',
+    data,
+    'Erro ao cadastrar professor',
+    httpClient,
+  )
+}
+
+export function registerSupervisorRequest(
+  data: RegisterSupervisorData,
+  httpClient: HttpClient,
+): Promise<void> {
+  return registerRequest(
+    '/api/auth/register/supervisor/',
+    data,
+    'Erro ao cadastrar supervisor',
+    httpClient,
+  )
+}
+
+export async function loginRequest(username: string, password: string): Promise<LoginResponse> {
   const response = await fetch('/api/auth/login/', {
     method: 'POST',
     headers: {
@@ -111,14 +127,48 @@ export async function loginRequest(
     body: JSON.stringify({ username, password }),
   })
 
-  const data = await response.json()
+  const payload = await readJson(response)
 
   if (!response.ok) {
-    if (data.detail === 'No active account found with the given credentials') {
-      throw new Error('Usuário ou senha inválido')
-    }
-    throw new Error(data.message || 'Erro ao tentar fazer login')
+    throw new Error(getApiErrorMessage(payload, 'Erro ao tentar fazer login'))
   }
 
-  return data
+  if (!isLoginResponse(payload)) {
+    throw new Error('Resposta de autenticação inválida')
+  }
+
+  return payload
+}
+
+export async function refreshAccessTokenRequest(refreshToken: string): Promise<string> {
+  const response = await fetch('/api/auth/refresh/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refresh: refreshToken }),
+  })
+
+  const payload = await readJson(response)
+
+  if (!response.ok || !isRefreshResponse(payload)) {
+    throw new Error('Não foi possível renovar a sessão')
+  }
+
+  return payload.access
+}
+
+export async function getCurrentUserRequest(httpClient: HttpClient): Promise<CurrentUser> {
+  const response = await httpClient('/api/auth/me/')
+  const payload = await readJson(response)
+
+  if (!response.ok) {
+    throw new Error(getApiErrorMessage(payload, 'Não foi possível consultar o usuário atual'))
+  }
+
+  if (!isCurrentUser(payload)) {
+    throw new Error('Resposta de usuário inválida')
+  }
+
+  return payload
 }

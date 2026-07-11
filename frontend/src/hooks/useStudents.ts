@@ -1,29 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAPI } from '../context/APIProvider.tsx'
-
-type StudentUser = {
-  id: number
-  username: string
-  email: string
-  first_name: string
-  last_name: string
-  full_name: string
-}
-
-type StudentProfile = {
-  id: number
-  user: StudentUser
-  registration_number: string
-  course: string
-  phone_number: string
-  created_at: string
-  updated_at: string
-}
-
-export type Student = {
-  name: string
-  email: string
-}
+import { listStudentsRequest, type Student } from '../api/students.ts'
+import { useAPI } from '../context/api-context.ts'
+import { getErrorMessage } from '../utils/errors.ts'
 
 export function useStudents() {
   const { fetchWithAuth } = useAPI()
@@ -31,32 +9,49 @@ export function useStudents() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchStudents = useCallback(async () => {
+  const loadStudents = useCallback(async (): Promise<void> => {
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await fetchWithAuth('/api/students/')
-      if (!response.ok) {
-        throw new Error('Erro ao carregar estudantes')
-      }
-      const data: StudentProfile[] = await response.json()
-      setStudents(
-        data.map((profile) => ({
-          name: profile.user.full_name,
-          email: profile.user.email,
-        })),
-      )
-    } catch (err) {
-      setError((err as Error).message)
+      const data = await listStudentsRequest(fetchWithAuth)
+      setStudents(data)
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Erro ao carregar estudantes'))
     } finally {
       setIsLoading(false)
     }
   }, [fetchWithAuth])
 
   useEffect(() => {
-    fetchStudents()
-  }, [fetchStudents])
+    let isCancelled = false
 
-  return { students, isLoading, error, refetch: fetchStudents }
+    void listStudentsRequest(fetchWithAuth)
+      .then((data) => {
+        if (!isCancelled) {
+          setStudents(data)
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (!isCancelled) {
+          setError(getErrorMessage(requestError, 'Erro ao carregar estudantes'))
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [fetchWithAuth])
+
+  return {
+    students,
+    isLoading,
+    error,
+    refetch: loadStudents,
+  }
 }

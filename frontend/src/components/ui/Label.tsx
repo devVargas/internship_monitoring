@@ -1,6 +1,28 @@
+import type { ComponentProps } from 'react'
 
-export default function Label(props: { text: string }) {
-    return (
-        <label className="font-outfit text-neutral-900 text-left text-base pl-4">{props.text}</label>
-    );
+type LabelProps = ComponentProps<'label'> & {
+  text: string
+  required?: boolean
+}
+
+export default function Label({
+  text,
+  required = false,
+  className = '',
+  ...labelProps
+}: LabelProps) {
+  return (
+    <label
+      {...labelProps}
+      className={`mb-1.5 block text-sm font-medium text-neutral-800 ${className}`}
+    >
+      {text}
+
+      {required && (
+        <span className="ml-1 text-red-600" aria-hidden="true">
+          *
+        </span>
+      )}
+    </label>
+  )
 }
