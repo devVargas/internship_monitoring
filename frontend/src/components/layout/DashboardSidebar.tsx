@@ -9,10 +9,7 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  NavLink,
-  useNavigate,
-} from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.ts'
 
 type DashboardSidebarProps = {
@@ -28,18 +25,20 @@ const ACTIVE_ITEMS = [
     end: true,
   },
   {
-    to: '/cadastro-professor',
-    label: 'Cadastrar professor',
+    to: '/cadastro-academico',
+    label: 'Cadastrar equipe acadêmica',
     icon: faUserPlus,
+    end: false,
+  },
+  {
+    to: '/alunos',
+    label: 'Alunos',
+    icon: faUsers,
     end: false,
   },
 ]
 
 const FUTURE_ITEMS = [
-  {
-    label: 'Alunos',
-    icon: faUsers,
-  },
   {
     label: 'Documentos',
     icon: faFileLines,
@@ -54,25 +53,15 @@ const FUTURE_ITEMS = [
   },
 ]
 
-function getLinkClass(isActive: boolean) {
-  const baseClass = `
-    flex items-center gap-3 rounded-lg
-    px-3 py-2.5 text-sm font-medium
-    transition
-  `
+function getLinkClass(isActive: boolean): string {
+  const baseClass =
+    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition'
 
   if (isActive) {
-    return `
-      ${baseClass}
-      bg-green-900 text-white
-    `
+    return `${baseClass} bg-green-900 text-white`
   }
 
-  return `
-    ${baseClass}
-    text-neutral-700
-    hover:bg-green-50 hover:text-green-950
-  `
+  return `${baseClass} text-neutral-700 hover:bg-green-50 hover:text-green-950`
 }
 
 export default function DashboardSidebar({
@@ -81,28 +70,20 @@ export default function DashboardSidebar({
 }: DashboardSidebarProps) {
   const { logout } = useAuth()
   const navigate = useNavigate()
+  const positionClass = isOpen ? 'translate-x-0' : '-translate-x-full'
 
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
   }
 
-  const positionClass = isOpen
-    ? 'translate-x-0'
-    : '-translate-x-full'
-
   return (
     <aside
       className={`
-        fixed inset-y-0 left-0 z-50
-        flex w-72 flex-col
-        border-r border-neutral-200
-        bg-white p-4 shadow-xl
+        fixed inset-y-0 left-0 z-50 flex w-72 flex-col
+        border-r border-neutral-200 bg-white p-4 shadow-xl
         transition-transform duration-200
-
-        md:static md:w-64 md:translate-x-0
-        md:shadow-none
-
+        md:static md:w-64 md:translate-x-0 md:shadow-none
         ${positionClass}
       `}
     >
@@ -111,21 +92,13 @@ export default function DashboardSidebar({
           <p className="text-xs font-medium uppercase tracking-wider text-green-700">
             Sistema de
           </p>
-
-          <p className="font-semibold text-green-950">
-            Acompanhamento de Estágio
-          </p>
+          <p className="font-semibold text-green-950">Acompanhamento de Estágio</p>
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="
-            flex h-9 w-9 items-center justify-center
-            rounded-lg text-neutral-500
-            transition hover:bg-neutral-100
-            hover:text-neutral-900 md:hidden
-          "
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 md:hidden"
           aria-label="Fechar menu"
         >
           <FontAwesomeIcon icon={faXmark} />
@@ -139,15 +112,9 @@ export default function DashboardSidebar({
             to={item.to}
             end={item.end}
             onClick={onClose}
-            className={({ isActive }) =>
-              getLinkClass(isActive)
-            }
+            className={({ isActive }) => getLinkClass(isActive)}
           >
-            <FontAwesomeIcon
-              icon={item.icon}
-              className="w-4"
-            />
-
+            <FontAwesomeIcon icon={item.icon} className="w-4" />
             <span>{item.label}</span>
           </NavLink>
         ))}
@@ -159,26 +126,12 @@ export default function DashboardSidebar({
             key={item.label}
             type="button"
             disabled
-            className="
-              flex cursor-not-allowed items-center
-              gap-3 rounded-lg px-3 py-2.5
-              text-left text-sm font-medium
-              text-neutral-400
-            "
+            className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-400"
             title="Funcionalidade disponível em breve"
           >
-            <FontAwesomeIcon
-              icon={item.icon}
-              className="w-4"
-            />
-
-            <span className="flex-1">
-              {item.label}
-            </span>
-
-            <span className="text-[10px] font-semibold uppercase tracking-wide">
-              Em breve
-            </span>
+            <FontAwesomeIcon icon={item.icon} className="w-4" />
+            <span className="flex-1">{item.label}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide">Em breve</span>
           </button>
         ))}
       </nav>
@@ -186,18 +139,9 @@ export default function DashboardSidebar({
       <button
         type="button"
         onClick={handleLogout}
-        className="
-          mt-auto flex items-center gap-3
-          rounded-lg px-3 py-2.5
-          text-sm font-medium text-red-700
-          transition hover:bg-red-50
-        "
+        className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
       >
-        <FontAwesomeIcon
-          icon={faArrowRightFromBracket}
-          className="w-4"
-        />
-
+        <FontAwesomeIcon icon={faArrowRightFromBracket} className="w-4" />
         Sair
       </button>
     </aside>

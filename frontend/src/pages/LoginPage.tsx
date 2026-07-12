@@ -1,4 +1,4 @@
-import { faFileLines, faGraduationCap } from '@fortawesome/free-solid-svg-icons'
+import { faGraduationCap } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Link } from 'react-router-dom'
 import LoginForm from '../components/forms/LoginForm.tsx'

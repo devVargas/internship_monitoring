@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
-import { useRegisterProfessor } from '../../hooks/useRegisterProfessor.ts'
+import type { AcademicUserType } from '../../api/auth.ts'
+import { useRegisterAcademicUser } from '../../hooks/useRegisterAcademicUser.ts'
 import {
   validateEmail,
   validateName,
@@ -11,7 +12,11 @@ import Button from '../ui/Button.tsx'
 import FormField from '../ui/FormField.tsx'
 import PasswordField from '../ui/PasswordField.tsx'
 
-type ProfessorFormData = {
+type AcademicUserFormProps = {
+  userType: AcademicUserType
+}
+
+type AcademicUserFormData = {
   firstName: string
   lastName: string
   email: string
@@ -19,10 +24,10 @@ type ProfessorFormData = {
   confirmPassword: string
 }
 
-type ProfessorField = keyof ProfessorFormData
-type ProfessorErrors = Partial<Record<ProfessorField, string>>
+type AcademicUserField = keyof AcademicUserFormData
+type AcademicUserErrors = Partial<Record<AcademicUserField, string>>
 
-const INITIAL_FORM: ProfessorFormData = {
+const INITIAL_FORM: AcademicUserFormData = {
   firstName: '',
   lastName: '',
   email: '',
@@ -30,10 +35,10 @@ const INITIAL_FORM: ProfessorFormData = {
   confirmPassword: '',
 }
 
-function validateForm(form: ProfessorFormData): ProfessorErrors {
-  const errors: ProfessorErrors = {}
+function validateForm(form: AcademicUserFormData): AcademicUserErrors {
+  const errors: AcademicUserErrors = {}
 
-  function addError(field: ProfessorField, error: string | null) {
+  function addError(field: AcademicUserField, error: string | null) {
     if (error) {
       errors[field] = error
     }
@@ -48,19 +53,25 @@ function validateForm(form: ProfessorFormData): ProfessorErrors {
   return errors
 }
 
-export default function ProfessorForm() {
-  const [form, setForm] = useState(INITIAL_FORM)
-  const [fieldErrors, setFieldErrors] = useState<ProfessorErrors>({})
-  const [successMessage, setSuccessMessage] = useState('')
-  const { register, isLoading, error } = useRegisterProfessor()
+function getUserTypeLabel(userType: AcademicUserType): string {
+  return userType === 'coordinator' ? 'coordenador' : 'professor'
+}
 
-  function updateField(field: ProfessorField, value: string) {
+export default function AcademicUserForm({ userType }: AcademicUserFormProps) {
+  const [form, setForm] = useState(INITIAL_FORM)
+  const [fieldErrors, setFieldErrors] = useState<AcademicUserErrors>({})
+  const [successMessage, setSuccessMessage] = useState('')
+  const { register, isLoading, error } = useRegisterAcademicUser()
+  const userTypeLabel = getUserTypeLabel(userType)
+
+  function updateField(field: AcademicUserField, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
-    setFieldErrors((errors) => ({ ...errors, [field]: undefined }))
+    setFieldErrors((current) => ({ ...current, [field]: undefined }))
   }
 
   async function submitForm(): Promise<void> {
     setSuccessMessage('')
+
     const errors = validateForm(form)
     setFieldErrors(errors)
 
@@ -68,7 +79,7 @@ export default function ProfessorForm() {
       return
     }
 
-    const wasCreated = await register({
+    const wasCreated = await register(userType, {
       email: form.email.trim(),
       first_name: form.firstName.trim(),
       last_name: form.lastName.trim(),
@@ -78,7 +89,7 @@ export default function ProfessorForm() {
     if (wasCreated) {
       setForm(INITIAL_FORM)
       setFieldErrors({})
-      setSuccessMessage('Professor cadastrado com sucesso.')
+      setSuccessMessage(`${userTypeLabel[0].toUpperCase()}${userTypeLabel.slice(1)} cadastrado com sucesso.`)
     }
   }
 
@@ -91,7 +102,7 @@ export default function ProfessorForm() {
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField
-          id="professorFirstName"
+          id="academicFirstName"
           label="Nome"
           value={form.firstName}
           onChange={(event) => {
@@ -102,7 +113,7 @@ export default function ProfessorForm() {
         />
 
         <FormField
-          id="professorLastName"
+          id="academicLastName"
           label="Sobrenome"
           value={form.lastName}
           onChange={(event) => {
@@ -113,36 +124,39 @@ export default function ProfessorForm() {
       </div>
 
       <FormField
-        id="professorEmail"
+        id="academicEmail"
         label="Email"
         type="email"
         value={form.email}
         onChange={(event) => {
           updateField('email', event.target.value)
         }}
+        autoComplete="email"
         required
         error={fieldErrors.email}
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <PasswordField
-          id="professorPassword"
+          id="academicPassword"
           label="Senha"
           value={form.password}
           onChange={(event) => {
             updateField('password', event.target.value)
           }}
+          autoComplete="new-password"
           required
           error={fieldErrors.password}
         />
 
         <PasswordField
-          id="professorConfirmPassword"
+          id="academicConfirmPassword"
           label="Confirmar senha"
           value={form.confirmPassword}
           onChange={(event) => {
             updateField('confirmPassword', event.target.value)
           }}
+          autoComplete="new-password"
           required
           error={fieldErrors.confirmPassword}
         />
@@ -167,7 +181,7 @@ export default function ProfessorForm() {
       )}
 
       <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Cadastrando...' : 'Cadastrar professor'}
+        {isLoading ? 'Cadastrando...' : `Cadastrar ${userTypeLabel}`}
       </Button>
     </form>
   )

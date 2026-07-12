@@ -16,9 +16,7 @@ export default function RoleProtectedRoute({
 }: RoleProtectedRouteProps) {
   const { isAuthenticated } = useAuth()
   const { fetchWithAuth } = useAPI()
-
-  const [hasAccess, setHasAccess] =
-    useState<boolean | null>(null)
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -29,20 +27,13 @@ export default function RoleProtectedRoute({
 
     async function checkAccess() {
       try {
-        const user = await getCurrentUserRequest(
-          fetchWithAuth,
+        const user = await getCurrentUserRequest(fetchWithAuth)
+        const belongsToAllowedGroup = user.groups.some((group) =>
+          allowedGroups.includes(group),
         )
 
-        const belongsToAllowedGroup =
-          user.groups.some((group) =>
-            allowedGroups.includes(group),
-          )
-
         if (!cancelled) {
-          setHasAccess(
-            user.is_superuser ||
-              belongsToAllowedGroup,
-          )
+          setHasAccess(user.is_superuser || belongsToAllowedGroup)
         }
       } catch {
         if (!cancelled) {
@@ -56,11 +47,7 @@ export default function RoleProtectedRoute({
     return () => {
       cancelled = true
     }
-  }, [
-    allowedGroups,
-    fetchWithAuth,
-    isAuthenticated,
-  ])
+  }, [allowedGroups, fetchWithAuth, isAuthenticated])
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -69,9 +56,7 @@ export default function RoleProtectedRoute({
   if (hasAccess === null) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <p className="text-sm text-neutral-600">
-          Verificando acesso...
-        </p>
+        <p className="text-sm text-neutral-600">Verificando acesso...</p>
       </div>
     )
   }

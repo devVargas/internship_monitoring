@@ -18,6 +18,8 @@ export type CurrentUser = {
   is_superuser: boolean
 }
 
+export type AcademicUserType = 'professor' | 'coordinator'
+
 export type RegisterStudentData = {
   email: string
   first_name: string
@@ -29,14 +31,14 @@ export type RegisterStudentData = {
   phone_number: string
 }
 
-export type RegisterProfessorData = {
+export type RegisterAcademicUserData = {
   email: string
   first_name: string
   last_name: string
   password: string
 }
 
-export type RegisterSupervisorData = RegisterProfessorData & {
+export type RegisterSupervisorData = RegisterAcademicUserData & {
   company_name: string
   company_cnpj: string
   phone_number: string
@@ -94,8 +96,12 @@ export function registerStudentRequest(data: RegisterStudentData): Promise<void>
   return registerRequest('/api/auth/register/student/', data, 'Erro ao cadastrar estudante')
 }
 
+export function registerSupervisorRequest(data: RegisterSupervisorData): Promise<void> {
+  return registerRequest('/api/auth/register/supervisor/', data, 'Erro ao cadastrar supervisor')
+}
+
 export function registerProfessorRequest(
-  data: RegisterProfessorData,
+  data: RegisterAcademicUserData,
   httpClient: HttpClient,
 ): Promise<void> {
   return registerRequest(
@@ -106,13 +112,15 @@ export function registerProfessorRequest(
   )
 }
 
-export function registerSupervisorRequest(
-  data: RegisterSupervisorData,
+export function registerCoordinatorRequest(
+  data: RegisterAcademicUserData,
+  httpClient: HttpClient,
 ): Promise<void> {
   return registerRequest(
-    '/api/auth/register/supervisor/',
+    '/api/auth/register/coordinator/',
     data,
-    'Erro ao cadastrar supervisor',
+    'Erro ao cadastrar coordenador',
+    httpClient,
   )
 }
 
