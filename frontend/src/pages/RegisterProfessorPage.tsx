@@ -1,9 +1,9 @@
 import ProfessorForm from '../components/forms/ProfessorForm.tsx'
-import StaffPageLayout from '../components/layout/StaffPageLayout.tsx'
+import DashboardLayout from '../components/layout/DashboardLayout.tsx'
 
 export default function RegisterProfessorPage() {
   return (
-    <StaffPageLayout>
+    <DashboardLayout>
       <div className="mx-auto max-w-3xl">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold text-neutral-950">
@@ -19,6 +19,6 @@ export default function RegisterProfessorPage() {
           <ProfessorForm />
         </section>
       </div>
-    </StaffPageLayout>
+    </DashboardLayout>
   )
 }

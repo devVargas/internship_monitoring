@@ -1,11 +1,11 @@
-import StaffPageLayout from '../components/layout/StaffPageLayout.tsx'
+import DashboardLayout from '../components/layout/DashboardLayout.tsx'
 import { useStudents } from '../hooks/useStudents.ts'
 
 export default function StudentsPage() {
   const { students, isLoading, error } = useStudents()
 
   return (
-    <StaffPageLayout>
+    <DashboardLayout>
       <div className="mx-auto max-w-6xl">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-neutral-950">Alunos</h1>
@@ -67,6 +67,6 @@ export default function StudentsPage() {
           )}
         </section>
       </div>
-    </StaffPageLayout>
+    </DashboardLayout>
   )
 }

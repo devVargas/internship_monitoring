@@ -5,13 +5,18 @@ import {
   Routes,
 } from 'react-router-dom'
 import ProtectedRoute from '../components/routing/ProtectedRoute.tsx'
-import StaffRoute from '../components/routing/StaffRoute.tsx'
-import HomePage from '../pages/HomePage.tsx'
+import RoleProtectedRoute from '../components/routing/RoleProtectedRoute.tsx'
+import DashboardPage from '../pages/DashboardPage.tsx'
 import LoginPage from '../pages/LoginPage.tsx'
 import RegisterProfessorPage from '../pages/RegisterProfessorPage.tsx'
 import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
 import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
+
+const MANAGEMENT_GROUPS = [
+  'Teacher',
+  'Coordinator',
+] as const
 
 export default function Router() {
   return (
@@ -46,7 +51,7 @@ export default function Router() {
           path="/"
           element={
             <ProtectedRoute>
-              <HomePage />
+              <DashboardPage />
             </ProtectedRoute>
           }
         />
@@ -54,18 +59,22 @@ export default function Router() {
         <Route
           path="/cadastro-professor"
           element={
-            <StaffRoute>
+            <RoleProtectedRoute
+              allowedGroups={MANAGEMENT_GROUPS}
+            >
               <RegisterProfessorPage />
-            </StaffRoute>
+            </RoleProtectedRoute>
           }
         />
 
         <Route
           path="/alunos"
           element={
-            <StaffRoute>
+            <RoleProtectedRoute
+              allowedGroups={MANAGEMENT_GROUPS}
+            >
               <StudentsPage />
-            </StaffRoute>
+            </RoleProtectedRoute>
           }
         />
 
