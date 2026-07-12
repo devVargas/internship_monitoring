@@ -6,6 +6,12 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from apps.accounts.constants import GROUP_PROFESSOR, GROUP_STUDENT, GROUP_SUPERVISOR
 from apps.accounts.models import SupervisorProfile
 from apps.students.models import StudentProfile
+from apps.accounts.constants import (
+    GROUP_COORDINATOR,
+    GROUP_PROFESSOR,
+    GROUP_STUDENT,
+    GROUP_SUPERVISOR,
+)
 
 User = get_user_model()
 
@@ -84,16 +90,29 @@ class StudentRegistrationSerializer(serializers.Serializer):
     def to_representation(self, instance):
         return UserSerializer(instance).data
 
-class ProfessorRegistrationSerializer(serializers.Serializer):
+class AcademicUserRegistrationSerializer(serializers.Serializer):
+    group_name = None
     email = serializers.EmailField()
     first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
-    password = serializers.CharField(write_only=True, min_length=8)
+    last_name = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+    )
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
+        normalized_email = value.lower().strip()
+
+        if User.objects.filter(email__iexact=normalized_email).exists():
+            raise serializers.ValidationError(
+                "Já existe um usuário com este e-mail."
+            )
+
+        return normalized_email
 
     @transaction.atomic
     def create(self, validated_data):
@@ -105,16 +124,23 @@ class ProfessorRegistrationSerializer(serializers.Serializer):
             password=password,
             **validated_data,
         )
-        user.is_staff = True
-        user.save(update_fields=["is_staff"])
 
-        professor_group, _ = Group.objects.get_or_create(name=GROUP_PROFESSOR)
-        user.groups.add(professor_group)
+        group, _ = Group.objects.get_or_create(
+            name=self.group_name,
+        )
+
+        user.groups.add(group)
 
         return user
 
     def to_representation(self, instance):
         return UserSerializer(instance).data
+
+class ProfessorRegistrationSerializer(AcademicUserRegistrationSerializer):
+    group_name = GROUP_PROFESSOR
+
+class CoordinatorRegistrationSerializer(AcademicUserRegistrationSerializer):
+    group_name = GROUP_COORDINATOR
 
 class SupervisorRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField()
