@@ -3,16 +3,18 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-
-from apps.accounts.permissions import CanCreateUser
+from apps.accounts.permissions import (
+    CanCreateCoordinator,
+    CanCreateProfessor,
+)
 from apps.accounts.serializers import (
+    CoordinatorRegistrationSerializer,
     CustomTokenObtainPairSerializer,
     ProfessorRegistrationSerializer,
     StudentRegistrationSerializer,
     SupervisorRegistrationSerializer,
     UserSerializer,
 )
-
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -30,7 +32,11 @@ class StudentRegistrationView(generics.CreateAPIView):
 
 class ProfessorRegistrationView(generics.CreateAPIView):
     serializer_class = ProfessorRegistrationSerializer
-    permission_classes = [CanCreateUser]
+    permission_classes = [CanCreateProfessor]
+
+class CoordinatorRegistrationView(generics.CreateAPIView):
+    serializer_class = CoordinatorRegistrationSerializer
+    permission_classes = [CanCreateCoordinator]
 
 class SupervisorRegistrationView(generics.CreateAPIView):
     serializer_class = SupervisorRegistrationSerializer
