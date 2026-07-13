@@ -7,6 +7,7 @@ import RegisterAcademicUserPage from '../pages/RegisterAcademicUserPage.tsx'
 import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
 import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
+import UserProfilePage from '../pages/UserProfilePage.tsx'
 
 const ACADEMIC_GROUPS = ['Teacher', 'Coordinator'] as const
 
@@ -25,6 +26,15 @@ export default function Router() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/perfil"
+          element={
+            <ProtectedRoute>
+              <UserProfilePage />
             </ProtectedRoute>
           }
         />

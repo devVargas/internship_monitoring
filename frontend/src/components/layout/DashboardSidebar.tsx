@@ -36,6 +36,12 @@ const ACTIVE_ITEMS = [
     icon: faUsers,
     end: false,
   },
+  {
+    to: '/perfil',
+    label: 'Meu perfil',
+    icon: faUser,
+    end: false,
+  },
 ]
 
 const FUTURE_ITEMS = [
@@ -46,10 +52,6 @@ const FUTURE_ITEMS = [
   {
     label: 'Linha do tempo',
     icon: faClockRotateLeft,
-  },
-  {
-    label: 'Meu perfil',
-    icon: faUser,
   },
 ]
 
@@ -92,7 +94,9 @@ export default function DashboardSidebar({
           <p className="text-xs font-medium uppercase tracking-wider text-green-700">
             Sistema de
           </p>
-          <p className="font-semibold text-green-950">Acompanhamento de Estágio</p>
+          <p className="font-semibold text-green-950">
+            Acompanhamento de Estágio
+          </p>
         </div>
 
         <button
@@ -131,7 +135,9 @@ export default function DashboardSidebar({
           >
             <FontAwesomeIcon icon={item.icon} className="w-4" />
             <span className="flex-1">{item.label}</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wide">Em breve</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide">
+              Em breve
+            </span>
           </button>
         ))}
       </nav>
