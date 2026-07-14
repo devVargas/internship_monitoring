@@ -1,6 +1,7 @@
 import {
+  faClockRotateLeft,
   faClipboardCheck,
-  faFileLines,
+  faFileCirclePlus,
   faUser,
   faUserPlus,
   faUsers,
@@ -8,7 +9,6 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
-import { canAccessAcademicArea } from '../constants/roles.ts'
 import { useCurrentUser } from '../hooks/useCurrentUser.ts'
 
 const CARD_CLASS =
@@ -16,7 +16,13 @@ const CARD_CLASS =
 
 export default function DashboardPage() {
   const { user } = useCurrentUser()
-  const canAccessAcademic = user ? canAccessAcademicArea(user) : false
+  const canAccessAcademic = Boolean(
+    user &&
+    (user.is_superuser || user.groups.includes('Teacher') || user.groups.includes('Coordinator')),
+  )
+  const isStudent = user?.groups.includes('Student') ?? false
+
+  const canViewDocumentHistory = user?.is_superuser === true || isStudent
 
   return (
     <DashboardLayout>
@@ -33,9 +39,7 @@ export default function DashboardPage() {
       </header>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">
-          Acesso rápido
-        </h2>
+        <h2 className="mb-4 text-lg font-semibold text-neutral-900">Acesso rápido</h2>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {canAccessAcademic && (
@@ -44,17 +48,13 @@ export default function DashboardPage() {
                 <FontAwesomeIcon icon={faClipboardCheck} />
               </div>
 
-              <h3 className="mt-4 font-semibold text-neutral-950">
-                Revisão de documentos
-              </h3>
+              <h3 className="mt-4 font-semibold text-neutral-950">Revisão de documentos</h3>
 
               <p className="mt-1 text-sm leading-6 text-neutral-600">
                 Analise documentos enviados e registre a decisão.
               </p>
 
-              <p className="mt-4 text-sm font-semibold text-green-800">
-                Acessar
-              </p>
+              <p className="mt-4 text-sm font-semibold text-green-800">Acessar</p>
             </Link>
           )}
 
@@ -64,17 +64,13 @@ export default function DashboardPage() {
                 <FontAwesomeIcon icon={faUserPlus} />
               </div>
 
-              <h3 className="mt-4 font-semibold text-neutral-950">
-                Cadastrar equipe acadêmica
-              </h3>
+              <h3 className="mt-4 font-semibold text-neutral-950">Cadastrar equipe acadêmica</h3>
 
               <p className="mt-1 text-sm leading-6 text-neutral-600">
                 Adicione professores e coordenadores ao sistema.
               </p>
 
-              <p className="mt-4 text-sm font-semibold text-green-800">
-                Acessar
-              </p>
+              <p className="mt-4 text-sm font-semibold text-green-800">Acessar</p>
             </Link>
           )}
 
@@ -90,9 +86,23 @@ export default function DashboardPage() {
                 Consulte os alunos cadastrados no sistema.
               </p>
 
-              <p className="mt-4 text-sm font-semibold text-green-800">
-                Acessar
+              <p className="mt-4 text-sm font-semibold text-green-800">Acessar</p>
+            </Link>
+          )}
+
+          {canViewDocumentHistory && (
+            <Link to="/historico-documentos" className={CARD_CLASS}>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-100 text-green-950">
+                <FontAwesomeIcon icon={faClockRotateLeft} />
+              </div>
+
+              <h3 className="mt-4 font-semibold text-neutral-950">Histórico de documentos</h3>
+
+              <p className="mt-1 text-sm leading-6 text-neutral-600">
+                Acompanhe as movimentações de todos os seus documentos.
               </p>
+
+              <p className="mt-4 text-sm font-semibold text-green-800">Acessar</p>
             </Link>
           )}
 
@@ -101,38 +111,34 @@ export default function DashboardPage() {
               <FontAwesomeIcon icon={faUser} />
             </div>
 
-            <h3 className="mt-4 font-semibold text-neutral-950">
-              Meu perfil
-            </h3>
+            <h3 className="mt-4 font-semibold text-neutral-950">Meu perfil</h3>
 
             <p className="mt-1 text-sm leading-6 text-neutral-600">
               Consulte e atualize seus dados pessoais.
             </p>
 
-            <p className="mt-4 text-sm font-semibold text-green-800">
-              Acessar
-            </p>
+            <p className="mt-4 text-sm font-semibold text-green-800">Acessar</p>
           </Link>
 
-          <button
-            type="button"
-            disabled
-            className="cursor-not-allowed rounded-2xl border border-neutral-200 bg-white p-5 text-left opacity-70 shadow-sm"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500">
-              <FontAwesomeIcon icon={faFileLines} />
-            </div>
+          {isStudent && (
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-2xl border border-neutral-200 bg-white p-5 text-left opacity-70 shadow-sm"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500">
+                <FontAwesomeIcon icon={faFileCirclePlus} />
+              </div>
 
-            <h3 className="mt-4 font-semibold text-neutral-800">
-              Documentos
-            </h3>
-            <p className="mt-1 text-sm leading-6 text-neutral-500">
-              Preenchimento e acompanhamento dos documentos do estágio.
-            </p>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-              Em breve
-            </p>
-          </button>
+              <h3 className="mt-4 font-semibold text-neutral-800">Novo documento</h3>
+              <p className="mt-1 text-sm leading-6 text-neutral-500">
+                Preencha e envie um novo documento de estágio.
+              </p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                Em breve
+              </p>
+            </button>
+          )}
         </div>
       </section>
     </DashboardLayout>
