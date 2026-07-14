@@ -1,6 +1,6 @@
 import {
   faArrowRightFromBracket,
-  faClockRotateLeft,
+  faClipboardCheck,
   faFileLines,
   faHouse,
   faUser,
@@ -10,31 +10,28 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { canAccessAcademicArea } from '../../constants/roles.ts'
 import { useAuth } from '../../hooks/useAuth.ts'
+import { useCurrentUser } from '../../hooks/useCurrentUser.ts'
 
 type DashboardSidebarProps = {
   isOpen: boolean
   onClose: () => void
 }
 
-const ACTIVE_ITEMS = [
+type NavigationItem = {
+  to: string
+  label: string
+  icon: typeof faHouse
+  end: boolean
+}
+
+const COMMON_ITEMS: NavigationItem[] = [
   {
     to: '/',
     label: 'Início',
     icon: faHouse,
     end: true,
-  },
-  {
-    to: '/cadastro-academico',
-    label: 'Cadastrar equipe acadêmica',
-    icon: faUserPlus,
-    end: false,
-  },
-  {
-    to: '/alunos',
-    label: 'Alunos',
-    icon: faUsers,
-    end: false,
   },
   {
     to: '/perfil',
@@ -44,14 +41,24 @@ const ACTIVE_ITEMS = [
   },
 ]
 
-const FUTURE_ITEMS = [
+const ACADEMIC_ITEMS: NavigationItem[] = [
   {
-    label: 'Documentos',
-    icon: faFileLines,
+    to: '/revisao-documentos',
+    label: 'Revisão de documentos',
+    icon: faClipboardCheck,
+    end: false,
   },
   {
-    label: 'Linha do tempo',
-    icon: faClockRotateLeft,
+    to: '/alunos',
+    label: 'Alunos',
+    icon: faUsers,
+    end: false,
+  },
+  {
+    to: '/cadastro-academico',
+    label: 'Cadastrar equipe acadêmica',
+    icon: faUserPlus,
+    end: false,
   },
 ]
 
@@ -71,8 +78,13 @@ export default function DashboardSidebar({
   onClose,
 }: DashboardSidebarProps) {
   const { logout } = useAuth()
+  const { user } = useCurrentUser()
   const navigate = useNavigate()
   const positionClass = isOpen ? 'translate-x-0' : '-translate-x-full'
+  const canAccessAcademic = user ? canAccessAcademicArea(user) : false
+  const navigationItems = canAccessAcademic
+    ? [COMMON_ITEMS[0], ...ACADEMIC_ITEMS, COMMON_ITEMS[1]]
+    : COMMON_ITEMS
 
   function handleLogout() {
     logout()
@@ -110,7 +122,7 @@ export default function DashboardSidebar({
       </header>
 
       <nav className="mt-6 flex flex-col gap-1">
-        {ACTIVE_ITEMS.map((item) => (
+        {navigationItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -125,21 +137,18 @@ export default function DashboardSidebar({
 
         <div className="my-3 border-t border-neutral-200" />
 
-        {FUTURE_ITEMS.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            disabled
-            className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-400"
-            title="Funcionalidade disponível em breve"
-          >
-            <FontAwesomeIcon icon={item.icon} className="w-4" />
-            <span className="flex-1">{item.label}</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wide">
-              Em breve
-            </span>
-          </button>
-        ))}
+        <button
+          type="button"
+          disabled
+          className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-400"
+          title="Funcionalidade disponível em breve"
+        >
+          <FontAwesomeIcon icon={faFileLines} className="w-4" />
+          <span className="flex-1">Documentos</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide">
+            Em breve
+          </span>
+        </button>
       </nav>
 
       <button

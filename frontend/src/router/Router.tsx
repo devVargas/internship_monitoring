@@ -1,15 +1,16 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '../components/routing/ProtectedRoute.tsx'
 import RoleProtectedRoute from '../components/routing/RoleProtectedRoute.tsx'
+import { ACADEMIC_GROUPS } from '../constants/roles.ts'
 import DashboardPage from '../pages/DashboardPage.tsx'
+import DocumentReviewDetailPage from '../pages/DocumentReviewDetailPage.tsx'
+import DocumentReviewPage from '../pages/DocumentReviewPage.tsx'
 import LoginPage from '../pages/LoginPage.tsx'
 import RegisterAcademicUserPage from '../pages/RegisterAcademicUserPage.tsx'
 import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
 import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
 import UserProfilePage from '../pages/UserProfilePage.tsx'
-
-const ACADEMIC_GROUPS = ['Teacher', 'Coordinator'] as const
 
 export default function Router() {
   return (
@@ -53,6 +54,24 @@ export default function Router() {
           element={
             <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
               <StudentsPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/revisao-documentos"
+          element={
+            <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
+              <DocumentReviewPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/revisao-documentos/:documentId"
+          element={
+            <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
+              <DocumentReviewDetailPage />
             </RoleProtectedRoute>
           }
         />
