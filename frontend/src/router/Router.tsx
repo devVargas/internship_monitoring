@@ -4,6 +4,7 @@ import RoleProtectedRoute from '../components/routing/RoleProtectedRoute.tsx'
 import DashboardPage from '../pages/DashboardPage.tsx'
 import LoginPage from '../pages/LoginPage.tsx'
 import RegisterAcademicUserPage from '../pages/RegisterAcademicUserPage.tsx'
+import RegisterDocumentPage from '../pages/RegisterDocumentPage.tsx'
 import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
 import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
@@ -43,6 +44,15 @@ export default function Router() {
           element={
             <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
               <StudentsPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/enviar-documento"
+          element={
+            <RoleProtectedRoute allowedGroups={'Student'}>
+              <RegisterDocumentPage />
             </RoleProtectedRoute>
           }
         />

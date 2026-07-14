@@ -64,23 +64,20 @@ export default function DashboardPage() {
             <p className="mt-4 text-sm font-semibold text-green-800">Acessar</p>
           </Link>
 
-          <button
-            type="button"
-            disabled
-            className="cursor-not-allowed rounded-2xl border border-neutral-200 bg-white p-5 text-left opacity-70 shadow-sm"
+          <Link
+            to="/enviar-documento"
+            className="rounded-2xl border border-green-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-green-700 hover:shadow-md"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-100 text-green-950">
               <FontAwesomeIcon icon={faFileLines} />
             </div>
 
-            <h3 className="mt-4 font-semibold text-neutral-800">Documentos</h3>
-            <p className="mt-1 text-sm leading-6 text-neutral-500">
+            <h3 className="mt-4 font-semibold text-neutral-950">Documentos</h3>
+            <p className="mt-1 text-sm leading-6 text-neutral-600">
               Análise e acompanhamento de documentos enviados.
             </p>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-              Em breve
-            </p>
-          </button>
+            <p className="mt-4 text-sm font-semibold text-green-800">Acessar</p>
+          </Link>
 
           <button
             type="button"

@@ -36,13 +36,15 @@ const ACTIVE_ITEMS = [
     icon: faUsers,
     end: false,
   },
+  {
+    to: '/enviar-documento',
+    label: 'Documentos',
+    icon: faFileLines,
+    end: false,
+  },
 ]
 
 const FUTURE_ITEMS = [
-  {
-    label: 'Documentos',
-    icon: faFileLines,
-  },
   {
     label: 'Linha do tempo',
     icon: faClockRotateLeft,
