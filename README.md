@@ -187,7 +187,7 @@ Execute somente depois das migrations:
 python manage.py migrate
 ```
 
-Na raiz do projeto, use um dos comandos abaixo.
+Na pasta backend do projeto, use um dos comandos abaixo.
 
 **Git Bash:**
 
