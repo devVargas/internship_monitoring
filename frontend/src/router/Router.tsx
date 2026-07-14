@@ -1,8 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '../components/routing/ProtectedRoute.tsx'
 import RoleProtectedRoute from '../components/routing/RoleProtectedRoute.tsx'
-import { ACADEMIC_GROUPS } from '../constants/roles.ts'
 import DashboardPage from '../pages/DashboardPage.tsx'
+import DocumentHistoryPage from '../pages/DocumentHistoryPage.tsx'
 import DocumentReviewDetailPage from '../pages/DocumentReviewDetailPage.tsx'
 import DocumentReviewPage from '../pages/DocumentReviewPage.tsx'
 import LoginPage from '../pages/LoginPage.tsx'
@@ -11,6 +11,9 @@ import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
 import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
 import UserProfilePage from '../pages/UserProfilePage.tsx'
+
+const ACADEMIC_GROUPS = ['Teacher', 'Coordinator'] as const
+const STUDENT_GROUPS = ['Student'] as const
 
 export default function Router() {
   return (
@@ -37,6 +40,15 @@ export default function Router() {
             <ProtectedRoute>
               <UserProfilePage />
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/historico-documentos"
+          element={
+            <RoleProtectedRoute allowedGroups={STUDENT_GROUPS}>
+              <DocumentHistoryPage />
+            </RoleProtectedRoute>
           }
         />
 

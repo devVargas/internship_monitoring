@@ -1,9 +1,4 @@
-import {
-  getApiErrorMessage,
-  isRecord,
-  readJson,
-  type HttpClient,
-} from './http.ts'
+import { getApiErrorMessage, isRecord, readJson, type HttpClient } from './http.ts'
 
 export const DOCUMENT_STATUSES = [
   'submitted',
@@ -114,22 +109,14 @@ function isNullableNumber(value: unknown): value is number | null {
 }
 
 function isDocumentStatus(value: unknown): value is DocumentStatus {
-  return (
-    typeof value === 'string' &&
-    DOCUMENT_STATUSES.some((status) => status === value)
-  )
+  return typeof value === 'string' && DOCUMENT_STATUSES.some((status) => status === value)
 }
 
 function isDocumentType(value: unknown): value is DocumentType {
-  return (
-    typeof value === 'string' &&
-    DOCUMENT_TYPES.some((documentType) => documentType === value)
-  )
+  return typeof value === 'string' && DOCUMENT_TYPES.some((documentType) => documentType === value)
 }
 
-function isDocumentReviewSummary(
-  value: unknown,
-): value is DocumentReviewSummaryResponse {
+function isDocumentReviewSummary(value: unknown): value is DocumentReviewSummaryResponse {
   if (!isRecord(value)) {
     return false
   }
@@ -196,9 +183,7 @@ function isDocumentDetail(value: unknown): value is DocumentDetailResponse {
   )
 }
 
-function mapDocumentSummary(
-  document: DocumentReviewSummaryResponse,
-): DocumentReviewSummary {
+function mapDocumentSummary(document: DocumentReviewSummaryResponse): DocumentReviewSummary {
   return {
     id: document.id,
     documentType: document.document_type,
@@ -279,9 +264,7 @@ export async function listDocumentsForReviewRequest(
   const payload = await readJson(response)
 
   if (!response.ok) {
-    throw new Error(
-      getApiErrorMessage(payload, 'Não foi possível carregar os documentos'),
-    )
+    throw new Error(getApiErrorMessage(payload, 'Não foi possível carregar os documentos'))
   }
 
   if (!Array.isArray(payload) || !payload.every(isDocumentReviewSummary)) {
@@ -291,16 +274,30 @@ export async function listDocumentsForReviewRequest(
   return payload.map(mapDocumentSummary)
 }
 
+export async function listMyDocumentsRequest(httpClient: HttpClient): Promise<DocumentDetail[]> {
+  const response = await httpClient('/api/documents/')
+  const payload = await readJson(response)
+
+  if (!response.ok) {
+    throw new Error(
+      getApiErrorMessage(payload, 'Não foi possível carregar o histórico de documentos'),
+    )
+  }
+
+  if (!Array.isArray(payload) || !payload.every(isDocumentDetail)) {
+    throw new Error('Resposta do histórico de documentos inválida')
+  }
+
+  return payload.map(mapDocumentDetail)
+}
+
 export async function getDocumentRequest(
   documentId: number,
   httpClient: HttpClient,
 ): Promise<DocumentDetail> {
   const response = await httpClient(`/api/documents/${String(documentId)}/`)
 
-  return readDocumentDetail(
-    response,
-    'Não foi possível carregar o documento',
-  )
+  return readDocumentDetail(response, 'Não foi possível carregar o documento')
 }
 
 async function sendReviewAction(
@@ -309,21 +306,15 @@ async function sendReviewAction(
   httpClient: HttpClient,
   comment?: string,
 ): Promise<DocumentDetail> {
-  const response = await httpClient(
-    `/api/documents/${String(documentId)}/${action}/`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(comment === undefined ? {} : { comment }),
+  const response = await httpClient(`/api/documents/${String(documentId)}/${action}/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  )
+    body: JSON.stringify(comment === undefined ? {} : { comment }),
+  })
 
-  return readDocumentDetail(
-    response,
-    'Não foi possível atualizar a revisão',
-  )
+  return readDocumentDetail(response, 'Não foi possível atualizar a revisão')
 }
 
 export function startDocumentReviewRequest(
@@ -346,12 +337,7 @@ export function requestDocumentAdjustmentRequest(
   comment: string,
   httpClient: HttpClient,
 ): Promise<DocumentDetail> {
-  return sendReviewAction(
-    documentId,
-    'request-adjustment',
-    httpClient,
-    comment,
-  )
+  return sendReviewAction(documentId, 'request-adjustment', httpClient, comment)
 }
 
 export function rejectDocumentRequest(

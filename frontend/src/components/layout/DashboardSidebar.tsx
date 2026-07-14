@@ -1,7 +1,8 @@
 import {
   faArrowRightFromBracket,
+  faClockRotateLeft,
   faClipboardCheck,
-  faFileLines,
+  faFileCirclePlus,
   faHouse,
   faUser,
   faUserPlus,
@@ -10,7 +11,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { canAccessAcademicArea } from '../../constants/roles.ts'
 import { useAuth } from '../../hooks/useAuth.ts'
 import { useCurrentUser } from '../../hooks/useCurrentUser.ts'
 
@@ -26,20 +26,19 @@ type NavigationItem = {
   end: boolean
 }
 
-const COMMON_ITEMS: NavigationItem[] = [
-  {
-    to: '/',
-    label: 'Início',
-    icon: faHouse,
-    end: true,
-  },
-  {
-    to: '/perfil',
-    label: 'Meu perfil',
-    icon: faUser,
-    end: false,
-  },
-]
+const HOME_ITEM: NavigationItem = {
+  to: '/',
+  label: 'Início',
+  icon: faHouse,
+  end: true,
+}
+
+const PROFILE_ITEM: NavigationItem = {
+  to: '/perfil',
+  label: 'Meu perfil',
+  icon: faUser,
+  end: false,
+}
 
 const ACADEMIC_ITEMS: NavigationItem[] = [
   {
@@ -62,9 +61,15 @@ const ACADEMIC_ITEMS: NavigationItem[] = [
   },
 ]
 
+const STUDENT_HISTORY_ITEM: NavigationItem = {
+  to: '/historico-documentos',
+  label: 'Histórico de documentos',
+  icon: faClockRotateLeft,
+  end: false,
+}
+
 function getLinkClass(isActive: boolean): string {
-  const baseClass =
-    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition'
+  const baseClass = 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition'
 
   if (isActive) {
     return `${baseClass} bg-green-900 text-white`
@@ -73,18 +78,30 @@ function getLinkClass(isActive: boolean): string {
   return `${baseClass} text-neutral-700 hover:bg-green-50 hover:text-green-950`
 }
 
-export default function DashboardSidebar({
-  isOpen,
-  onClose,
-}: DashboardSidebarProps) {
+export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
   const { logout } = useAuth()
   const { user } = useCurrentUser()
   const navigate = useNavigate()
   const positionClass = isOpen ? 'translate-x-0' : '-translate-x-full'
-  const canAccessAcademic = user ? canAccessAcademicArea(user) : false
-  const navigationItems = canAccessAcademic
-    ? [COMMON_ITEMS[0], ...ACADEMIC_ITEMS, COMMON_ITEMS[1]]
-    : COMMON_ITEMS
+  const canAccessAcademic = Boolean(
+    user &&
+    (user.is_superuser || user.groups.includes('Teacher') || user.groups.includes('Coordinator')),
+  )
+  const isStudent = user?.groups.includes('Student') === true
+
+  const canViewDocumentHistory = user?.is_superuser === true || isStudent
+
+  const navigationItems: NavigationItem[] = [ HOME_ITEM ]
+
+  if (canAccessAcademic) {
+    navigationItems.push(...ACADEMIC_ITEMS)
+  }
+
+  if (canViewDocumentHistory) {
+    navigationItems.push(STUDENT_HISTORY_ITEM)
+  }
+
+  navigationItems.push(PROFILE_ITEM)
 
   function handleLogout() {
     logout()
@@ -103,12 +120,8 @@ export default function DashboardSidebar({
     >
       <header className="flex items-center justify-between gap-3 px-2 py-2">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-green-700">
-            Sistema de
-          </p>
-          <p className="font-semibold text-green-950">
-            Acompanhamento de Estágio
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wider text-green-700">Sistema de</p>
+          <p className="font-semibold text-green-950">Acompanhamento de Estágio</p>
         </div>
 
         <button
@@ -135,20 +148,22 @@ export default function DashboardSidebar({
           </NavLink>
         ))}
 
-        <div className="my-3 border-t border-neutral-200" />
+        {isStudent && (
+          <>
+            <div className="my-3 border-t border-neutral-200" />
 
-        <button
-          type="button"
-          disabled
-          className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-400"
-          title="Funcionalidade disponível em breve"
-        >
-          <FontAwesomeIcon icon={faFileLines} className="w-4" />
-          <span className="flex-1">Documentos</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide">
-            Em breve
-          </span>
-        </button>
+            <button
+              type="button"
+              disabled
+              className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-400"
+              title="Funcionalidade disponível em breve"
+            >
+              <FontAwesomeIcon icon={faFileCirclePlus} className="w-4" />
+              <span className="flex-1">Novo documento</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide">Em breve</span>
+            </button>
+          </>
+        )}
       </nav>
 
       <button
