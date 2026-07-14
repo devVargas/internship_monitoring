@@ -1,19 +1,23 @@
+from django.conf import settings
 from django.db import models
 
+
 class DocumentType(models.TextChoices):
-    MANDATORY_INTERNSHIP = "mandatory_internship",
-    NON_MANDATORY_INTERNSHIP_CREDIT = "non_mandatory_internship_credit",
-    PROFESSIONAL_PRACTICE_CREDIT = "professional_practice_credit",
-    SUPERVISOR_EVALUATION = "supervisor_evaluation",
+    MANDATORY_INTERNSHIP = ("mandatory_internship",)
+    NON_MANDATORY_INTERNSHIP_CREDIT = ("non_mandatory_internship_credit",)
+    PROFESSIONAL_PRACTICE_CREDIT = ("professional_practice_credit",)
+    SUPERVISOR_EVALUATION = ("supervisor_evaluation",)
+
 
 class DocumentStatus(models.TextChoices):
-    SUBMITTED = "submitted",
-    WAITING_SUPERVISOR = "waiting_supervisor",
-    IN_REVIEW = "in_review",
-    ADJUSTMENT_REQUESTED = "adjustment_requested",
-    APPROVED = "approved",
-    REJECTED = "rejected",
-    CANCELLED = "cancelled", 
+    SUBMITTED = ("submitted",)
+    WAITING_SUPERVISOR = ("waiting_supervisor",)
+    IN_REVIEW = ("in_review",)
+    ADJUSTMENT_REQUESTED = ("adjustment_requested",)
+    APPROVED = ("approved",)
+    REJECTED = ("rejected",)
+    CANCELLED = ("cancelled",)
+
 
 class Document(models.Model):
     student = models.ForeignKey(
@@ -25,6 +29,13 @@ class Document(models.Model):
         "accounts.SupervisorProfile",
         on_delete=models.PROTECT,
         related_name="documents",
+        null=True,
+        blank=True,
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="reviewed_documents",
         null=True,
         blank=True,
     )
@@ -48,7 +59,11 @@ class Document(models.Model):
     company = models.CharField(max_length=150)
     city = models.CharField(max_length=150)
     document_date = models.DateField()
-    attachment = models.FileField(upload_to="documents/attachments/", null=True, blank=True)
+    attachment = models.FileField(
+        upload_to="documents/attachments/",
+        null=True,
+        blank=True,
+    )
     form_data = models.JSONField(default=dict, blank=True)
     status = models.CharField(
         max_length=40,
@@ -61,7 +76,7 @@ class Document(models.Model):
     class Meta:
         ordering = ["-created_at"]
         permissions = [
-        ("review_document", "Can review document"),
-        ("approve_document", "Can approve document"),
-        ("reject_document", "Can reject document"),
-    ]
+            ("review_document", "Can review document"),
+            ("approve_document", "Can approve document"),
+            ("reject_document", "Can reject document"),
+        ]
