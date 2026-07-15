@@ -1,4 +1,9 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom'
 import ProtectedRoute from '../components/routing/ProtectedRoute.tsx'
 import RoleProtectedRoute from '../components/routing/RoleProtectedRoute.tsx'
 import DashboardPage from '../pages/DashboardPage.tsx'
@@ -7,23 +12,47 @@ import DocumentReviewDetailPage from '../pages/DocumentReviewDetailPage.tsx'
 import DocumentReviewPage from '../pages/DocumentReviewPage.tsx'
 import LoginPage from '../pages/LoginPage.tsx'
 import RegisterAcademicUserPage from '../pages/RegisterAcademicUserPage.tsx'
+import RegisterDocumentPage from '../pages/RegisterDocumentPage.tsx'
 import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
 import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
 import UserProfilePage from '../pages/UserProfilePage.tsx'
 
-const ACADEMIC_GROUPS = ['Teacher', 'Coordinator'] as const
+const ACADEMIC_GROUPS = [
+  'Teacher',
+  'Coordinator',
+] as const
+
 const STUDENT_GROUPS = ['Student'] as const
 
 export default function Router() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
 
-        <Route path="/cadastro" element={<Navigate to="/cadastro/aluno" replace />} />
-        <Route path="/cadastro/aluno" element={<RegisterStudentPage />} />
-        <Route path="/cadastro/supervisor" element={<RegisterSupervisorPage />} />
+        <Route
+          path="/cadastro"
+          element={
+            <Navigate
+              to="/cadastro/aluno"
+              replace
+            />
+          }
+        />
+
+        <Route
+          path="/cadastro/aluno"
+          element={<RegisterStudentPage />}
+        />
+
+        <Route
+          path="/cadastro/supervisor"
+          element={<RegisterSupervisorPage />}
+        />
 
         <Route
           path="/"
@@ -46,8 +75,21 @@ export default function Router() {
         <Route
           path="/historico-documentos"
           element={
-            <RoleProtectedRoute allowedGroups={STUDENT_GROUPS}>
+            <RoleProtectedRoute
+              allowedGroups={STUDENT_GROUPS}
+            >
               <DocumentHistoryPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/enviar-documento"
+          element={
+            <RoleProtectedRoute
+              allowedGroups={STUDENT_GROUPS}
+            >
+              <RegisterDocumentPage />
             </RoleProtectedRoute>
           }
         />
@@ -55,7 +97,9 @@ export default function Router() {
         <Route
           path="/cadastro-academico"
           element={
-            <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
+            <RoleProtectedRoute
+              allowedGroups={ACADEMIC_GROUPS}
+            >
               <RegisterAcademicUserPage />
             </RoleProtectedRoute>
           }
@@ -64,7 +108,9 @@ export default function Router() {
         <Route
           path="/alunos"
           element={
-            <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
+            <RoleProtectedRoute
+              allowedGroups={ACADEMIC_GROUPS}
+            >
               <StudentsPage />
             </RoleProtectedRoute>
           }
@@ -73,7 +119,9 @@ export default function Router() {
         <Route
           path="/revisao-documentos"
           element={
-            <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
+            <RoleProtectedRoute
+              allowedGroups={ACADEMIC_GROUPS}
+            >
               <DocumentReviewPage />
             </RoleProtectedRoute>
           }
@@ -82,13 +130,23 @@ export default function Router() {
         <Route
           path="/revisao-documentos/:documentId"
           element={
-            <RoleProtectedRoute allowedGroups={ACADEMIC_GROUPS}>
+            <RoleProtectedRoute
+              allowedGroups={ACADEMIC_GROUPS}
+            >
               <DocumentReviewDetailPage />
             </RoleProtectedRoute>
           }
         />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
+        />
       </Routes>
     </BrowserRouter>
   )
