@@ -7,13 +7,13 @@ from apps.accounts.permissions import (
     CanCreateCoordinator,
     CanCreateProfessor,
 )
+from apps.accounts.profile_serializers import UserProfileSerializer
 from apps.accounts.serializers import (
     CoordinatorRegistrationSerializer,
     CustomTokenObtainPairSerializer,
     ProfessorRegistrationSerializer,
     StudentRegistrationSerializer,
     SupervisorRegistrationSerializer,
-    UserSerializer,
 )
 
 class LoginView(TokenObtainPairView):
@@ -22,12 +22,32 @@ class LoginView(TokenObtainPairView):
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(responses=UserSerializer)
+    @extend_schema(responses=UserProfileSerializer)
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=UserProfileSerializer,
+        responses=UserProfileSerializer,
+    )
+    def patch(self, request):
+        serializer = UserProfileSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
 
 class StudentRegistrationView(generics.CreateAPIView):
     serializer_class = StudentRegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+class SupervisorRegistrationView(generics.CreateAPIView):
+    serializer_class = SupervisorRegistrationSerializer
     permission_classes = [permissions.AllowAny]
 
 class ProfessorRegistrationView(generics.CreateAPIView):
@@ -37,7 +57,3 @@ class ProfessorRegistrationView(generics.CreateAPIView):
 class CoordinatorRegistrationView(generics.CreateAPIView):
     serializer_class = CoordinatorRegistrationSerializer
     permission_classes = [CanCreateCoordinator]
-
-class SupervisorRegistrationView(generics.CreateAPIView):
-    serializer_class = SupervisorRegistrationSerializer
-    permission_classes = [permissions.AllowAny]

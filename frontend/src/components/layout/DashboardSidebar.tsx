@@ -1,7 +1,8 @@
 import {
   faArrowRightFromBracket,
   faClockRotateLeft,
-  faFileLines,
+  faClipboardCheck,
+  faFileCirclePlus,
   faHouse,
   faUser,
   faUserPlus,
@@ -11,23 +12,39 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.ts'
+import { useCurrentUser } from '../../hooks/useCurrentUser.ts'
 
 type DashboardSidebarProps = {
   isOpen: boolean
   onClose: () => void
 }
 
-const ACTIVE_ITEMS = [
+type NavigationItem = {
+  to: string
+  label: string
+  icon: typeof faHouse
+  end: boolean
+}
+
+const HOME_ITEM: NavigationItem = {
+  to: '/',
+  label: 'Início',
+  icon: faHouse,
+  end: true,
+}
+
+const PROFILE_ITEM: NavigationItem = {
+  to: '/perfil',
+  label: 'Meu perfil',
+  icon: faUser,
+  end: false,
+}
+
+const ACADEMIC_ITEMS: NavigationItem[] = [
   {
-    to: '/',
-    label: 'Início',
-    icon: faHouse,
-    end: true,
-  },
-  {
-    to: '/cadastro-academico',
-    label: 'Cadastrar equipe acadêmica',
-    icon: faUserPlus,
+    to: '/revisao-documentos',
+    label: 'Revisão de documentos',
+    icon: faClipboardCheck,
     end: false,
   },
   {
@@ -37,23 +54,26 @@ const ACTIVE_ITEMS = [
     end: false,
   },
   {
-    to: '/enviar-documento',
-    label: 'Documentos',
-    icon: faFileLines,
+    to: '/cadastro-academico',
+    label: 'Cadastrar equipe acadêmica',
+    icon: faUserPlus,
     end: false,
   },
 ]
 
-const FUTURE_ITEMS = [
-  {
-    label: 'Linha do tempo',
-    icon: faClockRotateLeft,
-  },
-  {
-    label: 'Meu perfil',
-    icon: faUser,
-  },
-]
+const NEW_DOCUMENT_ITEM: NavigationItem = {
+  to: '/enviar-documento',
+  label: 'Novo documento',
+  icon: faFileCirclePlus,
+  end: false,
+}
+
+const DOCUMENT_HISTORY_ITEM: NavigationItem = {
+  to: '/historico-documentos',
+  label: 'Histórico de documentos',
+  icon: faClockRotateLeft,
+  end: false,
+}
 
 function getLinkClass(isActive: boolean): string {
   const baseClass =
@@ -71,8 +91,43 @@ export default function DashboardSidebar({
   onClose,
 }: DashboardSidebarProps) {
   const { logout } = useAuth()
+  const { user } = useCurrentUser()
   const navigate = useNavigate()
-  const positionClass = isOpen ? 'translate-x-0' : '-translate-x-full'
+
+  const positionClass = isOpen
+    ? 'translate-x-0'
+    : '-translate-x-full'
+
+  const isSuperuser =
+    user?.is_superuser === true
+
+  const isStudent =
+    user?.groups.includes('Student') === true
+
+  const canAccessAcademic =
+    isSuperuser ||
+    user?.groups.includes('Teacher') === true ||
+    user?.groups.includes('Coordinator') === true
+
+  const canAccessStudentFeatures =
+    isSuperuser || isStudent
+
+  const navigationItems: NavigationItem[] = [
+    HOME_ITEM,
+  ]
+
+  if (canAccessAcademic) {
+    navigationItems.push(...ACADEMIC_ITEMS)
+  }
+
+  if (canAccessStudentFeatures) {
+    navigationItems.push(
+      NEW_DOCUMENT_ITEM,
+      DOCUMENT_HISTORY_ITEM,
+    )
+  }
+
+  navigationItems.push(PROFILE_ITEM)
 
   function handleLogout() {
     logout()
@@ -94,13 +149,21 @@ export default function DashboardSidebar({
           <p className="text-xs font-medium uppercase tracking-wider text-green-700">
             Sistema de
           </p>
-          <p className="font-semibold text-green-950">Acompanhamento de Estágio</p>
+
+          <p className="font-semibold text-green-950">
+            Acompanhamento de Estágio
+          </p>
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 md:hidden"
+          className="
+            flex h-9 w-9 items-center justify-center
+            rounded-lg text-neutral-500 transition
+            hover:bg-neutral-100 hover:text-neutral-900
+            md:hidden
+          "
           aria-label="Fechar menu"
         >
           <FontAwesomeIcon icon={faXmark} />
@@ -108,42 +171,41 @@ export default function DashboardSidebar({
       </header>
 
       <nav className="mt-6 flex flex-col gap-1">
-        {ACTIVE_ITEMS.map((item) => (
+        {navigationItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             onClick={onClose}
-            className={({ isActive }) => getLinkClass(isActive)}
+            className={({ isActive }) =>
+              getLinkClass(isActive)
+            }
           >
-            <FontAwesomeIcon icon={item.icon} className="w-4" />
+            <FontAwesomeIcon
+              icon={item.icon}
+              className="w-4"
+            />
+
             <span>{item.label}</span>
           </NavLink>
-        ))}
-
-        <div className="my-3 border-t border-neutral-200" />
-
-        {FUTURE_ITEMS.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            disabled
-            className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-400"
-            title="Funcionalidade disponível em breve"
-          >
-            <FontAwesomeIcon icon={item.icon} className="w-4" />
-            <span className="flex-1">{item.label}</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wide">Em breve</span>
-          </button>
         ))}
       </nav>
 
       <button
         type="button"
         onClick={handleLogout}
-        className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+        className="
+          mt-auto flex items-center gap-3
+          rounded-lg px-3 py-2.5 text-sm
+          font-medium text-red-700 transition
+          hover:bg-red-50
+        "
       >
-        <FontAwesomeIcon icon={faArrowRightFromBracket} className="w-4" />
+        <FontAwesomeIcon
+          icon={faArrowRightFromBracket}
+          className="w-4"
+        />
+
         Sair
       </button>
     </aside>
