@@ -93,6 +93,26 @@ export type ProfessionalPracticeCreditFormData = {
   attachment: string
 }
 
+export type MandatoryInternshipEvaluationFormData = {
+  aprendizadoNoEstagio: string
+  segurancaExecucao: string
+  interessePeloTrabalho: string
+  iniciativaPropria: string
+  conhecimentosTecnicos: string
+  produtividade: string
+  qualidadeDoTrabalho: string
+  disciplina: string
+  relacionamentoSocial: string
+  cooperacao: string
+  esforcoSuperarFalhas: string
+  pontualidade: string
+  assiduidade: string
+  capacidadeDirecaoCoordenacao: string
+  modoAvaliacao: string
+  periodicidadeAvaliacao: string
+  observacoes: string
+}
+
 export type RegisterDocumentPayload =
   | {
       document_type: 'mandatory_internship'
@@ -105,6 +125,10 @@ export type RegisterDocumentPayload =
   | {
       document_type: 'professional_practice_credit'
       form_data: ProfessionalPracticeCreditFormData
+    }
+  | {
+      document_type: 'supervisor_evaluation'
+      form_data: MandatoryInternshipEvaluationFormData
     }
 
 export type DocumentActivity = {

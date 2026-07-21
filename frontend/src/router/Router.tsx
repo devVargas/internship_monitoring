@@ -25,6 +25,8 @@ const ACADEMIC_GROUPS = [
 
 const STUDENT_GROUPS = ['Student'] as const
 
+const SUPERVISOR_GROUPS = ['Supervisor'] as const
+
 export default function Router() {
   return (
     <BrowserRouter>
@@ -87,7 +89,7 @@ export default function Router() {
           path="/enviar-documento"
           element={
             <RoleProtectedRoute
-              allowedGroups={STUDENT_GROUPS}
+              allowedGroups={STUDENT_GROUPS, SUPERVISOR_GROUPS}
             >
               <RegisterDocumentPage />
             </RoleProtectedRoute>

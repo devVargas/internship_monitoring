@@ -14,7 +14,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   mandatory_internship: 'Estágio obrigatório',
   non_mandatory_internship_credit: 'Aproveitamento de estágio não obrigatório',
   professional_practice_credit: 'Aproveitamento de prática profissional',
-  supervisor_evaluation: 'Avaliação do supervisor',
+  supervisor_evaluation: 'Ficha de avaliação de estágio obrigatório',
 }
 
 export function formatDate(value: string): string {

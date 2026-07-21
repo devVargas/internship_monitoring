@@ -1,7 +1,11 @@
-import { useState, type ChangeEvent, type SubmitEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type SubmitEvent } from 'react'
 import {useNavigate} from 'react-router-dom'
+import type { CurrentUser } from '../../api/auth.ts'
+import { getCurrentUserRequest } from '../../api/auth.ts'
 import type { DocumentType, RegisterDocumentPayload } from '../../api/documents.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
+import { useAPI } from '../../context/api-context.ts'
+import { getErrorMessage } from '../../utils/errors.ts'
 import {
   formatCep,
   formatPhone,
@@ -58,6 +62,23 @@ type DocumentFormData = {
   inicioHorarioAtividade: string
   fimHorarioAtividade: string
   descricaoAtividades: string
+  aprendizadoNoEstagio: string
+  segurancaExecucao: string
+  interessePeloTrabalho: string
+  iniciativaPropria: string
+  conhecimentosTecnicos: string
+  produtividade: string
+  qualidadeDoTrabalho: string
+  disciplina: string
+  relacionamentoSocial: string
+  cooperacao: string
+  esforcoSuperarFalhas: string
+  pontualidade: string
+  assiduidade: string
+  capacidadeDirecaoCoordenacao: string
+  modoAvaliacao: string
+  periodicidadeAvaliacao: string
+  observacoes: string
 }
 
 type DocumentField = keyof DocumentFormData
@@ -106,6 +127,23 @@ const INITIAL_FORM: DocumentFormData = {
   inicioHorarioAtividade: '',
   fimHorarioAtividade: '',
   descricaoAtividades: '',
+  aprendizadoNoEstagio: '',
+  segurancaExecucao: '',
+  interessePeloTrabalho: '',
+  iniciativaPropria: '',
+  conhecimentosTecnicos: '',
+  produtividade: '',
+  qualidadeDoTrabalho: '',
+  disciplina: '',
+  relacionamentoSocial: '',
+  cooperacao: '',
+  esforcoSuperarFalhas: '',
+  pontualidade: '',
+  assiduidade: '',
+  capacidadeDirecaoCoordenacao: '',
+  modoAvaliacao: '',
+  periodicidadeAvaliacao: '',
+  observacoes: '',
 }
 
 function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
@@ -206,6 +244,35 @@ function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErr
   return errors
 }
 
+function validateSupervisorEvaluation(form: DocumentFormData): DocumentErrors {
+  const errors: DocumentErrors = {}
+
+  function addError(field: DocumentField, error: string | null) {
+    if (error) {
+      errors[field] = error
+    }
+  }
+
+  addError('aprendizadoNoEstagio', validateRequired(form.aprendizadoNoEstagio))
+  addError('segurancaExecucao', validateRequired(form.segurancaExecucao))
+  addError('interessePeloTrabalho', validateRequired(form.interessePeloTrabalho))
+  addError('iniciativaPropria', validateRequired(form.iniciativaPropria))
+  addError('conhecimentosTecnicos', validateRequired(form.conhecimentosTecnicos))
+  addError('produtividade', validateRequired(form.produtividade))
+  addError('qualidadeDoTrabalho', validateRequired(form.qualidadeDoTrabalho))
+  addError('disciplina', validateRequired(form.disciplina))
+  addError('relacionamentoSocial', validateRequired(form.relacionamentoSocial))
+  addError('cooperacao', validateRequired(form.cooperacao))
+  addError('esforcoSuperarFalhas', validateRequired(form.esforcoSuperarFalhas))
+  addError('pontualidade', validateRequired(form.pontualidade))
+  addError('assiduidade', validateRequired(form.assiduidade))
+  addError('capacidadeDirecaoCoordenacao', validateRequired(form.capacidadeDirecaoCoordenacao))
+  addError('modoAvaliacao', validateRequired(form.modoAvaliacao))
+  addError('periodicidadeAvaliacao', validateRequired(form.periodicidadeAvaliacao))
+
+  return errors
+}
+
 function validateForm(
   documentType: DocumentType,
   form: DocumentFormData,
@@ -217,6 +284,8 @@ function validateForm(
       return validateNonMandatoryInternshipCredit(form)
     case 'professional_practice_credit':
       return validateProfessionalPracticeCredit(form)
+    case 'supervisor_evaluation':
+      return validateSupervisorEvaluation(form)
   }
 }
 
@@ -300,6 +369,29 @@ function buildPayload(
           attachment: form.attachment,
         },
       }
+    case 'supervisor_evaluation':
+      return {
+        document_type: 'supervisor_evaluation',
+        form_data: {
+          aprendizadoNoEstagio: form.aprendizadoNoEstagio,
+          segurancaExecucao: form.segurancaExecucao,
+          interessePeloTrabalho: form.interessePeloTrabalho,
+          iniciativaPropria: form.iniciativaPropria,
+          conhecimentosTecnicos: form.conhecimentosTecnicos,
+          produtividade: form.produtividade,
+          qualidadeDoTrabalho: form.qualidadeDoTrabalho,
+          disciplina: form.disciplina,
+          relacionamentoSocial: form.relacionamentoSocial,
+          cooperacao: form.cooperacao,
+          esforcoSuperarFalhas: form.esforcoSuperarFalhas,
+          pontualidade: form.pontualidade,
+          assiduidade: form.assiduidade,
+          capacidadeDirecaoCoordenacao: form.capacidadeDirecaoCoordenacao,
+          modoAvaliacao: form.modoAvaliacao,
+          periodicidadeAvaliacao: form.periodicidadeAvaliacao,
+          observacoes: form.observacoes,
+        },
+      }
   }
 }
 
@@ -308,8 +400,61 @@ export default function DocumentForm() {
   const [form, setForm] = useState<DocumentFormData>(INITIAL_FORM)
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const { register, isLoading, error } = useRegisterDocument()
   const navigate = useNavigate()
+  const { fetchWithAuth } = useAPI()
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCurrentUser() {
+      try {
+        const user = await getCurrentUserRequest(fetchWithAuth)
+
+        if (!cancelled) {
+          setCurrentUser(user)
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setLoadError(
+            getErrorMessage(requestError, 'Não foi possível carregar suas permissões'),
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingUser(false)
+        }
+      }
+    }
+
+    void loadCurrentUser()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
+  const canSeeStudentOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Student'),
+  )
+  const canSeeSupervisorOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'),
+  )
+
+  useEffect(() => {
+    if (isLoadingUser || !currentUser) {
+      return
+    }
+
+    if (canSeeStudentOptions) {
+      setDocumentType('mandatory_internship')
+    } else if (canSeeSupervisorOptions) {
+      setDocumentType('supervisor_evaluation')
+    }
+  }, [isLoadingUser, currentUser, canSeeStudentOptions, canSeeSupervisorOptions])
 
   function updateField(field: DocumentField, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -322,7 +467,8 @@ export default function DocumentForm() {
     if (
       value === 'mandatory_internship' ||
       value === 'non_mandatory_internship_credit' ||
-      value === 'professional_practice_credit'
+      value === 'professional_practice_credit' ||
+      value === 'supervisor_evaluation'
     ) {
       setDocumentType(value)
       setForm(INITIAL_FORM)
@@ -367,6 +513,21 @@ export default function DocumentForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      {isLoadingUser && (
+        <p className="text-sm text-neutral-600">Carregando permissões...</p>
+      )}
+
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {loadError}
+        </div>
+      )}
+
+      {!isLoadingUser && !loadError && (
+        <>
       <div className="mb-6">
         <label
           htmlFor="documentType"
@@ -381,13 +542,22 @@ export default function DocumentForm() {
           onChange={handleDocumentTypeChange}
           className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
         >
-          <option value="mandatory_internship">Estágio obrigatório</option>
-          <option value="non_mandatory_internship_credit">
-            Aproveitamento de estágio não obrigatório
-          </option>
-          <option value="professional_practice_credit">
-            Aproveitamento de prática profissional
-          </option>
+          {canSeeStudentOptions && (
+            <>
+              <option value="mandatory_internship">Estágio obrigatório</option>
+              <option value="non_mandatory_internship_credit">
+                Aproveitamento de estágio não obrigatório
+              </option>
+              <option value="professional_practice_credit">
+                Aproveitamento de prática profissional
+              </option>
+            </>
+          )}
+          {canSeeSupervisorOptions && (
+            <option value="supervisor_evaluation">
+              Ficha de avaliação de estágio obrigatório
+            </option>
+          )}
         </select>
       </div>
 
@@ -1135,6 +1305,470 @@ export default function DocumentForm() {
         </>
       )}
 
+      {documentType === 'supervisor_evaluation' && (
+        <>
+          <h3 className="text-lg font-semibold text-neutral-900">
+            Avaliação do estudante
+          </h3>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="aprendizadoNoEstagio"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Aprendizado dentro do estágio <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="aprendizadoNoEstagio"
+                value={form.aprendizadoNoEstagio}
+                onChange={(event) => {
+                  updateField('aprendizadoNoEstagio', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.aprendizadoNoEstagio && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.aprendizadoNoEstagio}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="segurancaExecucao"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Segurança na execução do trabalho <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="segurancaExecucao"
+                value={form.segurancaExecucao}
+                onChange={(event) => {
+                  updateField('segurancaExecucao', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.segurancaExecucao && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.segurancaExecucao}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="interessePeloTrabalho"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Interesse pelo trabalho <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="interessePeloTrabalho"
+                value={form.interessePeloTrabalho}
+                onChange={(event) => {
+                  updateField('interessePeloTrabalho', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.interessePeloTrabalho && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.interessePeloTrabalho}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="iniciativaPropria"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Iniciativa própria <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="iniciativaPropria"
+                value={form.iniciativaPropria}
+                onChange={(event) => {
+                  updateField('iniciativaPropria', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.iniciativaPropria && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.iniciativaPropria}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="conhecimentosTecnicos"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Conhecimentos técnicos <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="conhecimentosTecnicos"
+                value={form.conhecimentosTecnicos}
+                onChange={(event) => {
+                  updateField('conhecimentosTecnicos', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.conhecimentosTecnicos && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.conhecimentosTecnicos}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="produtividade"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Produtividade <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="produtividade"
+                value={form.produtividade}
+                onChange={(event) => {
+                  updateField('produtividade', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.produtividade && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.produtividade}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="qualidadeDoTrabalho"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Qualidade do trabalho <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="qualidadeDoTrabalho"
+                value={form.qualidadeDoTrabalho}
+                onChange={(event) => {
+                  updateField('qualidadeDoTrabalho', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.qualidadeDoTrabalho && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.qualidadeDoTrabalho}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="disciplina"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Disciplina <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="disciplina"
+                value={form.disciplina}
+                onChange={(event) => {
+                  updateField('disciplina', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.disciplina && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.disciplina}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="relacionamentoSocial"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Relacionamento social <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="relacionamentoSocial"
+                value={form.relacionamentoSocial}
+                onChange={(event) => {
+                  updateField('relacionamentoSocial', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.relacionamentoSocial && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.relacionamentoSocial}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="cooperacao"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Cooperação <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="cooperacao"
+                value={form.cooperacao}
+                onChange={(event) => {
+                  updateField('cooperacao', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.cooperacao && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.cooperacao}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="esforcoSuperarFalhas"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Esforço para superar falhas <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="esforcoSuperarFalhas"
+                value={form.esforcoSuperarFalhas}
+                onChange={(event) => {
+                  updateField('esforcoSuperarFalhas', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.esforcoSuperarFalhas && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.esforcoSuperarFalhas}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="pontualidade"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Pontualidade <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="pontualidade"
+                value={form.pontualidade}
+                onChange={(event) => {
+                  updateField('pontualidade', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.pontualidade && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.pontualidade}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="assiduidade"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Assiduidade <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="assiduidade"
+                value={form.assiduidade}
+                onChange={(event) => {
+                  updateField('assiduidade', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.assiduidade && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.assiduidade}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="capacidadeDirecaoCoordenacao"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Capacidade de direção e coordenação <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="capacidadeDirecaoCoordenacao"
+                value={form.capacidadeDirecaoCoordenacao}
+                onChange={(event) => {
+                  updateField('capacidadeDirecaoCoordenacao', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.capacidadeDirecaoCoordenacao && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.capacidadeDirecaoCoordenacao}</p>
+              )}
+            </div>
+          </div>
+
+          <hr className="border-neutral-200" />
+
+          <h3 className="text-lg font-semibold text-neutral-900">Detalhes da avaliação</h3>
+
+          <FormField
+            id="modoAvaliacao"
+            label="De qual modo a concedente avalia o estudante?"
+            value={form.modoAvaliacao}
+            onChange={(event) => {
+              updateField('modoAvaliacao', event.target.value)
+            }}
+            required
+            error={fieldErrors.modoAvaliacao}
+          />
+
+          <FormField
+            id="periodicidadeAvaliacao"
+            label="Com que periodicidade o estudante é avaliado?"
+            value={form.periodicidadeAvaliacao}
+            onChange={(event) => {
+              updateField('periodicidadeAvaliacao', event.target.value)
+            }}
+            required
+            error={fieldErrors.periodicidadeAvaliacao}
+          />
+
+          <TextareaField
+            id="observacoes"
+            label="Observações"
+            value={form.observacoes}
+            onChange={(event) => {
+              updateField('observacoes', event.target.value)
+            }}
+            error={fieldErrors.observacoes}
+          />
+        </>
+      )}
+
       {successMessage && (
         <div
           role="status"
@@ -1156,6 +1790,8 @@ export default function DocumentForm() {
       <Button type="submit" disabled={isLoading} className="w-full">
         {isLoading ? 'Enviando...' : 'Enviar'}
       </Button>
+        </>
+      )}
     </form>
   )
 }
