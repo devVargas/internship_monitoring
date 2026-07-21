@@ -61,6 +61,13 @@ const ACADEMIC_ITEMS: NavigationItem[] = [
   },
 ]
 
+const SUPERVISOR_EVALUATIONS_ITEM: NavigationItem = {
+  to: '/avaliacoes-pendentes',
+  label: 'Avaliações pendentes',
+  icon: faClipboardCheck,
+  end: false,
+}
+
 const NEW_DOCUMENT_ITEM: NavigationItem = {
   to: '/enviar-documento',
   label: 'Novo documento',
@@ -104,10 +111,16 @@ export default function DashboardSidebar({
   const isStudent =
     user?.groups.includes('Student') === true
 
+  const isSupervisor =
+    user?.groups.includes('Supervisor') === true
+
   const canAccessAcademic =
     isSuperuser ||
     user?.groups.includes('Teacher') === true ||
     user?.groups.includes('Coordinator') === true
+
+  const canAccessSupervisorEvaluations =
+    isSuperuser || isSupervisor
 
   const canAccessStudentFeatures =
     isSuperuser || isStudent
@@ -118,6 +131,12 @@ export default function DashboardSidebar({
 
   if (canAccessAcademic) {
     navigationItems.push(...ACADEMIC_ITEMS)
+  }
+
+  if (canAccessSupervisorEvaluations) {
+    navigationItems.push(
+      SUPERVISOR_EVALUATIONS_ITEM,
+    )
   }
 
   if (canAccessStudentFeatures) {
