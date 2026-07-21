@@ -7,8 +7,8 @@ type FileUploadFieldProps = {
   label: string
   required?: boolean
   error?: string | null
-  value: string
-  onChange: (base64: string) => void
+  value: File | null
+  onChange: (file: File | null) => void
 }
 
 export default function FileUploadField({
@@ -24,28 +24,15 @@ export default function FileUploadField({
   const errorId = `${id}-error`
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0] ?? null
 
-    if (!file) {
-      return
-    }
-
-    setFileName(file.name)
-
-    const reader = new FileReader()
-
-    reader.onload = () => {
-      const result = reader.result as string
-      const base64 = result.split(',')[1]
-      onChange(base64)
-    }
-
-    reader.readAsDataURL(file)
+    setFileName(file?.name ?? '')
+    onChange(file)
   }
 
   function handleClear() {
     setFileName('')
-    onChange('')
+    onChange(null)
 
     if (inputRef.current) {
       inputRef.current.value = ''

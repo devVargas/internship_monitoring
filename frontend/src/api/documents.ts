@@ -35,7 +35,6 @@ export type MandatoryInternshipFormData = {
   cidade: string
   uf: string
   dataEstimadaConclusao: string
-  razaoSocial: string
   cnpjCpf: string
   registroConselhoProfissional: string
   cepConcedente: string
@@ -45,7 +44,6 @@ export type MandatoryInternshipFormData = {
   enderecoConcedente: string
   telefone: string
   ramoAtividade: string
-  emailSupervisor: string
   inicioEstagio: string
   fimEstagio: string
   horasSemanais: string
@@ -53,16 +51,9 @@ export type MandatoryInternshipFormData = {
   atividadesProfissionais: string
   dificuldadesEncontradas: string
   conclusao: string
-  cidadeAssinatura: string
-  attachment: string
 }
 
-export type NonMandatoryInternshipCreditFormData = {
-  nomeCoordenador: string
-  empresa: string
-  cidade: string
-  attachment: string
-}
+export type NonMandatoryInternshipCreditFormData = Record<string, never>
 
 export type ProfessionalPracticeCreditFormData = {
   modalidade: string
@@ -71,7 +62,6 @@ export type ProfessionalPracticeCreditFormData = {
   especificarSituacao: string
   cargo: string
   setor: string
-  razaoSocial: string
   cnpjCpf: string
   registroConselhoProfissional: string
   cpf: string
@@ -87,10 +77,7 @@ export type ProfessionalPracticeCreditFormData = {
   inicioHorarioAtividade: string
   fimHorarioAtividade: string
   horasSemanais: string
-  emailSupervisor: string
   descricaoAtividades: string
-  cidadeAssinatura: string
-  attachment: string
 }
 
 export type MandatoryInternshipEvaluationFormData = {
@@ -116,14 +103,24 @@ export type MandatoryInternshipEvaluationFormData = {
 export type RegisterDocumentPayload =
   | {
       document_type: 'mandatory_internship'
+      company: string
+      city: string
+      supervisor_id: number
+      attachment: File | null
       form_data: MandatoryInternshipFormData
     }
   | {
       document_type: 'non_mandatory_internship_credit'
+      company: string
+      city: string
+      coordinator_name: string
+      attachment: File | null
       form_data: NonMandatoryInternshipCreditFormData
     }
   | {
       document_type: 'professional_practice_credit'
+      supervisor_id: number
+      attachment: File | null
       form_data: ProfessionalPracticeCreditFormData
     }
   | {
@@ -398,14 +395,35 @@ export async function registerDocumentRequest(
   data: RegisterDocumentPayload,
   httpClient: HttpClient,
 ): Promise<void> {
+  const formData = new FormData()
+  formData.append('document_type', data.document_type)
+  formData.append('form_data', JSON.stringify(data.form_data))
+
+  if ('company' in data) {
+    formData.append('company', data.company)
+  }
+
+  if ('city' in data) {
+    formData.append('city', data.city)
+  }
+
+  if ('coordinator_name' in data) {
+    formData.append('coordinator_name', data.coordinator_name)
+  }
+
+  if ('supervisor_id' in data) {
+    formData.append('supervisor_id', String(data.supervisor_id))
+  }
+
+  if ('attachment' in data && data.attachment) {
+    formData.append('attachment', data.attachment)
+  }
+
   const response = await httpClient(
     '/api/documents/',
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+      body: formData,
     },
   )
 

@@ -19,6 +19,8 @@ import FileUploadField from '../ui/FileUploadField.tsx'
 import FormField from '../ui/FormField.tsx'
 import TextareaField from '../ui/TextareaField.tsx'
 
+type Supervisor = { id: number; full_name: string }
+
 type DocumentFormData = {
   cep: string
   endereco: string
@@ -36,7 +38,7 @@ type DocumentFormData = {
   enderecoConcedente: string
   telefone: string
   ramoAtividade: string
-  emailSupervisor: string
+  supervisor_id: string
   inicioEstagio: string
   fimEstagio: string
   horasSemanais: string
@@ -45,7 +47,7 @@ type DocumentFormData = {
   dificuldadesEncontradas: string
   conclusao: string
   cidadeAssinatura: string
-  attachment: string
+  attachment: File | null
   nomeCoordenador: string
   empresa: string
   modalidade: string
@@ -101,7 +103,7 @@ const INITIAL_FORM: DocumentFormData = {
   enderecoConcedente: '',
   telefone: '',
   ramoAtividade: '',
-  emailSupervisor: '',
+  supervisor_id: '',
   inicioEstagio: '',
   fimEstagio: '',
   horasSemanais: '',
@@ -110,7 +112,7 @@ const INITIAL_FORM: DocumentFormData = {
   dificuldadesEncontradas: '',
   conclusao: '',
   cidadeAssinatura: '',
-  attachment: '',
+  attachment: null,
   nomeCoordenador: '',
   empresa: '',
   modalidade: '',
@@ -170,7 +172,7 @@ function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
   addError('enderecoConcedente', validateRequired(form.enderecoConcedente))
   addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
   addError('ramoAtividade', validateRequired(form.ramoAtividade))
-  addError('emailSupervisor', validateRequired(form.emailSupervisor) ?? validateEmail(form.emailSupervisor))
+  addError('supervisor_id', validateRequired(form.supervisor_id))
   addError('inicioEstagio', validateRequired(form.inicioEstagio))
   addError('fimEstagio', validateRequired(form.fimEstagio))
   addError('horasSemanais', validateRequired(form.horasSemanais))
@@ -179,7 +181,7 @@ function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
   addError('dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas))
   addError('conclusao', validateRequired(form.conclusao))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
-  addError('attachment', validateRequired(form.attachment))
+  addError('attachment', form.attachment ? null : 'Campo obrigatório')
 
   return errors
 }
@@ -196,7 +198,7 @@ function validateNonMandatoryInternshipCredit(form: DocumentFormData): DocumentE
   addError('nomeCoordenador', validateRequired(form.nomeCoordenador))
   addError('empresa', validateRequired(form.empresa))
   addError('cidade', validateRequired(form.cidade))
-  addError('attachment', validateRequired(form.attachment))
+  addError('attachment', form.attachment ? null : 'Campo obrigatório')
 
   return errors
 }
@@ -236,10 +238,10 @@ function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErr
   addError('inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade))
   addError('fimHorarioAtividade', validateRequired(form.fimHorarioAtividade))
   addError('horasSemanais', validateRequired(form.horasSemanais))
-  addError('emailSupervisor', validateRequired(form.emailSupervisor) ?? validateEmail(form.emailSupervisor))
+  addError('supervisor_id', validateRequired(form.supervisor_id))
   addError('descricaoAtividades', validateRequired(form.descricaoAtividades))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
-  addError('attachment', validateRequired(form.attachment))
+  addError('attachment', form.attachment ? null : 'Campo obrigatório')
 
   return errors
 }
@@ -298,6 +300,10 @@ function buildPayload(
     case 'mandatory_internship':
       return {
         document_type: 'mandatory_internship',
+        city: form.cidadeAssinatura,
+        attachment: form.attachment,
+        company: form.razaoSocial,
+        supervisor_id: Number(form.supervisor_id),
         form_data: {
           cep: form.cep,
           endereco: form.endereco,
@@ -305,7 +311,6 @@ function buildPayload(
           cidade: form.cidade,
           uf: form.uf,
           dataEstimadaConclusao: form.dataEstimadaConclusao,
-          razaoSocial: form.razaoSocial,
           cnpjCpf: form.cnpjCpf,
           registroConselhoProfissional: form.registroConselhoProfissional,
           cepConcedente: form.cepConcedente,
@@ -315,7 +320,6 @@ function buildPayload(
           enderecoConcedente: form.enderecoConcedente,
           telefone: form.telefone,
           ramoAtividade: form.ramoAtividade,
-          emailSupervisor: form.emailSupervisor,
           inicioEstagio: form.inicioEstagio,
           fimEstagio: form.fimEstagio,
           horasSemanais: form.horasSemanais,
@@ -323,23 +327,24 @@ function buildPayload(
           atividadesProfissionais: form.atividadesProfissionais,
           dificuldadesEncontradas: form.dificuldadesEncontradas,
           conclusao: form.conclusao,
-          cidadeAssinatura: form.cidadeAssinatura,
-          attachment: form.attachment,
         },
       }
     case 'non_mandatory_internship_credit':
       return {
         document_type: 'non_mandatory_internship_credit',
-        form_data: {
-          nomeCoordenador: form.nomeCoordenador,
-          empresa: form.empresa,
-          cidade: form.cidade,
-          attachment: form.attachment,
-        },
+        city: form.cidade,
+        company: form.empresa,
+        attachment: form.attachment,
+        coordinator_name: form.nomeCoordenador,
+        form_data: {},
       }
     case 'professional_practice_credit':
       return {
         document_type: 'professional_practice_credit',
+        attachment: form.attachment,
+        supervisor_id: Number(form.supervisor_id),
+        company: form.razaoSocial,
+        city: form.cidadeAssinatura,
         form_data: {
           modalidade: form.modalidade,
           dataPrevisaoConclusao: form.dataPrevisaoConclusao,
@@ -347,7 +352,6 @@ function buildPayload(
           especificarSituacao: form.especificarSituacao,
           cargo: form.cargo,
           setor: form.setor,
-          razaoSocial: form.razaoSocial,
           cnpjCpf: form.cnpjCpf,
           registroConselhoProfissional: form.registroConselhoProfissional,
           cpf: form.cpf,
@@ -363,10 +367,7 @@ function buildPayload(
           inicioHorarioAtividade: form.inicioHorarioAtividade,
           fimHorarioAtividade: form.fimHorarioAtividade,
           horasSemanais: form.horasSemanais,
-          emailSupervisor: form.emailSupervisor,
           descricaoAtividades: form.descricaoAtividades,
-          cidadeAssinatura: form.cidadeAssinatura,
-          attachment: form.attachment,
         },
       }
     case 'supervisor_evaluation':
@@ -402,6 +403,7 @@ export default function DocumentForm() {
   const [successMessage, setSuccessMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const { register, isLoading, error } = useRegisterDocument()
   const navigate = useNavigate()
@@ -437,6 +439,36 @@ export default function DocumentForm() {
     }
   }, [fetchWithAuth])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSupervisors() {
+      try {
+        const response = await fetchWithAuth('/api/students/supervisors/')
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar supervisores')
+        }
+
+        const data = await response.json()
+
+        if (!cancelled) {
+          setSupervisors(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError('Não foi possível carregar a lista de supervisores')
+        }
+      }
+    }
+
+    void loadSupervisors()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
   const canSeeStudentOptions = Boolean(
     currentUser?.is_superuser || currentUser?.groups.includes('Student'),
   )
@@ -456,7 +488,7 @@ export default function DocumentForm() {
     }
   }, [isLoadingUser, currentUser, canSeeStudentOptions, canSeeSupervisorOptions])
 
-  function updateField(field: DocumentField, value: string) {
+  function updateField(field: DocumentField, value: string | File | null) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
   }
@@ -760,17 +792,34 @@ export default function DocumentForm() {
             error={fieldErrors.ramoAtividade}
           />
 
-          <FormField
-            id="emailSupervisor"
-            label="Email do supervisor de estágio"
-            type="email"
-            value={form.emailSupervisor}
-            onChange={(event) => {
-              updateField('emailSupervisor', event.target.value)
-            }}
-            required
-            error={fieldErrors.emailSupervisor}
-          />
+          <div>
+            <label
+              htmlFor="supervisor_id"
+              className="mb-1.5 block text-sm font-medium text-neutral-800"
+            >
+              Supervisor de estágio <span className="text-red-600">*</span>
+            </label>
+
+            <select
+              id="supervisor_id"
+              value={form.supervisor_id}
+              onChange={(event) => {
+                updateField('supervisor_id', event.target.value)
+              }}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+            >
+              <option value="">Selecione...</option>
+              {supervisors.map((supervisor) => (
+                <option key={supervisor.id} value={String(supervisor.id)}>
+                  {supervisor.full_name}
+                </option>
+              ))}
+            </select>
+
+            {fieldErrors.supervisor_id && (
+              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
+            )}
+          </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
@@ -1249,17 +1298,34 @@ export default function DocumentForm() {
               error={fieldErrors.horasSemanais}
             />
 
-            <FormField
-              id="emailSupervisorPPC"
-              label="Email do supervisor"
-              type="email"
-              value={form.emailSupervisor}
-              onChange={(event) => {
-                updateField('emailSupervisor', event.target.value)
-              }}
-              required
-              error={fieldErrors.emailSupervisor}
-            />
+            <div>
+              <label
+                htmlFor="supervisor_id_ppc"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Supervisor <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="supervisor_id_ppc"
+                value={form.supervisor_id}
+                onChange={(event) => {
+                  updateField('supervisor_id', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                {supervisors.map((supervisor) => (
+                  <option key={supervisor.id} value={String(supervisor.id)}>
+                    {supervisor.full_name}
+                  </option>
+                ))}
+              </select>
+
+              {fieldErrors.supervisor_id && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
+              )}
+            </div>
           </div>
 
           <FileUploadField
