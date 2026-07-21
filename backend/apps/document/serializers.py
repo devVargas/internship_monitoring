@@ -7,6 +7,8 @@ from apps.document.models import Document, DocumentType
 class DocumentWriteSerializer(serializers.ModelSerializer):
     supervisor_id = serializers.IntegerField(required=False, allow_null=True)
     related_document_id = serializers.IntegerField(required=False, allow_null=True)
+    company = serializers.CharField(required=False)
+    form_data = serializers.JSONField(required=True)
 
     class Meta:
         model = Document
@@ -14,15 +16,9 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
             "document_type",
             "supervisor_id",
             "related_document_id",
-            "student_name",
-            "student_email",
-            "student_registration_number",
-            "student_course",
-            "student_campus",
             "coordinator_name",
             "company",
             "city",
-            "document_date",
             "attachment",
             "form_data",
         )
@@ -36,6 +32,50 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
                 {
                     "related_document_id": (
                         "Supervisor evaluation must be linked to another document."
+                    )
+                }
+            )
+
+        is_supervisor_eval = document_type == DocumentType.SUPERVISOR_EVALUATION
+
+        if document_type in (
+            DocumentType.MANDATORY_INTERNSHIP,
+            DocumentType.PROFESSIONAL_PRACTICE_CREDIT,
+        ) and not attrs.get("supervisor_id"):
+            raise serializers.ValidationError(
+                {
+                    "supervisor_id": (
+                        "Supervisor is required for this document type."
+                    )
+                }
+            )
+
+        if not is_supervisor_eval and not attrs.get("company"):
+            raise serializers.ValidationError(
+                {
+                    "company": (
+                        "Company is required for this document type."
+                    )
+                }
+            )
+
+        if not is_supervisor_eval and not attrs.get("attachment"):
+            raise serializers.ValidationError(
+                {
+                    "attachment": (
+                        "Attachment is required for this document type."
+                    )
+                }
+            )
+
+        if (
+            document_type == DocumentType.NON_MANDATORY_INTERNSHIP_CREDIT
+            and not attrs.get("coordinator_name")
+        ):
+            raise serializers.ValidationError(
+                {
+                    "coordinator_name": (
+                        "Coordinator name is required for this document type."
                     )
                 }
             )

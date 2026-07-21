@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -77,8 +78,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
 
     def create_student_document(self, serializer, supervisor_id, related_document):
+        user = self.request.user
+
         try:
-            student = self.request.user.student_profile
+            student = user.student_profile
         except AttributeError as exc:
             raise NotFound("The logged user does not have a student profile.") from exc
 
@@ -92,6 +95,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
             supervisor=supervisor,
             related_document=related_document,
             status=initial_status,
+            student_name=user.get_full_name(),
+            student_email=user.email,
+            student_registration_number=student.registration_number,
+            student_course=student.course,
+            student_campus=student.campus,
+            document_date=timezone.now().date(),
         )
 
     def create_supervisor_document(self, serializer, related_document):
@@ -117,6 +126,13 @@ class DocumentViewSet(viewsets.ModelViewSet):
             supervisor=supervisor,
             related_document=related_document,
             status=DocumentStatus.SUBMITTED,
+            student_name=related_document.student_name,
+            student_email=related_document.student_email,
+            student_registration_number=related_document.student_registration_number,
+            student_course=related_document.student_course,
+            student_campus=related_document.student_campus,
+            company=related_document.company,
+            document_date=timezone.now().date(),
         )
 
     def perform_update(self, serializer):
