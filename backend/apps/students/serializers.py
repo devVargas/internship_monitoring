@@ -27,6 +27,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = (
+            "id",
             "user",
             "registration_number",
             "course",
