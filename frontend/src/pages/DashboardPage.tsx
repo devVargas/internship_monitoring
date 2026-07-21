@@ -29,6 +29,10 @@ export default function DashboardPage() {
   const canAccessStudentFeatures =
     isSuperuser || isStudent
 
+  const canAccessSupervisorEvaluations =
+    isSuperuser ||
+    user?.groups.includes('Supervisor') === true
+
   return (
     <DashboardLayout>
       <header className="mb-8">
@@ -164,6 +168,29 @@ export default function DashboardPage() {
 
               <p className="mt-1 text-sm leading-6 text-neutral-600">
                 Acompanhe as movimentações de todos os seus documentos.
+              </p>
+
+              <p className="mt-4 text-sm font-semibold text-green-800">
+                Acessar
+              </p>
+            </Link>
+          )}
+
+          {canAccessSupervisorEvaluations && (
+            <Link
+              to="/avaliacoes-pendentes"
+              className={CARD_CLASS}
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-100 text-green-950">
+                <FontAwesomeIcon icon={faClipboardCheck} />
+              </div>
+
+              <h3 className="mt-4 font-semibold text-neutral-950">
+                Avaliações pendentes
+              </h3>
+
+              <p className="mt-1 text-sm leading-6 text-neutral-600">
+                Consulte os alunos que aguardam sua avaliação.
               </p>
 
               <p className="mt-4 text-sm font-semibold text-green-800">
