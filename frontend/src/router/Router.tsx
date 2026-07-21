@@ -78,7 +78,7 @@ export default function Router() {
           path="/historico-documentos"
           element={
             <RoleProtectedRoute
-              allowedGroups={STUDENT_GROUPS.concat(SUPERVISOR_GROUPS)}
+              allowedGroups={[...STUDENT_GROUPS, ...SUPERVISOR_GROUPS]}
             >
               <DocumentHistoryPage />
             </RoleProtectedRoute>

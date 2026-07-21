@@ -119,6 +119,8 @@ export type RegisterDocumentPayload =
     }
   | {
       document_type: 'professional_practice_credit'
+      company: string
+      city: string
       supervisor_id: number
       attachment: File | null
       form_data: ProfessionalPracticeCreditFormData

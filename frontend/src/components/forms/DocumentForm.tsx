@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type SubmitEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type SubmitEvent } from 'react'
 import {useNavigate} from 'react-router-dom'
 import type { CurrentUser } from '../../api/auth.ts'
 import { getCurrentUserRequest } from '../../api/auth.ts'
@@ -397,7 +397,7 @@ function buildPayload(
 }
 
 export default function DocumentForm() {
-  const [documentType, setDocumentType] = useState<DocumentType>('mandatory_internship')
+  const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
   const [form, setForm] = useState<DocumentFormData>(INITIAL_FORM)
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
@@ -450,7 +450,7 @@ export default function DocumentForm() {
           throw new Error('Erro ao carregar supervisores')
         }
 
-        const data = await response.json()
+        const data = (await response.json()) as Supervisor[]
 
         if (!cancelled) {
           setSupervisors(data)
@@ -476,17 +476,13 @@ export default function DocumentForm() {
     currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'),
   )
 
-  useEffect(() => {
-    if (isLoadingUser || !currentUser) {
-      return
-    }
+  const defaultDocumentType = useMemo<DocumentType>(() => {
+    if (canSeeStudentOptions) return 'mandatory_internship'
+    if (canSeeSupervisorOptions) return 'supervisor_evaluation'
+    return 'mandatory_internship'
+  }, [canSeeStudentOptions, canSeeSupervisorOptions])
 
-    if (canSeeStudentOptions) {
-      setDocumentType('mandatory_internship')
-    } else if (canSeeSupervisorOptions) {
-      setDocumentType('supervisor_evaluation')
-    }
-  }, [isLoadingUser, currentUser, canSeeStudentOptions, canSeeSupervisorOptions])
+  const documentType = userSelectedType ?? defaultDocumentType
 
   function updateField(field: DocumentField, value: string | File | null) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -502,7 +498,7 @@ export default function DocumentForm() {
       value === 'professional_practice_credit' ||
       value === 'supervisor_evaluation'
     ) {
-      setDocumentType(value)
+      setUserSelectedType(value)
       setForm(INITIAL_FORM)
       setFieldErrors({})
       setSuccessMessage('')
