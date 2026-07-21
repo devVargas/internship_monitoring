@@ -3,11 +3,9 @@ from rest_framework import permissions, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from apps.accounts.constants import GROUP_PROFESSOR, GROUP_STUDENT
+from apps.accounts.constants import (GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
 from apps.students.models import StudentProfile
 from apps.students.serializers import StudentProfileSerializer
-
 
 class StudentProfileViewSet(viewsets.ModelViewSet):
     serializer_class = StudentProfileSerializer
@@ -21,7 +19,7 @@ class StudentProfileViewSet(viewsets.ModelViewSet):
         if user.is_staff or user.is_superuser:
             return queryset.all()
 
-        if user.groups.filter(name=GROUP_PROFESSOR).exists():
+        if user.groups.filter(name__in=[GROUP_PROFESSOR, GROUP_COORDINATOR]).exists():
             return queryset.all()
 
         if user.groups.filter(name=GROUP_STUDENT).exists():
