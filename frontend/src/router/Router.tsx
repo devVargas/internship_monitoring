@@ -17,6 +17,7 @@ import RegisterStudentPage from '../pages/RegisterStudentPage.tsx'
 import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
 import UserProfilePage from '../pages/UserProfilePage.tsx'
+import SupervisorEvaluationQueuePage from '../pages/SupervisorEvaluationQueuePage.tsx'
 
 const ACADEMIC_GROUPS = [
   'Teacher',
@@ -136,6 +137,17 @@ export default function Router() {
               allowedGroups={ACADEMIC_GROUPS}
             >
               <DocumentReviewDetailPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/avaliacoes-pendentes"
+          element={
+            <RoleProtectedRoute
+              allowedGroups={SUPERVISOR_GROUPS}
+            >
+              <SupervisorEvaluationQueuePage />
             </RoleProtectedRoute>
           }
         />

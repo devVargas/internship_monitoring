@@ -4,10 +4,8 @@ from rest_framework import permissions, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from apps.accounts.constants import GROUP_PROFESSOR, GROUP_STUDENT, GROUP_SUPERVISOR
-from apps.accounts.models import SupervisorProfile
-from apps.students.models import StudentProfile
+from apps.accounts.models import (SupervisorProfile, StudentProfile)
+from apps.accounts.constants import (GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
 from apps.students.serializers import StudentProfileSerializer, SupervisorUserSerializer
 
 User = get_user_model()
@@ -24,7 +22,6 @@ class SupervisorsListView(APIView):
         serializer = SupervisorUserSerializer(supervisors, many=True)
         return Response(serializer.data)
 
-
 class StudentProfileViewSet(viewsets.ModelViewSet):
     serializer_class = StudentProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -37,7 +34,7 @@ class StudentProfileViewSet(viewsets.ModelViewSet):
         if user.is_staff or user.is_superuser:
             return queryset.all()
 
-        if user.groups.filter(name=GROUP_PROFESSOR).exists():
+        if user.groups.filter(name__in=[GROUP_PROFESSOR, GROUP_COORDINATOR]).exists():
             return queryset.all()
 
         if user.groups.filter(name=GROUP_STUDENT).exists():
