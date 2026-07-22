@@ -4,8 +4,9 @@ from rest_framework import permissions, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from apps.accounts.models import (SupervisorProfile, StudentProfile)
-from apps.accounts.constants import (GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
+from apps.accounts.models import SupervisorProfile
+from apps.students.models import StudentProfile
+from apps.accounts.constants import (GROUP_SUPERVISOR, GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
 from apps.students.serializers import StudentProfileSerializer, SupervisorUserSerializer
 
 User = get_user_model()

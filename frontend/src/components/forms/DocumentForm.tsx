@@ -271,6 +271,7 @@ function validateSupervisorEvaluation(form: DocumentFormData): DocumentErrors {
   addError('capacidadeDirecaoCoordenacao', validateRequired(form.capacidadeDirecaoCoordenacao))
   addError('modoAvaliacao', validateRequired(form.modoAvaliacao))
   addError('periodicidadeAvaliacao', validateRequired(form.periodicidadeAvaliacao))
+  addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
 
   return errors
 }
@@ -295,6 +296,7 @@ function validateForm(
 function buildPayload(
   documentType: DocumentType,
   form: DocumentFormData,
+  relatedDocumentId?: number,
 ): RegisterDocumentPayload {
   switch (documentType) {
     case 'mandatory_internship':
@@ -373,6 +375,7 @@ function buildPayload(
     case 'supervisor_evaluation':
       return {
         document_type: 'supervisor_evaluation',
+        city: form.cidadeAssinatura,
         form_data: {
           aprendizadoNoEstagio: form.aprendizadoNoEstagio,
           segurancaExecucao: form.segurancaExecucao,
@@ -392,11 +395,12 @@ function buildPayload(
           periodicidadeAvaliacao: form.periodicidadeAvaliacao,
           observacoes: form.observacoes,
         },
+        ...(relatedDocumentId !== undefined && { related_document_id: relatedDocumentId }),
       }
   }
 }
 
-export default function DocumentForm() {
+export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?: number } = {}) {
   const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
   const [form, setForm] = useState<DocumentFormData>(INITIAL_FORM)
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
@@ -523,7 +527,7 @@ export default function DocumentForm() {
       return
     }
 
-    const payload = buildPayload(documentType, form)
+    const payload = buildPayload(documentType, form, relatedDocumentId)
     const wasCreated = await register(payload)
 
     if (wasCreated) {
@@ -1827,6 +1831,21 @@ export default function DocumentForm() {
               updateField('observacoes', event.target.value)
             }}
             error={fieldErrors.observacoes}
+          />
+
+          <hr className="border-neutral-200" />
+
+          <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
+
+          <FormField
+            id="cidadeAssinaturaSE"
+            label="Cidade"
+            value={form.cidadeAssinatura}
+            onChange={(event) => {
+              updateField('cidadeAssinatura', event.target.value)
+            }}
+            required
+            error={fieldErrors.cidadeAssinatura}
           />
         </>
       )}

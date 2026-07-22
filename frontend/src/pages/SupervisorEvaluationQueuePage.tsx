@@ -2,6 +2,7 @@ import { faClipboardCheck } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import DocumentStatusBadge from '../components/documents/DocumentStatusBadge.tsx'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
+import { Link } from 'react-router-dom'
 import { useSupervisorEvaluationQueue } from '../hooks/useSupervisorEvaluationQueue.ts'
 import {
   DOCUMENT_TYPE_LABELS,
@@ -125,13 +126,12 @@ export default function SupervisorEvaluationQueuePage() {
                       </td>
 
                       <td className="whitespace-nowrap px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          disabled
-                          className="cursor-not-allowed rounded-lg bg-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-500"
+                        <Link
+                          to={`/ficha-avaliacao/${String(document.id)}`}
+                          className="text-sm font-semibold text-green-800 underline-offset-4 hover:underline"
                         >
                           Acessar avaliação
-                        </button>
+                        </Link>
                       </td>
                     </tr>
                   ))}

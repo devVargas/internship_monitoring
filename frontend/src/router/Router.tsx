@@ -98,6 +98,17 @@ export default function Router() {
         />
 
         <Route
+          path="/ficha-avaliacao/:related-document-id"
+          element={
+            <RoleProtectedRoute
+              allowedGroups={SUPERVISOR_GROUPS}
+            >
+              <RegisterDocumentPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
           path="/cadastro-academico"
           element={
             <RoleProtectedRoute

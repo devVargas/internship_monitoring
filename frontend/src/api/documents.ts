@@ -127,7 +127,9 @@ export type RegisterDocumentPayload =
     }
   | {
       document_type: 'supervisor_evaluation'
+      city: string
       form_data: MandatoryInternshipEvaluationFormData
+      related_document_id?: number
     }
 
 export type DocumentActivity = {
@@ -415,6 +417,10 @@ export async function registerDocumentRequest(
 
   if ('supervisor_id' in data) {
     formData.append('supervisor_id', String(data.supervisor_id))
+  }
+
+  if ('related_document_id' in data && data.related_document_id !== undefined) {
+    formData.append('related_document_id', String(data.related_document_id))
   }
 
   if ('attachment' in data && data.attachment) {

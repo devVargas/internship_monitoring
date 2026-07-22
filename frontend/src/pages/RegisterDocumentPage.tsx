@@ -1,7 +1,16 @@
+import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 import DocumentForm from '../components/forms/DocumentForm.tsx'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
 
 export default function RegisterDocumentPage() {
+  const params = useParams()
+  const rawRelatedDocumentId = params['related-document-id']
+  const relatedDocumentId = useMemo(() => {
+    if (rawRelatedDocumentId === undefined) return undefined
+    const parsed = Number(rawRelatedDocumentId)
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined
+  }, [rawRelatedDocumentId])
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-3xl">
@@ -18,7 +27,7 @@ export default function RegisterDocumentPage() {
         </header>
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-          <DocumentForm />
+          <DocumentForm relatedDocumentId={relatedDocumentId} />
         </section>
       </div>
     </DashboardLayout>
