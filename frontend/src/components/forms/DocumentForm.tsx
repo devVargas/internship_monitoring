@@ -560,6 +560,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
 
       {!isLoadingUser && !loadError && (
         <>
+      {canSeeStudentOptions && (
       <div className="mb-6">
         <label
           htmlFor="documentType"
@@ -592,6 +593,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
           )}
         </select>
       </div>
+      )}
 
       {documentType === 'mandatory_internship' && (
         <>
