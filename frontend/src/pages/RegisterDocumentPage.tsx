@@ -34,7 +34,7 @@ export default function RegisterDocumentPage() {
         </header>
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-          <DocumentForm documentId={documentId} relatedDocumentId={relatedDocumentId} />
+          <DocumentForm documentId={documentId} relatedDocumentIdProp={relatedDocumentId} />
         </section>
       </div>
     </DashboardLayout>
