@@ -10,7 +10,7 @@ import {
 } from '../utils/documents.ts'
 
 export default function SupervisorEvaluationQueuePage() {
-  const { documents, isLoading, error } =
+  const { documents, documentsToChange, isLoading, error } =
     useSupervisorEvaluationQueue()
 
   return (
@@ -50,7 +50,7 @@ export default function SupervisorEvaluationQueuePage() {
             </div>
           )}
 
-          {!isLoading && !error && documents.length === 0 && (
+          {!isLoading && !error && documentsToChange.length === 0 && documents.length === 0 && (
             <div className="p-10 text-center">
               <p className="font-medium text-neutral-800">
                 Nenhuma avaliação pendente.
@@ -62,7 +62,7 @@ export default function SupervisorEvaluationQueuePage() {
             </div>
           )}
 
-          {!isLoading && !error && documents.length > 0 && (
+          {!isLoading && !error && (documentsToChange.length > 0 || documents.length > 0) && (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
@@ -90,6 +90,51 @@ export default function SupervisorEvaluationQueuePage() {
                 </thead>
 
                 <tbody className="divide-y divide-neutral-200">
+                  {documentsToChange.map((document) => (
+                    <tr
+                      key={document.id}
+                      className="hover:bg-neutral-50"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-neutral-900">
+                          {document.studentName}
+                        </p>
+
+                        <p className="mt-1 text-xs text-neutral-500">
+                          {document.studentRegistrationNumber}
+                          {' · '}
+                          {document.studentCourse}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-neutral-800">
+                          {DOCUMENT_TYPE_LABELS[document.documentType]}
+                        </p>
+
+                        <p className="mt-1 text-xs text-neutral-500">
+                          {formatDate(document.documentDate)}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-neutral-600">
+                        {document.company}
+                      </td>
+
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <DocumentStatusBadge status={document.status} />
+                      </td>
+
+                      <td className="whitespace-nowrap px-6 py-4 text-right">
+                        <Link
+                          to={`/editar-avaliacao/${String(document.id)}`}
+                          className="text-sm font-semibold text-green-800 underline-offset-4 hover:underline"
+                        >
+                          Ajustar avaliação
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
                   {documents.map((document) => (
                     <tr
                       key={document.id}
@@ -139,6 +184,7 @@ export default function SupervisorEvaluationQueuePage() {
               </table>
             </div>
           )}
+
         </section>
       </div>
     </DashboardLayout>
