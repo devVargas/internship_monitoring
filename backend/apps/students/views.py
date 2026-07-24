@@ -1,11 +1,27 @@
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from apps.accounts.constants import (GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
+from apps.accounts.models import SupervisorProfile
 from apps.students.models import StudentProfile
-from apps.students.serializers import StudentProfileSerializer
+from apps.accounts.constants import (GROUP_SUPERVISOR, GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
+from apps.students.serializers import StudentProfileSerializer, SupervisorUserSerializer
+
+User = get_user_model()
+
+
+class SupervisorsListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses=SupervisorUserSerializer(many=True))
+    def get(self, request):
+        supervisors = SupervisorProfile.objects.filter(
+            user__groups__name=GROUP_SUPERVISOR,
+        ).select_related("user")
+        serializer = SupervisorUserSerializer(supervisors, many=True)
+        return Response(serializer.data)
 
 class StudentProfileViewSet(viewsets.ModelViewSet):
     serializer_class = StudentProfileSerializer

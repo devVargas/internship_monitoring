@@ -1,7 +1,11 @@
-import { useState, type ChangeEvent, type SubmitEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type SubmitEvent } from 'react'
 import {useNavigate} from 'react-router-dom'
+import type { CurrentUser } from '../../api/auth.ts'
+import { getCurrentUserRequest } from '../../api/auth.ts'
 import type { DocumentType, RegisterDocumentPayload } from '../../api/documents.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
+import { useAPI } from '../../context/api-context.ts'
+import { getErrorMessage } from '../../utils/errors.ts'
 import {
   formatCep,
   formatPhone,
@@ -14,6 +18,8 @@ import Button from '../ui/Button.tsx'
 import FileUploadField from '../ui/FileUploadField.tsx'
 import FormField from '../ui/FormField.tsx'
 import TextareaField from '../ui/TextareaField.tsx'
+
+type Supervisor = { id: number; full_name: string }
 
 type DocumentFormData = {
   cep: string
@@ -32,7 +38,7 @@ type DocumentFormData = {
   enderecoConcedente: string
   telefone: string
   ramoAtividade: string
-  emailSupervisor: string
+  supervisor_id: string
   inicioEstagio: string
   fimEstagio: string
   horasSemanais: string
@@ -41,7 +47,7 @@ type DocumentFormData = {
   dificuldadesEncontradas: string
   conclusao: string
   cidadeAssinatura: string
-  attachment: string
+  attachment: File | null
   nomeCoordenador: string
   empresa: string
   modalidade: string
@@ -58,6 +64,23 @@ type DocumentFormData = {
   inicioHorarioAtividade: string
   fimHorarioAtividade: string
   descricaoAtividades: string
+  aprendizadoNoEstagio: string
+  segurancaExecucao: string
+  interessePeloTrabalho: string
+  iniciativaPropria: string
+  conhecimentosTecnicos: string
+  produtividade: string
+  qualidadeDoTrabalho: string
+  disciplina: string
+  relacionamentoSocial: string
+  cooperacao: string
+  esforcoSuperarFalhas: string
+  pontualidade: string
+  assiduidade: string
+  capacidadeDirecaoCoordenacao: string
+  modoAvaliacao: string
+  periodicidadeAvaliacao: string
+  observacoes: string
 }
 
 type DocumentField = keyof DocumentFormData
@@ -80,7 +103,7 @@ const INITIAL_FORM: DocumentFormData = {
   enderecoConcedente: '',
   telefone: '',
   ramoAtividade: '',
-  emailSupervisor: '',
+  supervisor_id: '',
   inicioEstagio: '',
   fimEstagio: '',
   horasSemanais: '',
@@ -89,7 +112,7 @@ const INITIAL_FORM: DocumentFormData = {
   dificuldadesEncontradas: '',
   conclusao: '',
   cidadeAssinatura: '',
-  attachment: '',
+  attachment: null,
   nomeCoordenador: '',
   empresa: '',
   modalidade: '',
@@ -106,6 +129,23 @@ const INITIAL_FORM: DocumentFormData = {
   inicioHorarioAtividade: '',
   fimHorarioAtividade: '',
   descricaoAtividades: '',
+  aprendizadoNoEstagio: '',
+  segurancaExecucao: '',
+  interessePeloTrabalho: '',
+  iniciativaPropria: '',
+  conhecimentosTecnicos: '',
+  produtividade: '',
+  qualidadeDoTrabalho: '',
+  disciplina: '',
+  relacionamentoSocial: '',
+  cooperacao: '',
+  esforcoSuperarFalhas: '',
+  pontualidade: '',
+  assiduidade: '',
+  capacidadeDirecaoCoordenacao: '',
+  modoAvaliacao: '',
+  periodicidadeAvaliacao: '',
+  observacoes: '',
 }
 
 function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
@@ -132,7 +172,7 @@ function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
   addError('enderecoConcedente', validateRequired(form.enderecoConcedente))
   addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
   addError('ramoAtividade', validateRequired(form.ramoAtividade))
-  addError('emailSupervisor', validateRequired(form.emailSupervisor) ?? validateEmail(form.emailSupervisor))
+  addError('supervisor_id', validateRequired(form.supervisor_id))
   addError('inicioEstagio', validateRequired(form.inicioEstagio))
   addError('fimEstagio', validateRequired(form.fimEstagio))
   addError('horasSemanais', validateRequired(form.horasSemanais))
@@ -141,7 +181,7 @@ function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
   addError('dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas))
   addError('conclusao', validateRequired(form.conclusao))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
-  addError('attachment', validateRequired(form.attachment))
+  addError('attachment', form.attachment ? null : 'Campo obrigatório')
 
   return errors
 }
@@ -158,7 +198,7 @@ function validateNonMandatoryInternshipCredit(form: DocumentFormData): DocumentE
   addError('nomeCoordenador', validateRequired(form.nomeCoordenador))
   addError('empresa', validateRequired(form.empresa))
   addError('cidade', validateRequired(form.cidade))
-  addError('attachment', validateRequired(form.attachment))
+  addError('attachment', form.attachment ? null : 'Campo obrigatório')
 
   return errors
 }
@@ -198,10 +238,40 @@ function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErr
   addError('inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade))
   addError('fimHorarioAtividade', validateRequired(form.fimHorarioAtividade))
   addError('horasSemanais', validateRequired(form.horasSemanais))
-  addError('emailSupervisor', validateRequired(form.emailSupervisor) ?? validateEmail(form.emailSupervisor))
+  addError('supervisor_id', validateRequired(form.supervisor_id))
   addError('descricaoAtividades', validateRequired(form.descricaoAtividades))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
-  addError('attachment', validateRequired(form.attachment))
+  addError('attachment', form.attachment ? null : 'Campo obrigatório')
+
+  return errors
+}
+
+function validateSupervisorEvaluation(form: DocumentFormData): DocumentErrors {
+  const errors: DocumentErrors = {}
+
+  function addError(field: DocumentField, error: string | null) {
+    if (error) {
+      errors[field] = error
+    }
+  }
+
+  addError('aprendizadoNoEstagio', validateRequired(form.aprendizadoNoEstagio))
+  addError('segurancaExecucao', validateRequired(form.segurancaExecucao))
+  addError('interessePeloTrabalho', validateRequired(form.interessePeloTrabalho))
+  addError('iniciativaPropria', validateRequired(form.iniciativaPropria))
+  addError('conhecimentosTecnicos', validateRequired(form.conhecimentosTecnicos))
+  addError('produtividade', validateRequired(form.produtividade))
+  addError('qualidadeDoTrabalho', validateRequired(form.qualidadeDoTrabalho))
+  addError('disciplina', validateRequired(form.disciplina))
+  addError('relacionamentoSocial', validateRequired(form.relacionamentoSocial))
+  addError('cooperacao', validateRequired(form.cooperacao))
+  addError('esforcoSuperarFalhas', validateRequired(form.esforcoSuperarFalhas))
+  addError('pontualidade', validateRequired(form.pontualidade))
+  addError('assiduidade', validateRequired(form.assiduidade))
+  addError('capacidadeDirecaoCoordenacao', validateRequired(form.capacidadeDirecaoCoordenacao))
+  addError('modoAvaliacao', validateRequired(form.modoAvaliacao))
+  addError('periodicidadeAvaliacao', validateRequired(form.periodicidadeAvaliacao))
+  addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
 
   return errors
 }
@@ -217,6 +287,8 @@ function validateForm(
       return validateNonMandatoryInternshipCredit(form)
     case 'professional_practice_credit':
       return validateProfessionalPracticeCredit(form)
+    case 'supervisor_evaluation':
+      return validateSupervisorEvaluation(form)
   }
 }
 
@@ -224,11 +296,16 @@ function validateForm(
 function buildPayload(
   documentType: DocumentType,
   form: DocumentFormData,
+  relatedDocumentId?: number,
 ): RegisterDocumentPayload {
   switch (documentType) {
     case 'mandatory_internship':
       return {
         document_type: 'mandatory_internship',
+        city: form.cidadeAssinatura,
+        attachment: form.attachment,
+        company: form.razaoSocial,
+        supervisor_id: Number(form.supervisor_id),
         form_data: {
           cep: form.cep,
           endereco: form.endereco,
@@ -236,7 +313,6 @@ function buildPayload(
           cidade: form.cidade,
           uf: form.uf,
           dataEstimadaConclusao: form.dataEstimadaConclusao,
-          razaoSocial: form.razaoSocial,
           cnpjCpf: form.cnpjCpf,
           registroConselhoProfissional: form.registroConselhoProfissional,
           cepConcedente: form.cepConcedente,
@@ -246,7 +322,6 @@ function buildPayload(
           enderecoConcedente: form.enderecoConcedente,
           telefone: form.telefone,
           ramoAtividade: form.ramoAtividade,
-          emailSupervisor: form.emailSupervisor,
           inicioEstagio: form.inicioEstagio,
           fimEstagio: form.fimEstagio,
           horasSemanais: form.horasSemanais,
@@ -254,23 +329,24 @@ function buildPayload(
           atividadesProfissionais: form.atividadesProfissionais,
           dificuldadesEncontradas: form.dificuldadesEncontradas,
           conclusao: form.conclusao,
-          cidadeAssinatura: form.cidadeAssinatura,
-          attachment: form.attachment,
         },
       }
     case 'non_mandatory_internship_credit':
       return {
         document_type: 'non_mandatory_internship_credit',
-        form_data: {
-          nomeCoordenador: form.nomeCoordenador,
-          empresa: form.empresa,
-          cidade: form.cidade,
-          attachment: form.attachment,
-        },
+        city: form.cidade,
+        company: form.empresa,
+        attachment: form.attachment,
+        coordinator_name: form.nomeCoordenador,
+        form_data: {},
       }
     case 'professional_practice_credit':
       return {
         document_type: 'professional_practice_credit',
+        attachment: form.attachment,
+        supervisor_id: Number(form.supervisor_id),
+        company: form.razaoSocial,
+        city: form.cidadeAssinatura,
         form_data: {
           modalidade: form.modalidade,
           dataPrevisaoConclusao: form.dataPrevisaoConclusao,
@@ -278,7 +354,6 @@ function buildPayload(
           especificarSituacao: form.especificarSituacao,
           cargo: form.cargo,
           setor: form.setor,
-          razaoSocial: form.razaoSocial,
           cnpjCpf: form.cnpjCpf,
           registroConselhoProfissional: form.registroConselhoProfissional,
           cpf: form.cpf,
@@ -294,24 +369,126 @@ function buildPayload(
           inicioHorarioAtividade: form.inicioHorarioAtividade,
           fimHorarioAtividade: form.fimHorarioAtividade,
           horasSemanais: form.horasSemanais,
-          emailSupervisor: form.emailSupervisor,
           descricaoAtividades: form.descricaoAtividades,
-          cidadeAssinatura: form.cidadeAssinatura,
-          attachment: form.attachment,
         },
+      }
+    case 'supervisor_evaluation':
+      return {
+        document_type: 'supervisor_evaluation',
+        city: form.cidadeAssinatura,
+        form_data: {
+          aprendizadoNoEstagio: form.aprendizadoNoEstagio,
+          segurancaExecucao: form.segurancaExecucao,
+          interessePeloTrabalho: form.interessePeloTrabalho,
+          iniciativaPropria: form.iniciativaPropria,
+          conhecimentosTecnicos: form.conhecimentosTecnicos,
+          produtividade: form.produtividade,
+          qualidadeDoTrabalho: form.qualidadeDoTrabalho,
+          disciplina: form.disciplina,
+          relacionamentoSocial: form.relacionamentoSocial,
+          cooperacao: form.cooperacao,
+          esforcoSuperarFalhas: form.esforcoSuperarFalhas,
+          pontualidade: form.pontualidade,
+          assiduidade: form.assiduidade,
+          capacidadeDirecaoCoordenacao: form.capacidadeDirecaoCoordenacao,
+          modoAvaliacao: form.modoAvaliacao,
+          periodicidadeAvaliacao: form.periodicidadeAvaliacao,
+          observacoes: form.observacoes,
+        },
+        ...(relatedDocumentId !== undefined && { related_document_id: relatedDocumentId }),
       }
   }
 }
 
-export default function DocumentForm() {
-  const [documentType, setDocumentType] = useState<DocumentType>('mandatory_internship')
+export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?: number } = {}) {
+  const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
   const [form, setForm] = useState<DocumentFormData>(INITIAL_FORM)
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
   const { register, isLoading, error } = useRegisterDocument()
   const navigate = useNavigate()
+  const { fetchWithAuth } = useAPI()
 
-  function updateField(field: DocumentField, value: string) {
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCurrentUser() {
+      try {
+        const user = await getCurrentUserRequest(fetchWithAuth)
+
+        if (!cancelled) {
+          setCurrentUser(user)
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setLoadError(
+            getErrorMessage(requestError, 'Não foi possível carregar suas permissões'),
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingUser(false)
+        }
+      }
+    }
+
+    void loadCurrentUser()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSupervisors() {
+      try {
+        const response = await fetchWithAuth('/api/students/supervisors/')
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar supervisores')
+        }
+
+        const data = (await response.json()) as Supervisor[]
+
+        if (!cancelled) {
+          setSupervisors(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError('Não foi possível carregar a lista de supervisores')
+        }
+      }
+    }
+
+    void loadSupervisors()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
+  const canSeeStudentOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Student'),
+  )
+  const canSeeSupervisorOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'),
+  )
+
+  const defaultDocumentType = useMemo<DocumentType>(() => {
+    if (canSeeStudentOptions) return 'mandatory_internship'
+    if (canSeeSupervisorOptions) return 'supervisor_evaluation'
+    return 'mandatory_internship'
+  }, [canSeeStudentOptions, canSeeSupervisorOptions])
+
+  const documentType = userSelectedType ?? defaultDocumentType
+
+  function updateField(field: DocumentField, value: string | File | null) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
   }
@@ -322,9 +499,10 @@ export default function DocumentForm() {
     if (
       value === 'mandatory_internship' ||
       value === 'non_mandatory_internship_credit' ||
-      value === 'professional_practice_credit'
+      value === 'professional_practice_credit' ||
+      value === 'supervisor_evaluation'
     ) {
-      setDocumentType(value)
+      setUserSelectedType(value)
       setForm(INITIAL_FORM)
       setFieldErrors({})
       setSuccessMessage('')
@@ -349,7 +527,7 @@ export default function DocumentForm() {
       return
     }
 
-    const payload = buildPayload(documentType, form)
+    const payload = buildPayload(documentType, form, relatedDocumentId)
     const wasCreated = await register(payload)
 
     if (wasCreated) {
@@ -367,6 +545,22 @@ export default function DocumentForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      {isLoadingUser && (
+        <p className="text-sm text-neutral-600">Carregando permissões...</p>
+      )}
+
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {loadError}
+        </div>
+      )}
+
+      {!isLoadingUser && !loadError && (
+        <>
+      {canSeeStudentOptions && (
       <div className="mb-6">
         <label
           htmlFor="documentType"
@@ -381,15 +575,25 @@ export default function DocumentForm() {
           onChange={handleDocumentTypeChange}
           className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
         >
-          <option value="mandatory_internship">Estágio obrigatório</option>
-          <option value="non_mandatory_internship_credit">
-            Aproveitamento de estágio não obrigatório
-          </option>
-          <option value="professional_practice_credit">
-            Aproveitamento de prática profissional
-          </option>
+          {canSeeStudentOptions && (
+            <>
+              <option value="mandatory_internship">Estágio obrigatório</option>
+              <option value="non_mandatory_internship_credit">
+                Aproveitamento de estágio não obrigatório
+              </option>
+              <option value="professional_practice_credit">
+                Aproveitamento de prática profissional
+              </option>
+            </>
+          )}
+          {canSeeSupervisorOptions && (
+            <option value="supervisor_evaluation">
+              Ficha de avaliação de estágio obrigatório
+            </option>
+          )}
         </select>
       </div>
+      )}
 
       {documentType === 'mandatory_internship' && (
         <>
@@ -590,17 +794,34 @@ export default function DocumentForm() {
             error={fieldErrors.ramoAtividade}
           />
 
-          <FormField
-            id="emailSupervisor"
-            label="Email do supervisor de estágio"
-            type="email"
-            value={form.emailSupervisor}
-            onChange={(event) => {
-              updateField('emailSupervisor', event.target.value)
-            }}
-            required
-            error={fieldErrors.emailSupervisor}
-          />
+          <div>
+            <label
+              htmlFor="supervisor_id"
+              className="mb-1.5 block text-sm font-medium text-neutral-800"
+            >
+              Supervisor de estágio <span className="text-red-600">*</span>
+            </label>
+
+            <select
+              id="supervisor_id"
+              value={form.supervisor_id}
+              onChange={(event) => {
+                updateField('supervisor_id', event.target.value)
+              }}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+            >
+              <option value="">Selecione...</option>
+              {supervisors.map((supervisor) => (
+                <option key={supervisor.id} value={String(supervisor.id)}>
+                  {supervisor.full_name}
+                </option>
+              ))}
+            </select>
+
+            {fieldErrors.supervisor_id && (
+              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
+            )}
+          </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
@@ -1079,17 +1300,34 @@ export default function DocumentForm() {
               error={fieldErrors.horasSemanais}
             />
 
-            <FormField
-              id="emailSupervisorPPC"
-              label="Email do supervisor"
-              type="email"
-              value={form.emailSupervisor}
-              onChange={(event) => {
-                updateField('emailSupervisor', event.target.value)
-              }}
-              required
-              error={fieldErrors.emailSupervisor}
-            />
+            <div>
+              <label
+                htmlFor="supervisor_id_ppc"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Supervisor <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="supervisor_id_ppc"
+                value={form.supervisor_id}
+                onChange={(event) => {
+                  updateField('supervisor_id', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                {supervisors.map((supervisor) => (
+                  <option key={supervisor.id} value={String(supervisor.id)}>
+                    {supervisor.full_name}
+                  </option>
+                ))}
+              </select>
+
+              {fieldErrors.supervisor_id && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
+              )}
+            </div>
           </div>
 
           <FileUploadField
@@ -1135,6 +1373,485 @@ export default function DocumentForm() {
         </>
       )}
 
+      {documentType === 'supervisor_evaluation' && (
+        <>
+          <h3 className="text-lg font-semibold text-neutral-900">
+            Avaliação do estudante
+          </h3>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="aprendizadoNoEstagio"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Aprendizado dentro do estágio <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="aprendizadoNoEstagio"
+                value={form.aprendizadoNoEstagio}
+                onChange={(event) => {
+                  updateField('aprendizadoNoEstagio', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.aprendizadoNoEstagio && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.aprendizadoNoEstagio}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="segurancaExecucao"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Segurança na execução do trabalho <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="segurancaExecucao"
+                value={form.segurancaExecucao}
+                onChange={(event) => {
+                  updateField('segurancaExecucao', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.segurancaExecucao && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.segurancaExecucao}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="interessePeloTrabalho"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Interesse pelo trabalho <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="interessePeloTrabalho"
+                value={form.interessePeloTrabalho}
+                onChange={(event) => {
+                  updateField('interessePeloTrabalho', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.interessePeloTrabalho && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.interessePeloTrabalho}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="iniciativaPropria"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Iniciativa própria <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="iniciativaPropria"
+                value={form.iniciativaPropria}
+                onChange={(event) => {
+                  updateField('iniciativaPropria', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.iniciativaPropria && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.iniciativaPropria}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="conhecimentosTecnicos"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Conhecimentos técnicos <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="conhecimentosTecnicos"
+                value={form.conhecimentosTecnicos}
+                onChange={(event) => {
+                  updateField('conhecimentosTecnicos', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.conhecimentosTecnicos && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.conhecimentosTecnicos}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="produtividade"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Produtividade <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="produtividade"
+                value={form.produtividade}
+                onChange={(event) => {
+                  updateField('produtividade', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.produtividade && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.produtividade}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="qualidadeDoTrabalho"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Qualidade do trabalho <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="qualidadeDoTrabalho"
+                value={form.qualidadeDoTrabalho}
+                onChange={(event) => {
+                  updateField('qualidadeDoTrabalho', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.qualidadeDoTrabalho && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.qualidadeDoTrabalho}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="disciplina"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Disciplina <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="disciplina"
+                value={form.disciplina}
+                onChange={(event) => {
+                  updateField('disciplina', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.disciplina && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.disciplina}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="relacionamentoSocial"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Relacionamento social <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="relacionamentoSocial"
+                value={form.relacionamentoSocial}
+                onChange={(event) => {
+                  updateField('relacionamentoSocial', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.relacionamentoSocial && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.relacionamentoSocial}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="cooperacao"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Cooperação <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="cooperacao"
+                value={form.cooperacao}
+                onChange={(event) => {
+                  updateField('cooperacao', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.cooperacao && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.cooperacao}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="esforcoSuperarFalhas"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Esforço para superar falhas <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="esforcoSuperarFalhas"
+                value={form.esforcoSuperarFalhas}
+                onChange={(event) => {
+                  updateField('esforcoSuperarFalhas', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.esforcoSuperarFalhas && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.esforcoSuperarFalhas}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="pontualidade"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Pontualidade <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="pontualidade"
+                value={form.pontualidade}
+                onChange={(event) => {
+                  updateField('pontualidade', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.pontualidade && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.pontualidade}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="assiduidade"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Assiduidade <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="assiduidade"
+                value={form.assiduidade}
+                onChange={(event) => {
+                  updateField('assiduidade', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.assiduidade && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.assiduidade}</p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="capacidadeDirecaoCoordenacao"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Capacidade de direção e coordenação <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="capacidadeDirecaoCoordenacao"
+                value={form.capacidadeDirecaoCoordenacao}
+                onChange={(event) => {
+                  updateField('capacidadeDirecaoCoordenacao', event.target.value)
+                }}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              >
+                <option value="">Selecione...</option>
+                <option value="O">Ótimo</option>
+                <option value="MB">Muito bom</option>
+                <option value="B">Bom</option>
+                <option value="R">Regular</option>
+                <option value="I">Insatisfatório</option>
+              </select>
+
+              {fieldErrors.capacidadeDirecaoCoordenacao && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.capacidadeDirecaoCoordenacao}</p>
+              )}
+            </div>
+          </div>
+
+          <hr className="border-neutral-200" />
+
+          <h3 className="text-lg font-semibold text-neutral-900">Detalhes da avaliação</h3>
+
+          <FormField
+            id="modoAvaliacao"
+            label="De qual modo a concedente avalia o estudante?"
+            value={form.modoAvaliacao}
+            onChange={(event) => {
+              updateField('modoAvaliacao', event.target.value)
+            }}
+            required
+            error={fieldErrors.modoAvaliacao}
+          />
+
+          <FormField
+            id="periodicidadeAvaliacao"
+            label="Com que periodicidade o estudante é avaliado?"
+            value={form.periodicidadeAvaliacao}
+            onChange={(event) => {
+              updateField('periodicidadeAvaliacao', event.target.value)
+            }}
+            required
+            error={fieldErrors.periodicidadeAvaliacao}
+          />
+
+          <TextareaField
+            id="observacoes"
+            label="Observações"
+            value={form.observacoes}
+            onChange={(event) => {
+              updateField('observacoes', event.target.value)
+            }}
+            error={fieldErrors.observacoes}
+          />
+
+          <hr className="border-neutral-200" />
+
+          <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
+
+          <FormField
+            id="cidadeAssinaturaSE"
+            label="Cidade"
+            value={form.cidadeAssinatura}
+            onChange={(event) => {
+              updateField('cidadeAssinatura', event.target.value)
+            }}
+            required
+            error={fieldErrors.cidadeAssinatura}
+          />
+        </>
+      )}
+
       {successMessage && (
         <div
           role="status"
@@ -1156,6 +1873,8 @@ export default function DocumentForm() {
       <Button type="submit" disabled={isLoading} className="w-full">
         {isLoading ? 'Enviando...' : 'Enviar'}
       </Button>
+        </>
+      )}
     </form>
   )
 }

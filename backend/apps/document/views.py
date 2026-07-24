@@ -1,10 +1,11 @@
 from django.db.models import Q
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
-
+from django.db import transaction
 from apps.accounts.constants import GROUP_COORDINATOR, GROUP_PROFESSOR, GROUP_SUPERVISOR
 from apps.accounts.models import SupervisorProfile
 from apps.doc_activity.models import DocumentActivityAction
@@ -18,7 +19,6 @@ from apps.document.serializers import (
     DocumentWriteSerializer,
 )
 from apps.document.services import set_document_status
-
 
 class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -58,6 +58,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
         return queryset.filter(student__user=user)
 
+    @transaction.atomic
     def perform_create(self, serializer):
         supervisor_id = serializer.validated_data.pop("supervisor_id", None)
         related_document_id = serializer.validated_data.pop("related_document_id", None)
@@ -77,8 +78,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
 
     def create_student_document(self, serializer, supervisor_id, related_document):
+        user = self.request.user
+
         try:
-            student = self.request.user.student_profile
+            student = user.student_profile
         except AttributeError as exc:
             raise NotFound("The logged user does not have a student profile.") from exc
 
@@ -92,6 +95,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
             supervisor=supervisor,
             related_document=related_document,
             status=initial_status,
+            student_name=user.get_full_name(),
+            student_email=user.email,
+            student_registration_number=student.registration_number,
+            student_course=student.course,
+            student_campus=student.campus,
+            document_date=timezone.now().date(),
         )
 
     def create_supervisor_document(self, serializer, related_document):
@@ -107,17 +116,65 @@ class DocumentViewSet(viewsets.ModelViewSet):
         try:
             supervisor = self.request.user.supervisor_profile
         except AttributeError as exc:
-            raise PermissionDenied("The logged user does not have a supervisor profile.") from exc
+            raise PermissionDenied(
+                "The logged user does not have a supervisor profile."
+            ) from exc
+
+        related_document = Document.objects.select_for_update().get(
+            pk=related_document.pk
+        )
 
         if related_document.supervisor_id != supervisor.id:
-            raise PermissionDenied("This document is not assigned to this supervisor.")
+            raise PermissionDenied(
+                "This document is not assigned to this supervisor."
+            )
 
-        return serializer.save(
+        if related_document.status != DocumentStatus.WAITING_SUPERVISOR:
+            raise ValidationError(
+                {
+                    "related_document_id": (
+                        "This document is no longer waiting for "
+                        "a supervisor evaluation."
+                    )
+                }
+            )
+
+        if related_document.related_documents.filter(
+            document_type=DocumentType.SUPERVISOR_EVALUATION,
+        ).exists():
+            raise ValidationError(
+                {
+                    "related_document_id": (
+                        "A supervisor evaluation already exists "
+                        "for this document."
+                    )
+                }
+            )
+
+        document = serializer.save(
             student=related_document.student,
             supervisor=supervisor,
             related_document=related_document,
             status=DocumentStatus.SUBMITTED,
+            student_name=related_document.student_name,
+            student_email=related_document.student_email,
+            student_registration_number=(
+                related_document.student_registration_number
+            ),
+            student_course=related_document.student_course,
+            student_campus=related_document.student_campus,
+            company=related_document.company,
+            document_date=timezone.now().date(),
         )
+
+        set_document_status(
+            document=related_document,
+            status=DocumentStatus.SUBMITTED,
+            user=self.request.user,
+            description="Ficha de avaliação enviada pelo supervisor.",
+        )
+
+        return document
 
     def perform_update(self, serializer):
         document = serializer.instance

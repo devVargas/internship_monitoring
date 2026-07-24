@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ChangeEvent } from 'react'
 import Label from './Label.tsx'
 
@@ -7,8 +7,8 @@ type FileUploadFieldProps = {
   label: string
   required?: boolean
   error?: string | null
-  value: string
-  onChange: (base64: string) => void
+  value: File | null
+  onChange: (file: File | null) => void
 }
 
 export default function FileUploadField({
@@ -20,37 +20,27 @@ export default function FileUploadField({
   onChange,
 }: FileUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [fileName, setFileName] = useState('')
   const errorId = `${id}-error`
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0] ?? null
 
-    if (!file) {
-      return
-    }
-
-    setFileName(file.name)
-
-    const reader = new FileReader()
-
-    reader.onload = () => {
-      const result = reader.result as string
-      const base64 = result.split(',')[1]
-      onChange(base64)
-    }
-
-    reader.readAsDataURL(file)
+    onChange(file)
   }
 
   function handleClear() {
-    setFileName('')
-    onChange('')
+    onChange(null)
 
     if (inputRef.current) {
       inputRef.current.value = ''
     }
   }
+
+  useEffect(() => {
+    if (!value && inputRef.current) {
+      inputRef.current.value = ''
+    }
+  }, [value])
 
   const borderClass = error
     ? 'border-red-500 focus-within:border-red-500 focus-within:ring-red-100'
@@ -85,7 +75,7 @@ export default function FileUploadField({
         </label>
 
         <span className="min-w-0 flex-1 truncate text-sm text-neutral-600">
-          {fileName || 'Nenhum arquivo selecionado'}
+          {value?.name || 'Nenhum arquivo selecionado'}
         </span>
 
         {value && (

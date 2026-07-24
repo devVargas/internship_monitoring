@@ -79,7 +79,7 @@ export default function Router() {
           path="/historico-documentos"
           element={
             <RoleProtectedRoute
-              allowedGroups={STUDENT_GROUPS}
+              allowedGroups={[...STUDENT_GROUPS, ...SUPERVISOR_GROUPS]}
             >
               <DocumentHistoryPage />
             </RoleProtectedRoute>
@@ -91,6 +91,17 @@ export default function Router() {
           element={
             <RoleProtectedRoute
               allowedGroups={STUDENT_GROUPS}
+            >
+              <RegisterDocumentPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ficha-avaliacao/:related-document-id"
+          element={
+            <RoleProtectedRoute
+              allowedGroups={SUPERVISOR_GROUPS}
             >
               <RegisterDocumentPage />
             </RoleProtectedRoute>
