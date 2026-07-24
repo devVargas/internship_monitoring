@@ -121,6 +121,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if related_document.supervisor_id != supervisor.id:
             raise PermissionDenied("This document is not assigned to this supervisor.")
 
+        related_document.status = DocumentStatus.SUBMITTED
+        related_document.save()
+
         return serializer.save(
             student=related_document.student,
             supervisor=supervisor,
