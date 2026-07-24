@@ -449,6 +449,61 @@ export async function registerDocumentRequest(
   )
 }
 
+export async function updateDocumentRequest(
+  documentId: number,
+  data: RegisterDocumentPayload,
+  httpClient: HttpClient,
+): Promise<void> {
+  const formData = new FormData()
+  formData.append('document_type', data.document_type)
+  formData.append('form_data', JSON.stringify(data.form_data))
+
+  if ('company' in data) {
+    formData.append('company', data.company)
+  }
+
+  if ('city' in data) {
+    formData.append('city', data.city)
+  }
+
+  if ('coordinator_name' in data) {
+    formData.append('coordinator_name', data.coordinator_name)
+  }
+
+  if ('supervisor_id' in data) {
+    formData.append('supervisor_id', String(data.supervisor_id))
+  }
+
+  if ('related_document_id' in data && data.related_document_id !== undefined) {
+    formData.append('related_document_id', String(data.related_document_id))
+  }
+
+  if ('attachment' in data && data.attachment) {
+    formData.append('attachment', data.attachment)
+  }
+
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/`,
+    {
+      method: 'PUT',
+      body: formData,
+    },
+  )
+
+  if (response.ok) {
+    return
+  }
+
+  const payload = await readJson(response)
+
+  throw new Error(
+    getApiErrorMessage(
+      payload,
+      'Erro ao atualizar documento',
+    ),
+  )
+}
+
 export async function listDocumentsForReviewRequest(
   filters: DocumentReviewFilters,
   httpClient: HttpClient,

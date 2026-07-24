@@ -127,7 +127,7 @@ export default function SupervisorEvaluationQueuePage() {
 
                       <td className="whitespace-nowrap px-6 py-4 text-right">
                         <Link
-                          to={`/editar-avaliacao/${String(document.id)}`}
+                          to={`/editar-documento/${String(document.id)}`}
                           className="text-sm font-semibold text-green-800 underline-offset-4 hover:underline"
                         >
                           Ajustar avaliação

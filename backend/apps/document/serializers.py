@@ -59,7 +59,9 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
                 }
             )
 
-        if not is_supervisor_eval and not attrs.get("attachment"):
+        is_update = self.context.get("request") and self.context["request"].method == "PUT"
+
+        if not is_supervisor_eval and not attrs.get("attachment") and not is_update:
             raise serializers.ValidationError(
                 {
                     "attachment": (

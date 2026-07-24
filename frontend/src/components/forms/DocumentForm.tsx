@@ -4,6 +4,7 @@ import type { CurrentUser } from '../../api/auth.ts'
 import { getCurrentUserRequest } from '../../api/auth.ts'
 import type { DocumentType, RegisterDocumentPayload } from '../../api/documents.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
+import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
 import { getErrorMessage } from '../../utils/errors.ts'
 import {
@@ -85,6 +86,111 @@ type DocumentFormData = {
 
 type DocumentField = keyof DocumentFormData
 type DocumentErrors = Partial<Record<DocumentField, string>>
+
+type BackendDocumentResponse = {
+  document_type: DocumentType
+  company?: string
+  city?: string
+  supervisor_id?: number
+  coordinator_name?: string
+  attachment?: string | null
+  related_document_id?: number
+  form_data?: Record<string, unknown>
+}
+
+function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFormData {
+  const formData = (data.form_data ?? {}) as Record<string, string | undefined>
+
+  switch (data.document_type) {
+    case 'mandatory_internship':
+      return {
+        ...INITIAL_FORM,
+        razaoSocial: data.company ?? '',
+        cidadeAssinatura: data.city ?? '',
+        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : '',
+        cep: formData.cep ?? '',
+        endereco: formData.endereco ?? '',
+        bairro: formData.bairro ?? '',
+        cidade: formData.cidade ?? '',
+        uf: formData.uf ?? '',
+        dataEstimadaConclusao: formData.dataEstimadaConclusao ?? '',
+        cnpjCpf: formData.cnpjCpf ?? '',
+        registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
+        cepConcedente: formData.cepConcedente ?? '',
+        bairroConcedente: formData.bairroConcedente ?? '',
+        cidadeConcedente: formData.cidadeConcedente ?? '',
+        ufConcedente: formData.ufConcedente ?? '',
+        enderecoConcedente: formData.enderecoConcedente ?? '',
+        telefone: formData.telefone ?? '',
+        ramoAtividade: formData.ramoAtividade ?? '',
+        inicioEstagio: formData.inicioEstagio ?? '',
+        fimEstagio: formData.fimEstagio ?? '',
+        horasSemanais: formData.horasSemanais ?? '',
+        totalHorasTrabalhadas: formData.totalHorasTrabalhadas ?? '',
+        atividadesProfissionais: formData.atividadesProfissionais ?? '',
+        dificuldadesEncontradas: formData.dificuldadesEncontradas ?? '',
+        conclusao: formData.conclusao ?? '',
+      }
+    case 'non_mandatory_internship_credit':
+      return {
+        ...INITIAL_FORM,
+        empresa: data.company ?? '',
+        cidade: data.city ?? '',
+        nomeCoordenador: data.coordinator_name ?? '',
+      }
+    case 'professional_practice_credit':
+      return {
+        ...INITIAL_FORM,
+        razaoSocial: data.company ?? '',
+        cidadeAssinatura: data.city ?? '',
+        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : '',
+        modalidade: formData.modalidade ?? '',
+        dataPrevisaoConclusao: formData.dataPrevisaoConclusao ?? '',
+        situacao: formData.situacao ?? '',
+        especificarSituacao: formData.especificarSituacao ?? '',
+        cargo: formData.cargo ?? '',
+        setor: formData.setor ?? '',
+        cnpjCpf: formData.cnpjCpf ?? '',
+        registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
+        cpf: formData.cpf ?? '',
+        endereco: formData.endereco ?? '',
+        bairro: formData.bairro ?? '',
+        cidade: formData.cidade ?? '',
+        estado: formData.estado ?? '',
+        email: formData.email ?? '',
+        telefone: formData.telefone ?? '',
+        ramoAtividade: formData.ramoAtividade ?? '',
+        inicioAtividade: formData.inicioAtividade ?? '',
+        fimAtividade: formData.fimAtividade ?? '',
+        inicioHorarioAtividade: formData.inicioHorarioAtividade ?? '',
+        fimHorarioAtividade: formData.fimHorarioAtividade ?? '',
+        horasSemanais: formData.horasSemanais ?? '',
+        descricaoAtividades: formData.descricaoAtividades ?? '',
+      }
+    case 'supervisor_evaluation':
+      return {
+        ...INITIAL_FORM,
+        cidadeAssinatura: data.city ?? '',
+        aprendizadoNoEstagio: formData.aprendizadoNoEstagio ?? '',
+        segurancaExecucao: formData.segurancaExecucao ?? '',
+        interessePeloTrabalho: formData.interessePeloTrabalho ?? '',
+        iniciativaPropria: formData.iniciativaPropria ?? '',
+        conhecimentosTecnicos: formData.conhecimentosTecnicos ?? '',
+        produtividade: formData.produtividade ?? '',
+        qualidadeDoTrabalho: formData.qualidadeDoTrabalho ?? '',
+        disciplina: formData.disciplina ?? '',
+        relacionamentoSocial: formData.relacionamentoSocial ?? '',
+        cooperacao: formData.cooperacao ?? '',
+        esforcoSuperarFalhas: formData.esforcoSuperarFalhas ?? '',
+        pontualidade: formData.pontualidade ?? '',
+        assiduidade: formData.assiduidade ?? '',
+        capacidadeDirecaoCoordenacao: formData.capacidadeDirecaoCoordenacao ?? '',
+        modoAvaliacao: formData.modoAvaliacao ?? '',
+        periodicidadeAvaliacao: formData.periodicidadeAvaliacao ?? '',
+        observacoes: formData.observacoes ?? '',
+      }
+  }
+}
 
 const INITIAL_FORM: DocumentFormData = {
   cep: '',
@@ -400,9 +506,10 @@ function buildPayload(
   }
 }
 
-export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?: number } = {}) {
+export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdProp, documentId }: { relatedDocumentIdProp?: number, documentId?: number} = {}) {
   const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
   const [form, setForm] = useState<DocumentFormData>(INITIAL_FORM)
+  const [relatedDocumentId, setRelatedDocumentId] = useState(relatedDocumentIdProp)
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
@@ -410,8 +517,16 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
   const [supervisors, setSupervisors] = useState<Supervisor[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const { register, isLoading, error } = useRegisterDocument()
+  const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
   const { fetchWithAuth } = useAPI()
+
+  const canSeeStudentOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Student'),
+  )
+  const canSeeSupervisorOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'),
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -446,6 +561,52 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
   useEffect(() => {
     let cancelled = false
 
+    async function loadDocumentData() {
+      try {
+        const response = await fetchWithAuth('/api/documents/' + String(documentId) + '/')
+
+        if(response.status === 404) {
+          navigate('/', {replace: true}) 
+        }
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar informações do documento')
+        }
+
+        const data = (await response.json()) as BackendDocumentResponse
+
+        if (!cancelled && currentUser) {
+          if(data.status !== 'adjustment_requested') {
+            navigate('/', {replace: true}) 
+          }
+          setUserSelectedType(data.document_type)
+          if(data.document_type === 'supervisor_evaluation') {
+            if(!canSeeSupervisorOptions) {
+              navigate('/', {replace: true})
+            }
+            setRelatedDocumentId(data.related_document)
+          }
+          setForm(mapBackendDataToForm(data))
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError('Não foi possível carregar informações do documento')
+        }
+      }
+    }
+
+    if(documentId) {
+      void loadDocumentData()
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth, documentId, currentUser])
+
+  useEffect(() => {
+    let cancelled = false
+
     async function loadSupervisors() {
       try {
         const response = await fetchWithAuth('/api/students/supervisors/')
@@ -473,12 +634,6 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
     }
   }, [fetchWithAuth])
 
-  const canSeeStudentOptions = Boolean(
-    currentUser?.is_superuser || currentUser?.groups.includes('Student'),
-  )
-  const canSeeSupervisorOptions = Boolean(
-    currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'),
-  )
 
   const defaultDocumentType = useMemo<DocumentType>(() => {
     if (canSeeStudentOptions) return 'mandatory_internship'
@@ -521,6 +676,9 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
     setSuccessMessage('')
 
     const errors = validateForm(documentType, form)
+    if (documentId) {
+      delete errors.attachment
+    }
     setFieldErrors(errors)
 
     if (Object.keys(errors).length > 0) {
@@ -528,12 +686,14 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
     }
 
     const payload = buildPayload(documentType, form, relatedDocumentId)
-    const wasCreated = await register(payload)
+    let success = false
+    if (documentId) {
+      success = await update(documentId, payload)
+    } else {
+      success = await register(payload)
+    }
 
-    if (wasCreated) {
-      setForm(INITIAL_FORM)
-      setFieldErrors({})
-      setSuccessMessage('Documento enviado com sucesso.')
+    if (success) {
       navigate('/', { replace: true })
     }
   }
@@ -560,7 +720,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
 
       {!isLoadingUser && !loadError && (
         <>
-      {canSeeStudentOptions && (
+      {canSeeStudentOptions && !documentId && (
       <div className="mb-6">
         <label
           htmlFor="documentType"
@@ -575,7 +735,6 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
           onChange={handleDocumentTypeChange}
           className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
         >
-          {canSeeStudentOptions && (
             <>
               <option value="mandatory_internship">Estágio obrigatório</option>
               <option value="non_mandatory_internship_credit">
@@ -585,7 +744,6 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 Aproveitamento de prática profissional
               </option>
             </>
-          )}
           {canSeeSupervisorOptions && (
             <option value="supervisor_evaluation">
               Ficha de avaliação de estágio obrigatório
@@ -1861,17 +2019,17 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
         </div>
       )}
 
-      {error && (
+      {(error || updateError) && (
         <div
           role="alert"
           className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
-          {error}
+          {error || updateError}
         </div>
       )}
 
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Enviando...' : 'Enviar'}
+      <Button type="submit" disabled={isLoading || isUpdating} className="w-full">
+        {isLoading || isUpdating ? 'Enviando...' : 'Enviar'}
       </Button>
         </>
       )}

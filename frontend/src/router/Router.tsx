@@ -98,10 +98,10 @@ export default function Router() {
         />
 
         <Route
-          path="/ficha-avaliacao/:related-document-id"
+          path="/editar-documento/:document-id"
           element={
             <RoleProtectedRoute
-              allowedGroups={SUPERVISOR_GROUPS}
+              allowedGroups={[...STUDENT_GROUPS, ...SUPERVISOR_GROUPS]}
             >
               <RegisterDocumentPage />
             </RoleProtectedRoute>
@@ -109,7 +109,7 @@ export default function Router() {
         />
 
         <Route
-          path="/editar-avaliacao/:document-id"
+          path="/ficha-avaliacao/:related-document-id"
           element={
             <RoleProtectedRoute
               allowedGroups={SUPERVISOR_GROUPS}
