@@ -130,7 +130,7 @@ export default function SupervisorEvaluationQueuePage() {
                           to={`/ficha-avaliacao/${String(document.id)}`}
                           className="text-sm font-semibold text-green-800 underline-offset-4 hover:underline"
                         >
-                          Acessar avaliação
+                          Enviar avaliação
                         </Link>
                       </td>
                     </tr>
