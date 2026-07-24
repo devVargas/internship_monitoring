@@ -109,6 +109,17 @@ export default function Router() {
         />
 
         <Route
+          path="/editar-avaliacao/:document-id"
+          element={
+            <RoleProtectedRoute
+              allowedGroups={SUPERVISOR_GROUPS}
+            >
+              <RegisterDocumentPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
           path="/cadastro-academico"
           element={
             <RoleProtectedRoute
