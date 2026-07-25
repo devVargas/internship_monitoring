@@ -34,6 +34,18 @@ class SupervisorUserSerializer(serializers.ModelSerializer):
         return obj.user.get_full_name()
 
 
+class CoordinatorUserSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ("id", "full_name")
+        read_only_fields = fields
+
+    def get_full_name(self, obj):
+        return obj.get_full_name()
+
+
 class StudentProfileSerializer(serializers.ModelSerializer):
     user = StudentUserSerializer(read_only=True)
 

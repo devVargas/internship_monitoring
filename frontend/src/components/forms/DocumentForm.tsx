@@ -9,11 +9,18 @@ import { useAPI } from '../../context/api-context.ts'
 import { getErrorMessage } from '../../utils/errors.ts'
 import {
   formatCep,
+  formatCpfCnpj,
   formatPhone,
   validateCep,
+  validateCpfCnpj,
   validateEmail,
+  validateLettersAndNumbers,
+  validateLettersPunct,
+  validateMilitaryTime,
+  validateNumbersOnly,
   validatePhone,
   validateRequired,
+  validateUf,
 } from '../../utils/validation.ts'
 import Button from '../ui/Button.tsx'
 import FileUploadField from '../ui/FileUploadField.tsx'
@@ -21,6 +28,7 @@ import FormField from '../ui/FormField.tsx'
 import TextareaField from '../ui/TextareaField.tsx'
 
 type Supervisor = { id: number; full_name: string }
+type Coordinator = { id: number; full_name: string }
 
 type DocumentFormData = {
   cep: string
@@ -192,6 +200,12 @@ function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFormData {
   }
 }
 
+const BRAZILIAN_UFS = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
+  'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
+  'RS','RO','RR','SC','SP','SE','TO',
+]
+
 const INITIAL_FORM: DocumentFormData = {
   cep: '',
   endereco: '',
@@ -264,30 +278,34 @@ function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
   }
 
   addError('cep', validateRequired(form.cep) ?? validateCep(form.cep))
-  addError('endereco', validateRequired(form.endereco))
-  addError('bairro', validateRequired(form.bairro))
-  addError('cidade', validateRequired(form.cidade))
-  addError('uf', validateRequired(form.uf))
+  addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
+  addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
+  addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
+  addError('uf', validateRequired(form.uf) ?? validateUf(form.uf))
   addError('dataEstimadaConclusao', validateRequired(form.dataEstimadaConclusao))
   addError('razaoSocial', validateRequired(form.razaoSocial))
-  addError('cnpjCpf', validateRequired(form.cnpjCpf))
+  addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
   addError('cepConcedente', validateRequired(form.cepConcedente) ?? validateCep(form.cepConcedente))
-  addError('bairroConcedente', validateRequired(form.bairroConcedente))
-  addError('cidadeConcedente', validateRequired(form.cidadeConcedente))
-  addError('ufConcedente', validateRequired(form.ufConcedente))
-  addError('enderecoConcedente', validateRequired(form.enderecoConcedente))
+  addError('bairroConcedente', validateRequired(form.bairroConcedente) ?? validateLettersPunct(form.bairroConcedente))
+  addError('cidadeConcedente', validateRequired(form.cidadeConcedente) ?? validateLettersPunct(form.cidadeConcedente))
+  addError('ufConcedente', validateRequired(form.ufConcedente) ?? validateUf(form.ufConcedente))
+  addError('enderecoConcedente', validateRequired(form.enderecoConcedente) ?? validateLettersAndNumbers(form.enderecoConcedente))
   addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
-  addError('ramoAtividade', validateRequired(form.ramoAtividade))
+  addError('ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
   addError('supervisor_id', validateRequired(form.supervisor_id))
   addError('inicioEstagio', validateRequired(form.inicioEstagio))
   addError('fimEstagio', validateRequired(form.fimEstagio))
-  addError('horasSemanais', validateRequired(form.horasSemanais))
-  addError('totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas))
-  addError('atividadesProfissionais', validateRequired(form.atividadesProfissionais))
-  addError('dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas))
-  addError('conclusao', validateRequired(form.conclusao))
+  addError('horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
+  addError('totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas) ?? validateNumbersOnly(form.totalHorasTrabalhadas))
+  addError('atividadesProfissionais', validateRequired(form.atividadesProfissionais) ?? validateLettersAndNumbers(form.atividadesProfissionais))
+  addError('dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas) ?? validateLettersAndNumbers(form.dificuldadesEncontradas))
+  addError('conclusao', validateRequired(form.conclusao) ?? validateLettersAndNumbers(form.conclusao))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
   addError('attachment', form.attachment ? null : 'Campo obrigatório')
+
+  if (form.inicioEstagio && form.fimEstagio && form.fimEstagio <= form.inicioEstagio) {
+    errors.fimEstagio = 'A data de fim deve ser posterior à data de início'
+  }
 
   return errors
 }
@@ -326,26 +344,26 @@ function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErr
     addError('especificarSituacao', validateRequired(form.especificarSituacao))
   }
 
-  addError('cargo', validateRequired(form.cargo))
-  addError('setor', validateRequired(form.setor))
+  addError('cargo', validateRequired(form.cargo) ?? validateLettersPunct(form.cargo))
+  addError('setor', validateRequired(form.setor) ?? validateLettersPunct(form.setor))
   addError('razaoSocial', validateRequired(form.razaoSocial))
-  addError('cnpjCpf', validateRequired(form.cnpjCpf))
+  addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
   addError('registroConselhoProfissional', validateRequired(form.registroConselhoProfissional))
-  addError('cpf', validateRequired(form.cpf))
-  addError('endereco', validateRequired(form.endereco))
-  addError('bairro', validateRequired(form.bairro))
-  addError('cidade', validateRequired(form.cidade))
+  addError('cpf', validateRequired(form.cpf) ?? validateCep(form.cpf))
+  addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
+  addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
+  addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
   addError('estado', validateRequired(form.estado))
   addError('email', validateRequired(form.email) ?? validateEmail(form.email))
   addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
-  addError('ramoAtividade', validateRequired(form.ramoAtividade))
+  addError('ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
   addError('inicioAtividade', validateRequired(form.inicioAtividade))
   addError('fimAtividade', validateRequired(form.fimAtividade))
-  addError('inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade))
-  addError('fimHorarioAtividade', validateRequired(form.fimHorarioAtividade))
-  addError('horasSemanais', validateRequired(form.horasSemanais))
+  addError('inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade) ?? validateMilitaryTime(form.inicioHorarioAtividade))
+  addError('fimHorarioAtividade', validateRequired(form.fimHorarioAtividade) ?? validateMilitaryTime(form.fimHorarioAtividade))
+  addError('horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
   addError('supervisor_id', validateRequired(form.supervisor_id))
-  addError('descricaoAtividades', validateRequired(form.descricaoAtividades))
+  addError('descricaoAtividades', validateRequired(form.descricaoAtividades) ?? validateLettersAndNumbers(form.descricaoAtividades))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
   addError('attachment', form.attachment ? null : 'Campo obrigatório')
 
@@ -515,6 +533,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [supervisors, setSupervisors] = useState<Supervisor[]>([])
+  const [coordinators, setCoordinators] = useState<Coordinator[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const { register, isLoading, error } = useRegisterDocument()
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
@@ -634,6 +653,36 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     }
   }, [fetchWithAuth])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCoordinators() {
+      try {
+        const response = await fetchWithAuth('/api/students/coordinators/')
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar coordenadores')
+        }
+
+        const data = (await response.json()) as Coordinator[]
+
+        if (!cancelled) {
+          setCoordinators(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError('Não foi possível carregar a lista de coordenadores')
+        }
+      }
+    }
+
+    void loadCoordinators()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
 
   const defaultDocumentType = useMemo<DocumentType>(() => {
     if (canSeeStudentOptions) return 'mandatory_internship'
@@ -646,6 +695,13 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   function updateField(field: DocumentField, value: string | File | null) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
+  }
+
+  function selectClass(error?: string | null) {
+    const border = error
+      ? 'border-red-500 focus:border-red-500 focus:ring-red-100'
+      : 'border-neutral-300 hover:border-neutral-400 focus:border-green-800 focus:ring-green-100'
+    return `w-full rounded-lg border bg-white px-3.5 py-3 text-neutral-900 outline-none transition focus:ring-4 ${border}`
   }
 
   function handleDocumentTypeChange(event: ChangeEvent<HTMLSelectElement>) {
@@ -733,7 +789,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           id="documentType"
           value={documentType}
           onChange={handleDocumentTypeChange}
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+          className={selectClass()}
         >
             <>
               <option value="mandatory_internship">Estágio obrigatório</option>
@@ -772,16 +828,32 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               error={fieldErrors.cep}
             />
 
-            <FormField
-              id="uf"
-              label="UF"
-              value={form.uf}
-              onChange={(event) => {
-                updateField('uf', event.target.value)
-              }}
-              required
-              error={fieldErrors.uf}
-            />
+            <div>
+              <label
+                htmlFor="uf"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                UF <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="uf"
+                value={form.uf}
+                onChange={(event) => {
+                  updateField('uf', event.target.value)
+                }}
+                className={selectClass(fieldErrors.uf)}
+              >
+                <option value="">Selecione...</option>
+                {BRAZILIAN_UFS.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+
+              {fieldErrors.uf && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.uf}</p>
+              )}
+            </div>
           </div>
 
           <FormField
@@ -854,7 +926,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               label="CNPJ/CPF"
               value={form.cnpjCpf}
               onChange={(event) => {
-                updateField('cnpjCpf', event.target.value)
+                updateField('cnpjCpf', formatCpfCnpj(event.target.value))
               }}
               required
               error={fieldErrors.cnpjCpf}
@@ -884,16 +956,32 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               error={fieldErrors.cepConcedente}
             />
 
-            <FormField
-              id="ufConcedente"
-              label="UF"
-              value={form.ufConcedente}
-              onChange={(event) => {
-                updateField('ufConcedente', event.target.value)
-              }}
-              required
-              error={fieldErrors.ufConcedente}
-            />
+            <div>
+              <label
+                htmlFor="ufConcedente"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                UF <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="ufConcedente"
+                value={form.ufConcedente}
+                onChange={(event) => {
+                  updateField('ufConcedente', event.target.value)
+                }}
+                className={selectClass(fieldErrors.ufConcedente)}
+              >
+                <option value="">Selecione...</option>
+                {BRAZILIAN_UFS.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+
+              {fieldErrors.ufConcedente && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.ufConcedente}</p>
+              )}
+            </div>
           </div>
 
           <FormField
@@ -966,7 +1054,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               onChange={(event) => {
                 updateField('supervisor_id', event.target.value)
               }}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              className={selectClass(fieldErrors.supervisor_id)}
             >
               <option value="">Selecione...</option>
               {supervisors.map((supervisor) => (
@@ -1100,16 +1188,34 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
       {documentType === 'non_mandatory_internship_credit' && (
         <>
-          <FormField
-            id="nomeCoordenador"
-            label="Nome do coordenador"
-            value={form.nomeCoordenador}
-            onChange={(event) => {
-              updateField('nomeCoordenador', event.target.value)
-            }}
-            required
-            error={fieldErrors.nomeCoordenador}
-          />
+          <div>
+            <label
+              htmlFor="nomeCoordenador"
+              className="mb-1.5 block text-sm font-medium text-neutral-800"
+            >
+              Nome do coordenador <span className="text-red-600">*</span>
+            </label>
+
+            <select
+              id="nomeCoordenador"
+              value={form.nomeCoordenador}
+              onChange={(event) => {
+                updateField('nomeCoordenador', event.target.value)
+              }}
+              className={selectClass(fieldErrors.nomeCoordenador)}
+            >
+              <option value="">Selecione...</option>
+              {coordinators.map((coordinator) => (
+                <option key={coordinator.id} value={coordinator.full_name}>
+                  {coordinator.full_name}
+                </option>
+              ))}
+            </select>
+
+            {fieldErrors.nomeCoordenador && (
+              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.nomeCoordenador}</p>
+            )}
+          </div>
 
           <FormField
             id="empresa"
@@ -1167,7 +1273,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('modalidade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.modalidade)}
               >
                 <option value="">Selecione...</option>
                 <option value="integrado">Integrado</option>
@@ -1196,7 +1302,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('situacao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.situacao)}
               >
                 <option value="">Selecione...</option>
                 <option value="bolsista">Bolsista</option>
@@ -1286,7 +1392,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               label="CNPJ/CPF"
               value={form.cnpjCpf}
               onChange={(event) => {
-                updateField('cnpjCpf', event.target.value)
+                updateField('cnpjCpf', formatCpfCnpj(event.target.value))
               }}
               required
               error={fieldErrors.cnpjCpf}
@@ -1305,11 +1411,12 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
           <FormField
             id="cpf"
-            label="CPF"
+            label="CEP"
             value={form.cpf}
             onChange={(event) => {
-              updateField('cpf', event.target.value)
+              updateField('cpf', formatCep(event.target.value))
             }}
+            inputMode="numeric"
             required
             error={fieldErrors.cpf}
           />
@@ -1425,6 +1532,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             <FormField
               id="inicioHorarioAtividade"
               label="Início do horário de atividade"
+              type="time"
               value={form.inicioHorarioAtividade}
               onChange={(event) => {
                 updateField('inicioHorarioAtividade', event.target.value)
@@ -1436,6 +1544,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             <FormField
               id="fimHorarioAtividade"
               label="Fim do horário de atividade"
+              type="time"
               value={form.fimHorarioAtividade}
               onChange={(event) => {
                 updateField('fimHorarioAtividade', event.target.value)
@@ -1472,7 +1581,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('supervisor_id', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.supervisor_id)}
               >
                 <option value="">Selecione...</option>
                 {supervisors.map((supervisor) => (
@@ -1552,7 +1661,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('aprendizadoNoEstagio', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.aprendizadoNoEstagio)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1581,7 +1690,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('segurancaExecucao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.segurancaExecucao)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1612,7 +1721,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('interessePeloTrabalho', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.interessePeloTrabalho)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1641,7 +1750,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('iniciativaPropria', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.iniciativaPropria)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1672,7 +1781,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('conhecimentosTecnicos', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.conhecimentosTecnicos)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1701,7 +1810,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('produtividade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.produtividade)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1732,7 +1841,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('qualidadeDoTrabalho', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.qualidadeDoTrabalho)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1761,7 +1870,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('disciplina', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.disciplina)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1792,7 +1901,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('relacionamentoSocial', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.relacionamentoSocial)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1821,7 +1930,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('cooperacao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.cooperacao)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1852,7 +1961,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('esforcoSuperarFalhas', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.esforcoSuperarFalhas)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1881,7 +1990,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('pontualidade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.pontualidade)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1912,7 +2021,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('assiduidade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.assiduidade)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1941,7 +2050,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
                 onChange={(event) => {
                   updateField('capacidadeDirecaoCoordenacao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.capacidadeDirecaoCoordenacao)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>

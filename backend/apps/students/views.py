@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import SupervisorProfile
 from apps.students.models import StudentProfile
 from apps.accounts.constants import (GROUP_SUPERVISOR, GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
-from apps.students.serializers import StudentProfileSerializer, SupervisorUserSerializer
+from apps.students.serializers import CoordinatorUserSerializer, StudentProfileSerializer, SupervisorUserSerializer
 
 User = get_user_model()
 
@@ -21,6 +21,17 @@ class SupervisorsListView(APIView):
             user__groups__name=GROUP_SUPERVISOR,
         ).select_related("user")
         serializer = SupervisorUserSerializer(supervisors, many=True)
+        return Response(serializer.data)
+
+class CoordinatorsListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses=CoordinatorUserSerializer(many=True))
+    def get(self, request):
+        coordinators = User.objects.filter(
+            groups__name=GROUP_COORDINATOR,
+        )
+        serializer = CoordinatorUserSerializer(coordinators, many=True)
         return Response(serializer.data)
 
 class StudentProfileViewSet(viewsets.ModelViewSet):
