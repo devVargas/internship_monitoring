@@ -206,6 +206,31 @@ const BRAZILIAN_UFS = [
   'RS','RO','RR','SC','SP','SE','TO',
 ]
 
+const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
+  mandatory_internship: [
+    ['cep', 'uf', 'endereco', 'bairro', 'cidade', 'dataEstimadaConclusao'],
+    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente', 'ufConcedente', 'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente', 'telefone', 'ramoAtividade'],
+    ['supervisor_id', 'inicioEstagio', 'fimEstagio', 'horasSemanais', 'totalHorasTrabalhadas', 'attachment'],
+    ['atividadesProfissionais', 'dificuldadesEncontradas', 'conclusao'],
+    ['cidadeAssinatura'],
+  ],
+  professional_practice_credit: [
+    ['modalidade', 'situacao', 'especificarSituacao', 'dataPrevisaoConclusao', 'cargo', 'setor'],
+    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cpf', 'endereco', 'bairro', 'cidade', 'estado', 'email', 'telefone', 'ramoAtividade'],
+    ['supervisor_id', 'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade', 'fimHorarioAtividade', 'horasSemanais', 'attachment'],
+    ['descricaoAtividades'],
+    ['cidadeAssinatura'],
+  ],
+  supervisor_evaluation: [
+    ['aprendizadoNoEstagio', 'segurancaExecucao', 'interessePeloTrabalho', 'iniciativaPropria', 'conhecimentosTecnicos', 'produtividade', 'qualidadeDoTrabalho', 'disciplina', 'relacionamentoSocial', 'cooperacao', 'esforcoSuperarFalhas', 'pontualidade', 'assiduidade', 'capacidadeDirecaoCoordenacao'],
+    ['modoAvaliacao', 'periodicidadeAvaliacao', 'observacoes'],
+    ['cidadeAssinatura'],
+  ],
+  non_mandatory_internship_credit: [
+    ['nomeCoordenador', 'empresa', 'attachment', 'cidade'],
+  ],
+}
+
 const INITIAL_FORM: DocumentFormData = {
   cep: '',
   endereco: '',
@@ -535,6 +560,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [supervisors, setSupervisors] = useState<Supervisor[]>([])
   const [coordinators, setCoordinators] = useState<Coordinator[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [currentSection, setCurrentSection] = useState(0)
   const { register, isLoading, error } = useRegisterDocument()
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
@@ -692,6 +718,41 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
   const documentType = userSelectedType ?? defaultDocumentType
 
+  const showTypeSelector = canSeeStudentOptions && !documentId
+  const formSectionCount = SECTION_FIELDS[documentType].length
+  const sectionOffset = showTypeSelector ? 1 : 0
+  const totalSections = formSectionCount + sectionOffset
+
+  function validateCurrentSection(): DocumentErrors {
+    if (currentSection < sectionOffset) return {}
+    const allErrors = validateForm(documentType, form)
+    if (documentId) {
+      delete allErrors.attachment
+    }
+    const sectionFields = SECTION_FIELDS[documentType][currentSection - sectionOffset]
+    const sectionErrors: DocumentErrors = {}
+    for (const field of sectionFields) {
+      if (allErrors[field]) {
+        sectionErrors[field] = allErrors[field]
+      }
+    }
+    return sectionErrors
+  }
+
+  function handleNextSection() {
+    const errors = validateCurrentSection()
+    setFieldErrors(errors)
+    if (Object.keys(errors).length === 0) {
+      setCurrentSection((s) => s + 1)
+      setFieldErrors({})
+    }
+  }
+
+  function handlePrevSection() {
+    setCurrentSection((s) => s - 1)
+    setFieldErrors({})
+  }
+
   function updateField(field: DocumentField, value: string | File | null) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
@@ -717,6 +778,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       setForm(INITIAL_FORM)
       setFieldErrors({})
       setSuccessMessage('')
+      setCurrentSection(0)
     }
   }
 
@@ -776,7 +838,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
       {!isLoadingUser && !loadError && (
         <>
-      {canSeeStudentOptions && !documentId && (
+      {showTypeSelector && currentSection === 0 && (
       <div className="mb-6">
         <label
           htmlFor="documentType"
@@ -809,7 +871,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       </div>
       )}
 
-      {documentType === 'mandatory_internship' && (
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 0 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação do estudante
@@ -902,9 +964,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             required
             error={fieldErrors.dataEstimadaConclusao}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 1 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação da concedente
           </h3>
@@ -1039,6 +1103,14 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             required
             error={fieldErrors.ramoAtividade}
           />
+        </>
+      )}
+
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 2 && (
+        <>
+          <h3 className="text-lg font-semibold text-neutral-900">
+            Dados do estágio
+          </h3>
 
           <div>
             <label
@@ -1131,9 +1203,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             required
             error={fieldErrors.attachment}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 3 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Relatório de atividades</h3>
 
           <TextareaField
@@ -1168,9 +1242,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             required
             error={fieldErrors.conclusao}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 4 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
 
           <FormField
@@ -1186,7 +1262,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         </>
       )}
 
-      {documentType === 'non_mandatory_internship_credit' && (
+      {documentType === 'non_mandatory_internship_credit' && currentSection === sectionOffset + 0 && (
         <>
           <div>
             <label
@@ -1252,7 +1328,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         </>
       )}
 
-      {documentType === 'professional_practice_credit' && (
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 0 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação do estudante
@@ -1368,9 +1444,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               error={fieldErrors.setor}
             />
           </div>
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 1 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação da concedente
           </h3>
@@ -1501,6 +1579,14 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             required
             error={fieldErrors.ramoAtividade}
           />
+        </>
+      )}
+
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 2 && (
+        <>
+          <h3 className="text-lg font-semibold text-neutral-900">
+            Dados do estágio
+          </h3>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
@@ -1554,47 +1640,45 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             />
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="horasSemanaisPPC"
-              label="Total de horas semanais"
-              value={form.horasSemanais}
+          <FormField
+            id="horasSemanaisPPC"
+            label="Total de horas semanais"
+            value={form.horasSemanais}
+            onChange={(event) => {
+              updateField('horasSemanais', event.target.value)
+            }}
+            inputMode="numeric"
+            required
+            error={fieldErrors.horasSemanais}
+          />
+
+          <div>
+            <label
+              htmlFor="supervisor_id_ppc"
+              className="mb-1.5 block text-sm font-medium text-neutral-800"
+            >
+              Supervisor <span className="text-red-600">*</span>
+            </label>
+
+            <select
+              id="supervisor_id_ppc"
+              value={form.supervisor_id}
               onChange={(event) => {
-                updateField('horasSemanais', event.target.value)
+                updateField('supervisor_id', event.target.value)
               }}
-              inputMode="numeric"
-              required
-              error={fieldErrors.horasSemanais}
-            />
+              className={selectClass(fieldErrors.supervisor_id)}
+            >
+              <option value="">Selecione...</option>
+              {supervisors.map((supervisor) => (
+                <option key={supervisor.id} value={String(supervisor.id)}>
+                  {supervisor.full_name}
+                </option>
+              ))}
+            </select>
 
-            <div>
-              <label
-                htmlFor="supervisor_id_ppc"
-                className="mb-1.5 block text-sm font-medium text-neutral-800"
-              >
-                Supervisor <span className="text-red-600">*</span>
-              </label>
-
-              <select
-                id="supervisor_id_ppc"
-                value={form.supervisor_id}
-                onChange={(event) => {
-                  updateField('supervisor_id', event.target.value)
-                }}
-                className={selectClass(fieldErrors.supervisor_id)}
-              >
-                <option value="">Selecione...</option>
-                {supervisors.map((supervisor) => (
-                  <option key={supervisor.id} value={String(supervisor.id)}>
-                    {supervisor.full_name}
-                  </option>
-                ))}
-              </select>
-
-              {fieldErrors.supervisor_id && (
-                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
-              )}
-            </div>
+            {fieldErrors.supervisor_id && (
+              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
+            )}
           </div>
 
           <FileUploadField
@@ -1607,9 +1691,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             required
             error={fieldErrors.attachment}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 3 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Atividades</h3>
 
           <TextareaField
@@ -1622,9 +1708,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             required
             error={fieldErrors.descricaoAtividades}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 4 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
 
           <FormField
@@ -1640,7 +1728,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         </>
       )}
 
-      {documentType === 'supervisor_evaluation' && (
+      {documentType === 'supervisor_evaluation' && currentSection === sectionOffset + 0 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Avaliação do estudante
@@ -2065,9 +2153,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               )}
             </div>
           </div>
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'supervisor_evaluation' && currentSection === sectionOffset + 1 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Detalhes da avaliação</h3>
 
           <FormField
@@ -2101,9 +2191,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             }}
             error={fieldErrors.observacoes}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'supervisor_evaluation' && currentSection === sectionOffset + 2 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
 
           <FormField
@@ -2137,9 +2229,23 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         </div>
       )}
 
-      <Button type="submit" disabled={isLoading || isUpdating} className="w-full">
-        {isLoading || isUpdating ? 'Enviando...' : 'Enviar'}
-      </Button>
+      <div className="flex items-center justify-between gap-3">
+        {currentSection > 0 && (
+          <Button type="button" variant="secondary" onClick={handlePrevSection}>
+            Seção anterior
+          </Button>
+        )}
+        {currentSection < totalSections - 1 && (
+          <Button type="button" onClick={handleNextSection} className="ml-auto">
+            Próxima seção
+          </Button>
+        )}
+        {currentSection === totalSections - 1 && (
+          <Button type="submit" disabled={isLoading || isUpdating} className="ml-auto">
+            {isLoading || isUpdating ? 'Enviando...' : 'Enviar'}
+          </Button>
+        )}
+      </div>
         </>
       )}
     </form>
