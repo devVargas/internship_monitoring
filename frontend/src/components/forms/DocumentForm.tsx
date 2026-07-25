@@ -380,7 +380,6 @@ function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErr
   addError('setor', validateRequired(form.setor) ?? validateLettersPunct(form.setor))
   addError('razaoSocial', validateRequired(form.razaoSocial))
   addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
-  addError('registroConselhoProfissional', validateRequired(form.registroConselhoProfissional))
   addError('cpf', validateRequired(form.cpf) ?? validateCep(form.cpf))
   addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
   addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
