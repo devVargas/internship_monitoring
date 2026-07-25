@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import DocumentForm from '../components/forms/DocumentForm.tsx'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
@@ -18,6 +18,9 @@ export default function RegisterDocumentPage() {
     const parsed = Number(rawDocumentId)
     return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined
   }, [rawDocumentId])
+
+  const [pageTitle, setPageTitle] = useState('Enviar documento')
+
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-3xl">
@@ -25,7 +28,7 @@ export default function RegisterDocumentPage() {
           <p className="text-sm font-semibold text-green-800">Documentos</p>
 
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-950">
-            Enviar documento
+            {pageTitle}
           </h1>
 
           <p className="mt-2 text-neutral-600">
@@ -34,7 +37,7 @@ export default function RegisterDocumentPage() {
         </header>
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-          <DocumentForm documentId={documentId} relatedDocumentIdProp={relatedDocumentId} />
+          <DocumentForm documentId={documentId} relatedDocumentIdProp={relatedDocumentId} onTitleChange={setPageTitle} />
         </section>
       </div>
     </DashboardLayout>

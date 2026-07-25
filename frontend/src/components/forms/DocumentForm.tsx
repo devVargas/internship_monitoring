@@ -200,6 +200,13 @@ function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFormData {
   }
 }
 
+const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  mandatory_internship: 'Estágio obrigatório',
+  non_mandatory_internship_credit: 'Aproveitamento de estágio não obrigatório',
+  professional_practice_credit: 'Aproveitamento de prática profissional',
+  supervisor_evaluation: 'Ficha de avaliação de estágio obrigatório',
+}
+
 const BRAZILIAN_UFS = [
   'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
   'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
@@ -549,7 +556,7 @@ function buildPayload(
   }
 }
 
-export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdProp, documentId }: { relatedDocumentIdProp?: number, documentId?: number} = {}) {
+export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdProp, documentId, onTitleChange }: { relatedDocumentIdProp?: number, documentId?: number, onTitleChange?: (title: string) => void } = {}) {
   const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
   const [form, setForm] = useState<DocumentFormData>(INITIAL_FORM)
   const [relatedDocumentId, setRelatedDocumentId] = useState(relatedDocumentIdProp)
@@ -743,6 +750,9 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     const errors = validateCurrentSection()
     setFieldErrors(errors)
     if (Object.keys(errors).length === 0) {
+      if (currentSection === 0 && showTypeSelector) {
+        onTitleChange?.(DOCUMENT_TYPE_LABELS[documentType])
+      }
       setCurrentSection((s) => s + 1)
       setFieldErrors({})
     }
