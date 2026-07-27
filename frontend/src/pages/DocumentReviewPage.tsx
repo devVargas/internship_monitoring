@@ -29,7 +29,7 @@ type FilterForm = {
 
 const INITIAL_FILTERS: FilterForm = {
   search: '',
-  status: 'submitted',
+  status: '',
   documentType: '',
 }
 

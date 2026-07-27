@@ -38,6 +38,16 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
 
         is_supervisor_eval = document_type == DocumentType.SUPERVISOR_EVALUATION
 
+        if not is_supervisor_eval and related_document_id:
+            raise serializers.ValidationError(
+                {
+                    "related_document_id": (
+                        "Only supervisor evaluations can be linked "
+                        "to another document."
+                    )
+                }
+            )
+
         if document_type in (
             DocumentType.MANDATORY_INTERNSHIP,
             DocumentType.PROFESSIONAL_PRACTICE_CREDIT,
