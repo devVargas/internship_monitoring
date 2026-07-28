@@ -2,17 +2,27 @@ import { useEffect, useMemo, useState, type ChangeEvent, type SubmitEvent } from
 import {useNavigate} from 'react-router-dom'
 import type { CurrentUser } from '../../api/auth.ts'
 import { getCurrentUserRequest } from '../../api/auth.ts'
-import type { DocumentType, RegisterDocumentPayload } from '../../api/documents.ts'
+import type { DocumentStatus, DocumentType, RegisterDocumentPayload } from '../../api/documents.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
+import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
 import { getErrorMessage } from '../../utils/errors.ts'
 import {
   formatCep,
+  formatCpfCnpj,
   formatPhone,
   validateCep,
+  validateCpfCnpj,
   validateEmail,
+  validateLettersAndNumbers,
+  validateLettersPunct,
+  validateMilitaryTime,
+  validateNumbersOnly,
   validatePhone,
   validateRequired,
+  validateUf,
+  validateCpf,
+  formatCpf,
 } from '../../utils/validation.ts'
 import Button from '../ui/Button.tsx'
 import FileUploadField from '../ui/FileUploadField.tsx'
@@ -20,6 +30,7 @@ import FormField from '../ui/FormField.tsx'
 import TextareaField from '../ui/TextareaField.tsx'
 
 type Supervisor = { id: number; full_name: string }
+type Coordinator = { id: number; full_name: string }
 
 type DocumentFormData = {
   cep: string
@@ -85,6 +96,150 @@ type DocumentFormData = {
 
 type DocumentField = keyof DocumentFormData
 type DocumentErrors = Partial<Record<DocumentField, string>>
+
+type BackendDocumentResponse = {
+  document_type: DocumentType
+  status: DocumentStatus
+  company?: string
+  city?: string
+  supervisor_id: number | null
+  coordinator_name?: string
+  attachment?: string | null
+  related_document: number | null
+  form_data?: Record<string, unknown>
+}
+
+function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFormData {
+  const formData = (data.form_data ?? {}) as Record<string, string | undefined>
+
+  switch (data.document_type) {
+    case 'mandatory_internship':
+      return {
+        ...INITIAL_FORM,
+        razaoSocial: data.company ?? '',
+        cidadeAssinatura: data.city ?? '',
+        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : '',
+        cep: formData.cep ?? '',
+        endereco: formData.endereco ?? '',
+        bairro: formData.bairro ?? '',
+        cidade: formData.cidade ?? '',
+        uf: formData.uf ?? '',
+        dataEstimadaConclusao: formData.dataEstimadaConclusao ?? '',
+        cnpjCpf: formData.cnpjCpf ?? '',
+        registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
+        cepConcedente: formData.cepConcedente ?? '',
+        bairroConcedente: formData.bairroConcedente ?? '',
+        cidadeConcedente: formData.cidadeConcedente ?? '',
+        ufConcedente: formData.ufConcedente ?? '',
+        enderecoConcedente: formData.enderecoConcedente ?? '',
+        telefone: formData.telefone ?? '',
+        ramoAtividade: formData.ramoAtividade ?? '',
+        inicioEstagio: formData.inicioEstagio ?? '',
+        fimEstagio: formData.fimEstagio ?? '',
+        horasSemanais: formData.horasSemanais ?? '',
+        totalHorasTrabalhadas: formData.totalHorasTrabalhadas ?? '',
+        atividadesProfissionais: formData.atividadesProfissionais ?? '',
+        dificuldadesEncontradas: formData.dificuldadesEncontradas ?? '',
+        conclusao: formData.conclusao ?? '',
+      }
+    case 'non_mandatory_internship_credit':
+      return {
+        ...INITIAL_FORM,
+        empresa: data.company ?? '',
+        cidade: data.city ?? '',
+        nomeCoordenador: data.coordinator_name ?? '',
+      }
+    case 'professional_practice_credit':
+      return {
+        ...INITIAL_FORM,
+        razaoSocial: data.company ?? '',
+        cidadeAssinatura: data.city ?? '',
+        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : '',
+        modalidade: formData.modalidade ?? '',
+        dataPrevisaoConclusao: formData.dataPrevisaoConclusao ?? '',
+        situacao: formData.situacao ?? '',
+        especificarSituacao: formData.especificarSituacao ?? '',
+        cargo: formData.cargo ?? '',
+        setor: formData.setor ?? '',
+        cnpjCpf: formData.cnpjCpf ?? '',
+        registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
+        cpf: formatCpf(formData.cpf ?? ''),
+        endereco: formData.endereco ?? '',
+        bairro: formData.bairro ?? '',
+        cidade: formData.cidade ?? '',
+        estado: formData.estado ?? '',
+        email: formData.email ?? '',
+        telefone: formData.telefone ?? '',
+        ramoAtividade: formData.ramoAtividade ?? '',
+        inicioAtividade: formData.inicioAtividade ?? '',
+        fimAtividade: formData.fimAtividade ?? '',
+        inicioHorarioAtividade: formData.inicioHorarioAtividade ?? '',
+        fimHorarioAtividade: formData.fimHorarioAtividade ?? '',
+        horasSemanais: formData.horasSemanais ?? '',
+        descricaoAtividades: formData.descricaoAtividades ?? '',
+      }
+    case 'supervisor_evaluation':
+      return {
+        ...INITIAL_FORM,
+        cidadeAssinatura: data.city ?? '',
+        aprendizadoNoEstagio: formData.aprendizadoNoEstagio ?? '',
+        segurancaExecucao: formData.segurancaExecucao ?? '',
+        interessePeloTrabalho: formData.interessePeloTrabalho ?? '',
+        iniciativaPropria: formData.iniciativaPropria ?? '',
+        conhecimentosTecnicos: formData.conhecimentosTecnicos ?? '',
+        produtividade: formData.produtividade ?? '',
+        qualidadeDoTrabalho: formData.qualidadeDoTrabalho ?? '',
+        disciplina: formData.disciplina ?? '',
+        relacionamentoSocial: formData.relacionamentoSocial ?? '',
+        cooperacao: formData.cooperacao ?? '',
+        esforcoSuperarFalhas: formData.esforcoSuperarFalhas ?? '',
+        pontualidade: formData.pontualidade ?? '',
+        assiduidade: formData.assiduidade ?? '',
+        capacidadeDirecaoCoordenacao: formData.capacidadeDirecaoCoordenacao ?? '',
+        modoAvaliacao: formData.modoAvaliacao ?? '',
+        periodicidadeAvaliacao: formData.periodicidadeAvaliacao ?? '',
+        observacoes: formData.observacoes ?? '',
+      }
+  }
+}
+
+const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  mandatory_internship: 'Estágio obrigatório',
+  non_mandatory_internship_credit: 'Aproveitamento de estágio não obrigatório',
+  professional_practice_credit: 'Aproveitamento de prática profissional',
+  supervisor_evaluation: 'Ficha de avaliação de estágio obrigatório',
+}
+
+const BRAZILIAN_UFS = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
+  'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
+  'RS','RO','RR','SC','SP','SE','TO',
+]
+
+const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
+  mandatory_internship: [
+    ['cep', 'uf', 'endereco', 'bairro', 'cidade', 'dataEstimadaConclusao'],
+    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente', 'ufConcedente', 'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente', 'telefone', 'ramoAtividade'],
+    ['supervisor_id', 'inicioEstagio', 'fimEstagio', 'horasSemanais', 'totalHorasTrabalhadas', 'attachment'],
+    ['atividadesProfissionais', 'dificuldadesEncontradas', 'conclusao'],
+    ['cidadeAssinatura'],
+  ],
+  professional_practice_credit: [
+    ['modalidade', 'situacao', 'especificarSituacao', 'dataPrevisaoConclusao', 'cargo', 'setor'],
+    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cpf', 'endereco', 'bairro', 'cidade', 'estado', 'email', 'telefone', 'ramoAtividade'],
+    ['supervisor_id', 'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade', 'fimHorarioAtividade', 'horasSemanais', 'attachment'],
+    ['descricaoAtividades'],
+    ['cidadeAssinatura'],
+  ],
+  supervisor_evaluation: [
+    ['aprendizadoNoEstagio', 'segurancaExecucao', 'interessePeloTrabalho', 'iniciativaPropria', 'conhecimentosTecnicos', 'produtividade', 'qualidadeDoTrabalho', 'disciplina', 'relacionamentoSocial', 'cooperacao', 'esforcoSuperarFalhas', 'pontualidade', 'assiduidade', 'capacidadeDirecaoCoordenacao'],
+    ['modoAvaliacao', 'periodicidadeAvaliacao', 'observacoes'],
+    ['cidadeAssinatura'],
+  ],
+  non_mandatory_internship_credit: [
+    ['nomeCoordenador', 'empresa', 'attachment', 'cidade'],
+  ],
+}
 
 const INITIAL_FORM: DocumentFormData = {
   cep: '',
@@ -158,30 +313,34 @@ function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
   }
 
   addError('cep', validateRequired(form.cep) ?? validateCep(form.cep))
-  addError('endereco', validateRequired(form.endereco))
-  addError('bairro', validateRequired(form.bairro))
-  addError('cidade', validateRequired(form.cidade))
-  addError('uf', validateRequired(form.uf))
+  addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
+  addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
+  addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
+  addError('uf', validateRequired(form.uf) ?? validateUf(form.uf))
   addError('dataEstimadaConclusao', validateRequired(form.dataEstimadaConclusao))
   addError('razaoSocial', validateRequired(form.razaoSocial))
-  addError('cnpjCpf', validateRequired(form.cnpjCpf))
+  addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
   addError('cepConcedente', validateRequired(form.cepConcedente) ?? validateCep(form.cepConcedente))
-  addError('bairroConcedente', validateRequired(form.bairroConcedente))
-  addError('cidadeConcedente', validateRequired(form.cidadeConcedente))
-  addError('ufConcedente', validateRequired(form.ufConcedente))
-  addError('enderecoConcedente', validateRequired(form.enderecoConcedente))
+  addError('bairroConcedente', validateRequired(form.bairroConcedente) ?? validateLettersPunct(form.bairroConcedente))
+  addError('cidadeConcedente', validateRequired(form.cidadeConcedente) ?? validateLettersPunct(form.cidadeConcedente))
+  addError('ufConcedente', validateRequired(form.ufConcedente) ?? validateUf(form.ufConcedente))
+  addError('enderecoConcedente', validateRequired(form.enderecoConcedente) ?? validateLettersAndNumbers(form.enderecoConcedente))
   addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
-  addError('ramoAtividade', validateRequired(form.ramoAtividade))
+  addError('ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
   addError('supervisor_id', validateRequired(form.supervisor_id))
   addError('inicioEstagio', validateRequired(form.inicioEstagio))
   addError('fimEstagio', validateRequired(form.fimEstagio))
-  addError('horasSemanais', validateRequired(form.horasSemanais))
-  addError('totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas))
-  addError('atividadesProfissionais', validateRequired(form.atividadesProfissionais))
-  addError('dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas))
-  addError('conclusao', validateRequired(form.conclusao))
+  addError('horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
+  addError('totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas) ?? validateNumbersOnly(form.totalHorasTrabalhadas))
+  addError('atividadesProfissionais', validateRequired(form.atividadesProfissionais) ?? validateLettersAndNumbers(form.atividadesProfissionais))
+  addError('dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas) ?? validateLettersAndNumbers(form.dificuldadesEncontradas))
+  addError('conclusao', validateRequired(form.conclusao) ?? validateLettersAndNumbers(form.conclusao))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
   addError('attachment', form.attachment ? null : 'Campo obrigatório')
+
+  if (form.inicioEstagio && form.fimEstagio && form.fimEstagio <= form.inicioEstagio) {
+    errors.fimEstagio = 'A data de fim deve ser posterior à data de início'
+  }
 
   return errors
 }
@@ -220,26 +379,25 @@ function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErr
     addError('especificarSituacao', validateRequired(form.especificarSituacao))
   }
 
-  addError('cargo', validateRequired(form.cargo))
-  addError('setor', validateRequired(form.setor))
+  addError('cargo', validateRequired(form.cargo) ?? validateLettersPunct(form.cargo))
+  addError('setor', validateRequired(form.setor) ?? validateLettersPunct(form.setor))
   addError('razaoSocial', validateRequired(form.razaoSocial))
-  addError('cnpjCpf', validateRequired(form.cnpjCpf))
-  addError('registroConselhoProfissional', validateRequired(form.registroConselhoProfissional))
-  addError('cpf', validateRequired(form.cpf))
-  addError('endereco', validateRequired(form.endereco))
-  addError('bairro', validateRequired(form.bairro))
-  addError('cidade', validateRequired(form.cidade))
+  addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
+  addError('cpf', validateRequired(form.cpf) ?? validateCpf(form.cpf))
+  addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
+  addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
+  addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
   addError('estado', validateRequired(form.estado))
   addError('email', validateRequired(form.email) ?? validateEmail(form.email))
   addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
-  addError('ramoAtividade', validateRequired(form.ramoAtividade))
+  addError('ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
   addError('inicioAtividade', validateRequired(form.inicioAtividade))
   addError('fimAtividade', validateRequired(form.fimAtividade))
-  addError('inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade))
-  addError('fimHorarioAtividade', validateRequired(form.fimHorarioAtividade))
-  addError('horasSemanais', validateRequired(form.horasSemanais))
+  addError('inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade) ?? validateMilitaryTime(form.inicioHorarioAtividade))
+  addError('fimHorarioAtividade', validateRequired(form.fimHorarioAtividade) ?? validateMilitaryTime(form.fimHorarioAtividade))
+  addError('horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
   addError('supervisor_id', validateRequired(form.supervisor_id))
-  addError('descricaoAtividades', validateRequired(form.descricaoAtividades))
+  addError('descricaoAtividades', validateRequired(form.descricaoAtividades) ?? validateLettersAndNumbers(form.descricaoAtividades))
   addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
   addError('attachment', form.attachment ? null : 'Campo obrigatório')
 
@@ -400,18 +558,29 @@ function buildPayload(
   }
 }
 
-export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?: number } = {}) {
+export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdProp, documentId, onTitleChange }: { relatedDocumentIdProp?: number, documentId?: number, onTitleChange?: (title: string) => void } = {}) {
   const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
   const [form, setForm] = useState<DocumentFormData>(INITIAL_FORM)
+  const [relatedDocumentId, setRelatedDocumentId] = useState(relatedDocumentIdProp)
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [supervisors, setSupervisors] = useState<Supervisor[]>([])
+  const [coordinators, setCoordinators] = useState<Coordinator[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [currentSection, setCurrentSection] = useState(0)
   const { register, isLoading, error } = useRegisterDocument()
+  const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
   const { fetchWithAuth } = useAPI()
+
+  const canSeeStudentOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Student'),
+  )
+  const canSeeSupervisorOptions = Boolean(
+    currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'),
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -444,6 +613,83 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
   }, [fetchWithAuth])
 
   useEffect(() => {
+    if (!documentId || !currentUser) {
+      return
+    }
+
+    let cancelled = false
+
+    async function loadDocumentData() {
+      try {
+        const response = await fetchWithAuth(
+          `/api/documents/${String(documentId)}/`,
+        )
+
+        if (response.status === 404) {
+          navigate('/', { replace: true })
+          return
+        }
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar informações do documento')
+        }
+
+        const data = (await response.json()) as BackendDocumentResponse
+
+        if (cancelled) {
+          return
+        }
+
+        if (data.status !== 'adjustment_requested') {
+          navigate('/', { replace: true })
+          return
+        }
+
+        const isSupervisorEvaluation =
+          data.document_type === 'supervisor_evaluation'
+
+        if (isSupervisorEvaluation && !canSeeSupervisorOptions) {
+          navigate('/', { replace: true })
+          return
+        }
+
+        if (!isSupervisorEvaluation && !canSeeStudentOptions) {
+          navigate('/', { replace: true })
+          return
+        }
+
+        setUserSelectedType(data.document_type)
+        setRelatedDocumentId(data.related_document ?? undefined)
+        setForm(mapBackendDataToForm(data))
+
+        onTitleChange?.(
+          `Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`,
+        )
+      } catch {
+        if (!cancelled) {
+          setLoadError(
+            'Não foi possível carregar informações do documento',
+          )
+        }
+      }
+    }
+
+    void loadDocumentData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    fetchWithAuth,
+    documentId,
+    currentUser,
+    canSeeStudentOptions,
+    canSeeSupervisorOptions,
+    navigate,
+    onTitleChange,
+  ])
+
+  useEffect(() => {
     let cancelled = false
 
     async function loadSupervisors() {
@@ -473,12 +719,36 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
     }
   }, [fetchWithAuth])
 
-  const canSeeStudentOptions = Boolean(
-    currentUser?.is_superuser || currentUser?.groups.includes('Student'),
-  )
-  const canSeeSupervisorOptions = Boolean(
-    currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'),
-  )
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCoordinators() {
+      try {
+        const response = await fetchWithAuth('/api/students/coordinators/')
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar coordenadores')
+        }
+
+        const data = (await response.json()) as Coordinator[]
+
+        if (!cancelled) {
+          setCoordinators(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError('Não foi possível carregar a lista de coordenadores')
+        }
+      }
+    }
+
+    void loadCoordinators()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
 
   const defaultDocumentType = useMemo<DocumentType>(() => {
     if (canSeeStudentOptions) return 'mandatory_internship'
@@ -488,9 +758,54 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
 
   const documentType = userSelectedType ?? defaultDocumentType
 
+  const showTypeSelector = canSeeStudentOptions && !documentId
+  const formSectionCount = SECTION_FIELDS[documentType].length
+  const sectionOffset = showTypeSelector ? 1 : 0
+  const totalSections = formSectionCount + sectionOffset
+
+  function validateCurrentSection(): DocumentErrors {
+    if (currentSection < sectionOffset) return {}
+    const allErrors = validateForm(documentType, form)
+    if (documentId) {
+      delete allErrors.attachment
+    }
+    const sectionFields = SECTION_FIELDS[documentType][currentSection - sectionOffset]
+    const sectionErrors: DocumentErrors = {}
+    for (const field of sectionFields) {
+      if (allErrors[field]) {
+        sectionErrors[field] = allErrors[field]
+      }
+    }
+    return sectionErrors
+  }
+
+  function handleNextSection() {
+    const errors = validateCurrentSection()
+    setFieldErrors(errors)
+    if (Object.keys(errors).length === 0) {
+      if (currentSection === 0 && showTypeSelector) {
+        onTitleChange?.(DOCUMENT_TYPE_LABELS[documentType])
+      }
+      setCurrentSection((s) => s + 1)
+      setFieldErrors({})
+    }
+  }
+
+  function handlePrevSection() {
+    setCurrentSection((s) => s - 1)
+    setFieldErrors({})
+  }
+
   function updateField(field: DocumentField, value: string | File | null) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
+  }
+
+  function selectClass(error?: string | null) {
+    const border = error
+      ? 'border-red-500 focus:border-red-500 focus:ring-red-100'
+      : 'border-neutral-300 hover:border-neutral-400 focus:border-green-800 focus:ring-green-100'
+    return `w-full rounded-lg border bg-white px-3.5 py-3 text-neutral-900 outline-none transition focus:ring-4 ${border}`
   }
 
   function handleDocumentTypeChange(event: ChangeEvent<HTMLSelectElement>) {
@@ -506,6 +821,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
       setForm(INITIAL_FORM)
       setFieldErrors({})
       setSuccessMessage('')
+      setCurrentSection(0)
     }
   }
 
@@ -521,6 +837,11 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
     setSuccessMessage('')
 
     const errors = validateForm(documentType, form)
+
+    if (documentId) {
+      delete errors.attachment
+    }
+
     setFieldErrors(errors)
 
     if (Object.keys(errors).length > 0) {
@@ -528,12 +849,12 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
     }
 
     const payload = buildPayload(documentType, form, relatedDocumentId)
-    const wasCreated = await register(payload)
 
-    if (wasCreated) {
-      setForm(INITIAL_FORM)
-      setFieldErrors({})
-      setSuccessMessage('Documento enviado com sucesso.')
+    const success = documentId
+      ? await update(documentId, payload)
+      : await register(payload)
+
+    if (success) {
       navigate('/', { replace: true })
     }
   }
@@ -560,7 +881,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
 
       {!isLoadingUser && !loadError && (
         <>
-      {canSeeStudentOptions && (
+      {showTypeSelector && currentSection === 0 && (
       <div className="mb-6">
         <label
           htmlFor="documentType"
@@ -573,9 +894,8 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
           id="documentType"
           value={documentType}
           onChange={handleDocumentTypeChange}
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+          className={selectClass()}
         >
-          {canSeeStudentOptions && (
             <>
               <option value="mandatory_internship">Estágio obrigatório</option>
               <option value="non_mandatory_internship_credit">
@@ -585,7 +905,6 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 Aproveitamento de prática profissional
               </option>
             </>
-          )}
           {canSeeSupervisorOptions && (
             <option value="supervisor_evaluation">
               Ficha de avaliação de estágio obrigatório
@@ -595,7 +914,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
       </div>
       )}
 
-      {documentType === 'mandatory_internship' && (
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 0 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação do estudante
@@ -614,16 +933,32 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
               error={fieldErrors.cep}
             />
 
-            <FormField
-              id="uf"
-              label="UF"
-              value={form.uf}
-              onChange={(event) => {
-                updateField('uf', event.target.value)
-              }}
-              required
-              error={fieldErrors.uf}
-            />
+            <div>
+              <label
+                htmlFor="uf"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                UF <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="uf"
+                value={form.uf}
+                onChange={(event) => {
+                  updateField('uf', event.target.value)
+                }}
+                className={selectClass(fieldErrors.uf)}
+              >
+                <option value="">Selecione...</option>
+                {BRAZILIAN_UFS.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+
+              {fieldErrors.uf && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.uf}</p>
+              )}
+            </div>
           </div>
 
           <FormField
@@ -672,9 +1007,11 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             required
             error={fieldErrors.dataEstimadaConclusao}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 1 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação da concedente
           </h3>
@@ -696,7 +1033,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
               label="CNPJ/CPF"
               value={form.cnpjCpf}
               onChange={(event) => {
-                updateField('cnpjCpf', event.target.value)
+                updateField('cnpjCpf', formatCpfCnpj(event.target.value))
               }}
               required
               error={fieldErrors.cnpjCpf}
@@ -726,16 +1063,32 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
               error={fieldErrors.cepConcedente}
             />
 
-            <FormField
-              id="ufConcedente"
-              label="UF"
-              value={form.ufConcedente}
-              onChange={(event) => {
-                updateField('ufConcedente', event.target.value)
-              }}
-              required
-              error={fieldErrors.ufConcedente}
-            />
+            <div>
+              <label
+                htmlFor="ufConcedente"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                UF <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="ufConcedente"
+                value={form.ufConcedente}
+                onChange={(event) => {
+                  updateField('ufConcedente', event.target.value)
+                }}
+                className={selectClass(fieldErrors.ufConcedente)}
+              >
+                <option value="">Selecione...</option>
+                {BRAZILIAN_UFS.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+
+              {fieldErrors.ufConcedente && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.ufConcedente}</p>
+              )}
+            </div>
           </div>
 
           <FormField
@@ -793,6 +1146,14 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             required
             error={fieldErrors.ramoAtividade}
           />
+        </>
+      )}
+
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 2 && (
+        <>
+          <h3 className="text-lg font-semibold text-neutral-900">
+            Dados do estágio
+          </h3>
 
           <div>
             <label
@@ -808,7 +1169,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
               onChange={(event) => {
                 updateField('supervisor_id', event.target.value)
               }}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+              className={selectClass(fieldErrors.supervisor_id)}
             >
               <option value="">Selecione...</option>
               {supervisors.map((supervisor) => (
@@ -882,12 +1243,14 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             onChange={(base64) => {
               updateField('attachment', base64)
             }}
-            required
+            required={!documentId}
             error={fieldErrors.attachment}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 3 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Relatório de atividades</h3>
 
           <TextareaField
@@ -922,9 +1285,11 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             required
             error={fieldErrors.conclusao}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'mandatory_internship' && currentSection === sectionOffset + 4 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
 
           <FormField
@@ -940,18 +1305,36 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
         </>
       )}
 
-      {documentType === 'non_mandatory_internship_credit' && (
+      {documentType === 'non_mandatory_internship_credit' && currentSection === sectionOffset + 0 && (
         <>
-          <FormField
-            id="nomeCoordenador"
-            label="Nome do coordenador"
-            value={form.nomeCoordenador}
-            onChange={(event) => {
-              updateField('nomeCoordenador', event.target.value)
-            }}
-            required
-            error={fieldErrors.nomeCoordenador}
-          />
+          <div>
+            <label
+              htmlFor="nomeCoordenador"
+              className="mb-1.5 block text-sm font-medium text-neutral-800"
+            >
+              Nome do coordenador <span className="text-red-600">*</span>
+            </label>
+
+            <select
+              id="nomeCoordenador"
+              value={form.nomeCoordenador}
+              onChange={(event) => {
+                updateField('nomeCoordenador', event.target.value)
+              }}
+              className={selectClass(fieldErrors.nomeCoordenador)}
+            >
+              <option value="">Selecione...</option>
+              {coordinators.map((coordinator) => (
+                <option key={coordinator.id} value={coordinator.full_name}>
+                  {coordinator.full_name}
+                </option>
+              ))}
+            </select>
+
+            {fieldErrors.nomeCoordenador && (
+              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.nomeCoordenador}</p>
+            )}
+          </div>
 
           <FormField
             id="empresa"
@@ -971,7 +1354,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             onChange={(base64) => {
               updateField('attachment', base64)
             }}
-            required
+            required={!documentId}
             error={fieldErrors.attachment}
           />
 
@@ -988,7 +1371,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
         </>
       )}
 
-      {documentType === 'professional_practice_credit' && (
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 0 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação do estudante
@@ -1009,7 +1392,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('modalidade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.modalidade)}
               >
                 <option value="">Selecione...</option>
                 <option value="integrado">Integrado</option>
@@ -1038,7 +1421,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('situacao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.situacao)}
               >
                 <option value="">Selecione...</option>
                 <option value="bolsista">Bolsista</option>
@@ -1104,9 +1487,11 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
               error={fieldErrors.setor}
             />
           </div>
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 1 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Identificação da concedente
           </h3>
@@ -1128,7 +1513,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
               label="CNPJ/CPF"
               value={form.cnpjCpf}
               onChange={(event) => {
-                updateField('cnpjCpf', event.target.value)
+                updateField('cnpjCpf', formatCpfCnpj(event.target.value))
               }}
               required
               error={fieldErrors.cnpjCpf}
@@ -1150,8 +1535,9 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             label="CPF"
             value={form.cpf}
             onChange={(event) => {
-              updateField('cpf', event.target.value)
+              updateField('cpf', formatCpf(event.target.value))
             }}
+            inputMode="numeric"
             required
             error={fieldErrors.cpf}
           />
@@ -1236,6 +1622,14 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             required
             error={fieldErrors.ramoAtividade}
           />
+        </>
+      )}
+
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 2 && (
+        <>
+          <h3 className="text-lg font-semibold text-neutral-900">
+            Dados do estágio
+          </h3>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
@@ -1267,6 +1661,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             <FormField
               id="inicioHorarioAtividade"
               label="Início do horário de atividade"
+              type="time"
               value={form.inicioHorarioAtividade}
               onChange={(event) => {
                 updateField('inicioHorarioAtividade', event.target.value)
@@ -1278,6 +1673,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             <FormField
               id="fimHorarioAtividade"
               label="Fim do horário de atividade"
+              type="time"
               value={form.fimHorarioAtividade}
               onChange={(event) => {
                 updateField('fimHorarioAtividade', event.target.value)
@@ -1287,47 +1683,45 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             />
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="horasSemanaisPPC"
-              label="Total de horas semanais"
-              value={form.horasSemanais}
+          <FormField
+            id="horasSemanaisPPC"
+            label="Total de horas semanais"
+            value={form.horasSemanais}
+            onChange={(event) => {
+              updateField('horasSemanais', event.target.value)
+            }}
+            inputMode="numeric"
+            required
+            error={fieldErrors.horasSemanais}
+          />
+
+          <div>
+            <label
+              htmlFor="supervisor_id_ppc"
+              className="mb-1.5 block text-sm font-medium text-neutral-800"
+            >
+              Supervisor <span className="text-red-600">*</span>
+            </label>
+
+            <select
+              id="supervisor_id_ppc"
+              value={form.supervisor_id}
               onChange={(event) => {
-                updateField('horasSemanais', event.target.value)
+                updateField('supervisor_id', event.target.value)
               }}
-              inputMode="numeric"
-              required
-              error={fieldErrors.horasSemanais}
-            />
+              className={selectClass(fieldErrors.supervisor_id)}
+            >
+              <option value="">Selecione...</option>
+              {supervisors.map((supervisor) => (
+                <option key={supervisor.id} value={String(supervisor.id)}>
+                  {supervisor.full_name}
+                </option>
+              ))}
+            </select>
 
-            <div>
-              <label
-                htmlFor="supervisor_id_ppc"
-                className="mb-1.5 block text-sm font-medium text-neutral-800"
-              >
-                Supervisor <span className="text-red-600">*</span>
-              </label>
-
-              <select
-                id="supervisor_id_ppc"
-                value={form.supervisor_id}
-                onChange={(event) => {
-                  updateField('supervisor_id', event.target.value)
-                }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
-              >
-                <option value="">Selecione...</option>
-                {supervisors.map((supervisor) => (
-                  <option key={supervisor.id} value={String(supervisor.id)}>
-                    {supervisor.full_name}
-                  </option>
-                ))}
-              </select>
-
-              {fieldErrors.supervisor_id && (
-                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
-              )}
-            </div>
+            {fieldErrors.supervisor_id && (
+              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
+            )}
           </div>
 
           <FileUploadField
@@ -1337,12 +1731,14 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             onChange={(base64) => {
               updateField('attachment', base64)
             }}
-            required
+            required={!documentId}
             error={fieldErrors.attachment}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 3 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Atividades</h3>
 
           <TextareaField
@@ -1355,9 +1751,11 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             required
             error={fieldErrors.descricaoAtividades}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'professional_practice_credit' && currentSection === sectionOffset + 4 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
 
           <FormField
@@ -1373,7 +1771,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
         </>
       )}
 
-      {documentType === 'supervisor_evaluation' && (
+      {documentType === 'supervisor_evaluation' && currentSection === sectionOffset + 0 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Avaliação do estudante
@@ -1394,7 +1792,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('aprendizadoNoEstagio', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.aprendizadoNoEstagio)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1423,7 +1821,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('segurancaExecucao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.segurancaExecucao)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1454,7 +1852,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('interessePeloTrabalho', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.interessePeloTrabalho)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1483,7 +1881,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('iniciativaPropria', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.iniciativaPropria)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1514,7 +1912,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('conhecimentosTecnicos', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.conhecimentosTecnicos)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1543,7 +1941,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('produtividade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.produtividade)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1574,7 +1972,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('qualidadeDoTrabalho', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.qualidadeDoTrabalho)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1603,7 +2001,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('disciplina', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.disciplina)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1634,7 +2032,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('relacionamentoSocial', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.relacionamentoSocial)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1663,7 +2061,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('cooperacao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.cooperacao)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1694,7 +2092,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('esforcoSuperarFalhas', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.esforcoSuperarFalhas)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1723,7 +2121,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('pontualidade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.pontualidade)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1754,7 +2152,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('assiduidade', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.assiduidade)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1783,7 +2181,7 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
                 onChange={(event) => {
                   updateField('capacidadeDirecaoCoordenacao', event.target.value)
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
+                className={selectClass(fieldErrors.capacidadeDirecaoCoordenacao)}
               >
                 <option value="">Selecione...</option>
                 <option value="O">Ótimo</option>
@@ -1798,9 +2196,11 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
               )}
             </div>
           </div>
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'supervisor_evaluation' && currentSection === sectionOffset + 1 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Detalhes da avaliação</h3>
 
           <FormField
@@ -1834,9 +2234,11 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
             }}
             error={fieldErrors.observacoes}
           />
+        </>
+      )}
 
-          <hr className="border-neutral-200" />
-
+      {documentType === 'supervisor_evaluation' && currentSection === sectionOffset + 2 && (
+        <>
           <h3 className="text-lg font-semibold text-neutral-900">Cidade para assinatura</h3>
 
           <FormField
@@ -1861,18 +2263,42 @@ export default function DocumentForm({ relatedDocumentId }: { relatedDocumentId?
         </div>
       )}
 
-      {error && (
+      {(error || updateError) && (
         <div
           role="alert"
           className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
-          {error}
+          {error || updateError}
         </div>
       )}
 
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Enviando...' : 'Enviar'}
-      </Button>
+      <div className="flex items-center justify-between gap-3">
+        {currentSection > 0 && (
+          <Button type="button" variant="secondary" onClick={handlePrevSection}>
+            Seção anterior
+          </Button>
+        )}
+        {currentSection < totalSections - 1 && (
+          <Button type="button" onClick={handleNextSection} className="ml-auto">
+            Próxima seção
+          </Button>
+        )}
+        {currentSection === totalSections - 1 && (
+          <Button
+            type="submit"
+            disabled={isLoading || isUpdating}
+            className="ml-auto"
+          >
+            {isLoading || isUpdating
+              ? documentId
+                ? 'Salvando...'
+                : 'Enviando...'
+              : documentId
+                ? 'Salvar alterações'
+                : 'Enviar'}
+          </Button>
+        )}
+      </div>
         </>
       )}
     </form>

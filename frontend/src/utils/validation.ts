@@ -117,3 +117,184 @@ export function formatCep(value: string): string {
 
   return `${digits.slice(0, 5)}-${digits.slice(5)}`
 }
+
+const BRAZILIAN_UFS = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
+  'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
+  'RS','RO','RR','SC','SP','SE','TO',
+] as const
+
+export function validateUf(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  return (BRAZILIAN_UFS as readonly string[]).includes(value.toUpperCase())
+    ? null
+    : 'UF inválida'
+}
+
+export function validateLettersPunct(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  const pattern = /^[A-Za-zÀ-ÖØ-öø-ÿ\s.,'-]+$/
+  return pattern.test(value) ? null : 'Use apenas letras, espaços ou pontuação'
+}
+
+export function validateLettersAndNumbers(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  const hasLetter = /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(value)
+  const hasNoInvalidChars = /^[A-Za-zÀ-ÖØ-öø-ÿ\s\d.,'-]+$/.test(value)
+  return hasLetter && hasNoInvalidChars
+    ? null
+    : 'Insira um texto válido'
+}
+
+export function validateCpfCnpj(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  const cleaned = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+
+  if (cleaned.length === 11 && /^\d{11}$/.test(cleaned)) {
+    if (/^(\d)\1{10}$/.test(cleaned)) {
+      return 'CPF inválido'
+    }
+
+    const digits = cleaned.split('').map(Number)
+
+    let sum = 0
+    for (let i = 0; i < 9; i++) {
+      sum += digits[i] * (10 - i)
+    }
+    let remainder = sum % 11
+    const firstCheck = remainder < 2 ? 0 : 11 - remainder
+    if (digits[9] !== firstCheck) {
+      return 'CPF inválido'
+    }
+
+    sum = 0
+    for (let i = 0; i < 10; i++) {
+      sum += digits[i] * (11 - i)
+    }
+    remainder = sum % 11
+    const secondCheck = remainder < 2 ? 0 : 11 - remainder
+    if (digits[10] !== secondCheck) {
+      return 'CPF inválido'
+    }
+
+    return null
+  }
+
+  if (cleaned.length === 14 && /^[A-Z0-9]{12}\d{2}$/.test(cleaned)) {
+    const charValue = (ch: string): number => ch.charCodeAt(0) - 48
+
+    const chars = cleaned.split('')
+
+    let sum = 0
+    for (let i = 0; i < 12; i++) {
+      sum += charValue(chars[i]) * (5 - (i % 8) + (i >= 4 ? 8 : 0))
+    }
+    const cnpjWeights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    sum = 0
+    for (let i = 0; i < 12; i++) {
+      sum += charValue(chars[i]) * cnpjWeights1[i]
+    }
+    let remainder = sum % 11
+    const firstCheck = remainder < 2 ? 0 : 11 - remainder
+    if (Number(chars[12]) !== firstCheck) {
+      return 'CNPJ inválido'
+    }
+
+    const cnpjWeights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    sum = 0
+    for (let i = 0; i < 13; i++) {
+      sum += charValue(chars[i]) * cnpjWeights2[i]
+    }
+    remainder = sum % 11
+    const secondCheck = remainder < 2 ? 0 : 11 - remainder
+    if (Number(chars[13]) !== secondCheck) {
+      return 'CNPJ inválido'
+    }
+
+    return null
+  }
+
+  return 'CPF ou CNPJ inválido'
+}
+
+export function validateCpf(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  const digits = value.replace(/\D/g, '')
+
+  if (digits.length !== 11) {
+    return 'CPF inválido'
+  }
+
+  return validateCpfCnpj(digits) === null
+    ? null
+    : 'CPF inválido'
+}
+
+export function formatCpf(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+
+  if (digits.length <= 3) {
+    return digits
+  }
+
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`
+  }
+
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+  }
+
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
+export function formatCpfCnpj(value: string): string {
+  const cleaned = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 14)
+  const hasLetters = /[A-Z]/.test(cleaned)
+
+  if (!hasLetters && cleaned.length <= 11) {
+    const digits = cleaned.replace(/[^0-9]/g, '')
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+  }
+
+  const chars = cleaned
+  if (chars.length <= 2) return chars
+  if (chars.length <= 5) return `${chars.slice(0, 2)}.${chars.slice(2)}`
+  if (chars.length <= 8) return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5)}`
+  if (chars.length <= 12) return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5, 8)}/${chars.slice(8)}`
+  return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5, 8)}/${chars.slice(8, 12)}-${chars.slice(12)}`
+}
+
+export function validateNumbersOnly(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  return /^\d+$/.test(value) ? null : 'Use apenas números'
+}
+
+export function validateMilitaryTime(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? null : 'Horário inválido (use formato HH:MM)'
+}

@@ -1,13 +1,22 @@
 import { useState, type ChangeEvent } from 'react'
+import { Link } from 'react-router-dom'
+import { faPencil } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
 import DocumentStatusBadge from '../components/documents/DocumentStatusBadge.tsx'
 import DocumentTimeline from '../components/documents/DocumentTimeline.tsx'
 import { useStudentDocumentHistory } from '../hooks/useStudentDocumentHistory.ts'
 import { DOCUMENT_TYPE_LABELS, formatDate } from '../utils/documents.ts'
+import { useCurrentUser } from '../hooks/useCurrentUser.ts'
 
 export default function DocumentHistoryPage() {
   const { documents, isLoading, error } = useStudentDocumentHistory()
+  const { user } = useCurrentUser()
+
   const [selectedDocumentId, setSelectedDocumentId] = useState('all')
+
+  const isStudent = Boolean(user?.groups.includes('Student'))
+  const isSupervisor = Boolean(user?.groups.includes('Supervisor'))
 
   function handleDocumentChange(event: ChangeEvent<HTMLSelectElement>) {
     setSelectedDocumentId(event.target.value)
@@ -94,9 +103,32 @@ export default function DocumentHistoryPage() {
                     <div>
                       <p className="text-sm font-medium text-green-800">Documento #{document.id}</p>
 
-                      <h2 className="mt-1 text-xl font-semibold text-neutral-950">
-                        {DOCUMENT_TYPE_LABELS[document.documentType]}
-                      </h2>
+                      <div className="flex items-center gap-2">
+                        <h2 className="mt-1 text-xl font-semibold text-neutral-950">
+                          {DOCUMENT_TYPE_LABELS[document.documentType]}
+                        </h2>
+                        {document.status === 'adjustment_requested' &&
+                          (
+                            user?.is_superuser ||
+                            (
+                              isStudent &&
+                              document.documentType !== 'supervisor_evaluation'
+                            ) ||
+                            (
+                              isSupervisor &&
+                              document.documentType === 'supervisor_evaluation'
+                            )
+                          ) && (
+                            <Link
+                              to={`/editar-documento/${String(document.id)}`}
+                              className="text-neutral-400 transition hover:text-green-800"
+                              aria-label="Editar documento"
+                              title="Editar documento"
+                            >
+                              <FontAwesomeIcon icon={faPencil} className="text-sm" />
+                            </Link>
+                          )}
+                      </div>
 
                       <p className="mt-2 text-sm text-neutral-600">
                         {document.company} · {formatDate(document.documentDate)}

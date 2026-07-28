@@ -218,12 +218,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if user.is_staff or user.is_superuser:
             return
 
-        if document.status in [
-            DocumentStatus.APPROVED,
-            DocumentStatus.REJECTED,
-            DocumentStatus.CANCELLED,
-        ]:
-            raise PermissionDenied("Document cannot be edited in this status.")
+        if document.status != DocumentStatus.ADJUSTMENT_REQUESTED:
+            raise PermissionDenied(
+                "Somente documentos com ajustes solicitados podem ser editados."
+            )
 
         if document.document_type == DocumentType.SUPERVISOR_EVALUATION:
             try:
@@ -234,11 +232,16 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 ) from exc
 
             if document.supervisor_id != supervisor.id:
-                raise PermissionDenied("Only the assigned supervisor can edit this document.")
+                raise PermissionDenied(
+                    "Only the assigned supervisor can edit this document."
+                )
+
             return
 
         if document.student.user_id != user.id:
-            raise PermissionDenied("Only the student owner can edit this document.")
+            raise PermissionDenied(
+                "Only the student owner can edit this document."
+            )
 
     def destroy(self, request, *args, **kwargs):
         document = self.get_object()

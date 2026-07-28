@@ -27,6 +27,15 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
         document_type = attrs.get("document_type")
         related_document_id = attrs.get("related_document_id")
 
+        if self.instance and document_type != self.instance.document_type:
+            raise serializers.ValidationError(
+                {
+                    "document_type": (
+                        "O tipo do documento não pode ser alterado durante a edição."
+                    )
+                }
+            )
+
         if document_type == DocumentType.SUPERVISOR_EVALUATION and not related_document_id:
             raise serializers.ValidationError(
                 {
@@ -69,7 +78,9 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
                 }
             )
 
-        if not is_supervisor_eval and not attrs.get("attachment"):
+        is_update = self.context.get("request") and self.context["request"].method == "PUT"
+
+        if not is_supervisor_eval and not attrs.get("attachment") and not is_update:
             raise serializers.ValidationError(
                 {
                     "attachment": (
@@ -146,6 +157,7 @@ class DocumentReviewListSerializer(serializers.ModelSerializer):
 
 
 class DocumentSerializer(serializers.ModelSerializer):
+    supervisor_id = serializers.IntegerField(read_only=True)
     supervisor_name = serializers.SerializerMethodField()
     supervisor_email = serializers.SerializerMethodField()
     supervisor_company = serializers.SerializerMethodField()
@@ -166,6 +178,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             "student_registration_number",
             "student_course",
             "student_campus",
+            "supervisor_id",
             "supervisor_name",
             "supervisor_email",
             "supervisor_company",
