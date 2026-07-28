@@ -59,15 +59,13 @@ export default function DashboardPage() {
         </h2>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {canManageAcademicUsers && (
+          {canAccessAcademic && (
             <Link
               to="/revisao-documentos"
               className={CARD_CLASS}
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-100 text-green-950">
-                <FontAwesomeIcon
-                  icon={faClipboardCheck}
-                />
+                <FontAwesomeIcon icon={faClipboardCheck} />
               </div>
 
               <h3 className="mt-4 font-semibold text-neutral-950">
@@ -84,7 +82,7 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {canAccessAcademic && (
+          {canManageAcademicUsers && (
             <Link
               to="/cadastro-academico"
               className={CARD_CLASS}
