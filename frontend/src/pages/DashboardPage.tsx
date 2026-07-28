@@ -26,6 +26,10 @@ export default function DashboardPage() {
     user?.groups.includes('Teacher') === true ||
     user?.groups.includes('Coordinator') === true
 
+  const canManageAcademicUsers =
+    isSuperuser ||
+    user?.groups.includes('Coordinator') === true
+
   const canAccessStudentFeatures =
     isSuperuser || isStudent
 
@@ -55,7 +59,7 @@ export default function DashboardPage() {
         </h2>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {canAccessAcademic && (
+          {canManageAcademicUsers && (
             <Link
               to="/revisao-documentos"
               className={CARD_CLASS}
