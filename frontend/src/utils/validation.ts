@@ -229,10 +229,45 @@ export function validateCpfCnpj(value: string): string | null {
   return 'CPF ou CNPJ inválido'
 }
 
+export function validateCpf(value: string): string | null {
+  if (!value) {
+    return null
+  }
+
+  const digits = value.replace(/\D/g, '')
+
+  if (digits.length !== 11) {
+    return 'CPF inválido'
+  }
+
+  return validateCpfCnpj(digits) === null
+    ? null
+    : 'CPF inválido'
+}
+
+export function formatCpf(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+
+  if (digits.length <= 3) {
+    return digits
+  }
+
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`
+  }
+
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+  }
+
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
 export function formatCpfCnpj(value: string): string {
   const cleaned = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 14)
+  const hasLetters = /[A-Z]/.test(cleaned)
 
-  if (cleaned.length <= 11) {
+  if (!hasLetters && cleaned.length <= 11) {
     const digits = cleaned.replace(/[^0-9]/g, '')
     if (digits.length <= 3) return digits
     if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`

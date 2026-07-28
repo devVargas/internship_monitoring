@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ChangeEvent, type SubmitEvent } from
 import {useNavigate} from 'react-router-dom'
 import type { CurrentUser } from '../../api/auth.ts'
 import { getCurrentUserRequest } from '../../api/auth.ts'
-import type { DocumentType, RegisterDocumentPayload } from '../../api/documents.ts'
+import type { DocumentStatus, DocumentType, RegisterDocumentPayload } from '../../api/documents.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
 import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
@@ -21,6 +21,8 @@ import {
   validatePhone,
   validateRequired,
   validateUf,
+  validateCpf,
+  formatCpf,
 } from '../../utils/validation.ts'
 import Button from '../ui/Button.tsx'
 import FileUploadField from '../ui/FileUploadField.tsx'
@@ -97,12 +99,13 @@ type DocumentErrors = Partial<Record<DocumentField, string>>
 
 type BackendDocumentResponse = {
   document_type: DocumentType
+  status: DocumentStatus
   company?: string
   city?: string
-  supervisor_id?: number
+  supervisor_id: number | null
   coordinator_name?: string
   attachment?: string | null
-  related_document_id?: number
+  related_document: number | null
   form_data?: Record<string, unknown>
 }
 
@@ -160,7 +163,7 @@ function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFormData {
         setor: formData.setor ?? '',
         cnpjCpf: formData.cnpjCpf ?? '',
         registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
-        cpf: formData.cpf ?? '',
+        cpf: formatCpf(formData.cpf ?? ''),
         endereco: formData.endereco ?? '',
         bairro: formData.bairro ?? '',
         cidade: formData.cidade ?? '',
@@ -380,7 +383,7 @@ function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErr
   addError('setor', validateRequired(form.setor) ?? validateLettersPunct(form.setor))
   addError('razaoSocial', validateRequired(form.razaoSocial))
   addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
-  addError('cpf', validateRequired(form.cpf) ?? validateCep(form.cpf))
+  addError('cpf', validateRequired(form.cpf) ?? validateCpf(form.cpf))
   addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
   addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
   addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
@@ -610,14 +613,21 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   }, [fetchWithAuth])
 
   useEffect(() => {
+    if (!documentId || !currentUser) {
+      return
+    }
+
     let cancelled = false
 
     async function loadDocumentData() {
       try {
-        const response = await fetchWithAuth('/api/documents/' + String(documentId) + '/')
+        const response = await fetchWithAuth(
+          `/api/documents/${String(documentId)}/`,
+        )
 
-        if(response.status === 404) {
-          navigate('/', {replace: true}) 
+        if (response.status === 404) {
+          navigate('/', { replace: true })
+          return
         }
 
         if (!response.ok) {
@@ -626,34 +636,58 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
         const data = (await response.json()) as BackendDocumentResponse
 
-        if (!cancelled && currentUser) {
-          if(data.status !== 'adjustment_requested') {
-            navigate('/', {replace: true}) 
-          }
-          setUserSelectedType(data.document_type)
-          if(data.document_type === 'supervisor_evaluation') {
-            if(!canSeeSupervisorOptions) {
-              navigate('/', {replace: true})
-            }
-            setRelatedDocumentId(data.related_document)
-          }
-          setForm(mapBackendDataToForm(data))
+        if (cancelled) {
+          return
         }
+
+        if (data.status !== 'adjustment_requested') {
+          navigate('/', { replace: true })
+          return
+        }
+
+        const isSupervisorEvaluation =
+          data.document_type === 'supervisor_evaluation'
+
+        if (isSupervisorEvaluation && !canSeeSupervisorOptions) {
+          navigate('/', { replace: true })
+          return
+        }
+
+        if (!isSupervisorEvaluation && !canSeeStudentOptions) {
+          navigate('/', { replace: true })
+          return
+        }
+
+        setUserSelectedType(data.document_type)
+        setRelatedDocumentId(data.related_document ?? undefined)
+        setForm(mapBackendDataToForm(data))
+
+        onTitleChange?.(
+          `Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`,
+        )
       } catch {
         if (!cancelled) {
-          setLoadError('Não foi possível carregar informações do documento')
+          setLoadError(
+            'Não foi possível carregar informações do documento',
+          )
         }
       }
     }
 
-    if(documentId) {
-      void loadDocumentData()
-    }
+    void loadDocumentData()
 
     return () => {
       cancelled = true
     }
-  }, [fetchWithAuth, documentId, currentUser])
+  }, [
+    fetchWithAuth,
+    documentId,
+    currentUser,
+    canSeeStudentOptions,
+    canSeeSupervisorOptions,
+    navigate,
+    onTitleChange,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -803,9 +837,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     setSuccessMessage('')
 
     const errors = validateForm(documentType, form)
+
     if (documentId) {
       delete errors.attachment
     }
+
     setFieldErrors(errors)
 
     if (Object.keys(errors).length > 0) {
@@ -813,12 +849,10 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     }
 
     const payload = buildPayload(documentType, form, relatedDocumentId)
-    let success = false
-    if (documentId) {
-      success = await update(documentId, payload)
-    } else {
-      success = await register(payload)
-    }
+
+    const success = documentId
+      ? await update(documentId, payload)
+      : await register(payload)
 
     if (success) {
       navigate('/', { replace: true })
@@ -1209,7 +1243,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             onChange={(base64) => {
               updateField('attachment', base64)
             }}
-            required
+            required={!documentId}
             error={fieldErrors.attachment}
           />
         </>
@@ -1320,7 +1354,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             onChange={(base64) => {
               updateField('attachment', base64)
             }}
-            required
+            required={!documentId}
             error={fieldErrors.attachment}
           />
 
@@ -1498,10 +1532,10 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
           <FormField
             id="cpf"
-            label="CEP"
+            label="CPF"
             value={form.cpf}
             onChange={(event) => {
-              updateField('cpf', formatCep(event.target.value))
+              updateField('cpf', formatCpf(event.target.value))
             }}
             inputMode="numeric"
             required
@@ -1697,7 +1731,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             onChange={(base64) => {
               updateField('attachment', base64)
             }}
-            required
+            required={!documentId}
             error={fieldErrors.attachment}
           />
         </>
@@ -2250,8 +2284,18 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           </Button>
         )}
         {currentSection === totalSections - 1 && (
-          <Button type="submit" disabled={isLoading || isUpdating} className="ml-auto">
-            {isLoading || isUpdating ? 'Enviando...' : 'Enviar'}
+          <Button
+            type="submit"
+            disabled={isLoading || isUpdating}
+            className="ml-auto"
+          >
+            {isLoading || isUpdating
+              ? documentId
+                ? 'Salvando...'
+                : 'Enviando...'
+              : documentId
+                ? 'Salvar alterações'
+                : 'Enviar'}
           </Button>
         )}
       </div>
