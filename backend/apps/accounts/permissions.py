@@ -1,8 +1,4 @@
 from rest_framework.permissions import BasePermission
-from apps.accounts.constants import (
-    GROUP_COORDINATOR,
-    GROUP_PROFESSOR,
-)
 
 def belongs_to_group(user, group_name):
     return user.groups.filter(name=group_name).exists()
@@ -20,7 +16,7 @@ class CanCreateProfessor(BasePermission):
             return True
 
         return user.groups.filter(
-            name__in=["Teacher", "Coordinator"],
+            name="Coordinator",
         ).exists()
 
 class CanCreateCoordinator(BasePermission):

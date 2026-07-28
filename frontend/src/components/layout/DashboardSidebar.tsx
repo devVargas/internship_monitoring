@@ -53,13 +53,14 @@ const ACADEMIC_ITEMS: NavigationItem[] = [
     icon: faUsers,
     end: false,
   },
-  {
-    to: '/cadastro-academico',
-    label: 'Cadastrar equipe acadêmica',
-    icon: faUserPlus,
-    end: false,
-  },
 ]
+
+const ACADEMIC_REGISTRATION_ITEM: NavigationItem = {
+  to: '/cadastro-academico',
+  label: 'Cadastrar equipe acadêmica',
+  icon: faUserPlus,
+  end: false,
+}
 
 const SUPERVISOR_EVALUATIONS_ITEM: NavigationItem = {
   to: '/avaliacoes-pendentes',
@@ -118,6 +119,10 @@ export default function DashboardSidebar({
     isSuperuser ||
     user?.groups.includes('Teacher') === true ||
     user?.groups.includes('Coordinator') === true
+  
+  const canManageAcademicUsers =
+    isSuperuser ||
+    user?.groups.includes('Coordinator') === true
 
   const canAccessSupervisorEvaluations =
     isSuperuser || isSupervisor
@@ -131,6 +136,10 @@ export default function DashboardSidebar({
 
   if (canAccessAcademic) {
     navigationItems.push(...ACADEMIC_ITEMS)
+  }
+
+  if (canManageAcademicUsers) {
+    navigationItems.push(ACADEMIC_REGISTRATION_ITEM)
   }
 
   if (canAccessSupervisorEvaluations) {

@@ -28,6 +28,8 @@ const STUDENT_GROUPS = ['Student'] as const
 
 const SUPERVISOR_GROUPS = ['Supervisor'] as const
 
+const COORDINATOR_GROUPS = ['Coordinator'] as const
+
 export default function Router() {
   return (
     <BrowserRouter>
@@ -123,7 +125,7 @@ export default function Router() {
           path="/cadastro-academico"
           element={
             <RoleProtectedRoute
-              allowedGroups={ACADEMIC_GROUPS}
+              allowedGroups={COORDINATOR_GROUPS}
             >
               <RegisterAcademicUserPage />
             </RoleProtectedRoute>
