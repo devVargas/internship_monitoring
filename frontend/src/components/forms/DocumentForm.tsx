@@ -336,6 +336,14 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
       {!isLoadingUser && !loadError && (
         <>
+      {totalSections > 1 && currentSection > 0 && documentType !== 'non_mandatory_internship_credit' && (
+        <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-900 transition-all duration-300"
+            style={{ width: `${((currentSection - 1) / (totalSections - 2)) * 100}%` }}
+          />
+        </div>
+      )}
       {showTypeSelector && currentSection === 0 && (
       <div className="mb-6">
         <label
