@@ -1,3 +1,5 @@
+import { faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { SectionProps } from '../documentFormTypes.ts'
 import { BRAZILIAN_UFS } from '../documentFormConstants.ts'
 import { selectClass } from '../documentFormStyles.ts'
@@ -16,6 +18,8 @@ export default function MandatoryInternshipSections({
   handleCepChange,
   handlePhoneChange,
   documentId,
+  cepLoading,
+  cepConcedenteLoading,
 }: SectionProps) {
   return (
     <>
@@ -26,17 +30,26 @@ export default function MandatoryInternshipSections({
           </h3>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="cep"
-              label="CEP"
-              value={form.cep}
-              onChange={(event) => {
-                handleCepChange('cep', event)
-              }}
-              inputMode="numeric"
-              required
-              error={fieldErrors.cep}
-            />
+            <div className="relative">
+              <FormField
+                id="cep"
+                label="CEP"
+                value={form.cep}
+                onChange={(event) => {
+                  handleCepChange('cep', event)
+                }}
+                inputMode="numeric"
+                required
+                error={fieldErrors.cep}
+              />
+
+              {cepLoading && (
+                <FontAwesomeIcon
+                  icon={faSpinner}
+                  className="pointer-events-none absolute right-3 top-[50px] h-4 w-4 -translate-y-1/2 animate-spin text-green-900"
+                />
+              )}
+            </div>
 
             <div>
               <label
@@ -156,17 +169,26 @@ export default function MandatoryInternshipSections({
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="cepConcedente"
-              label="CEP"
-              value={form.cepConcedente}
-              onChange={(event) => {
-                handleCepChange('cepConcedente', event)
-              }}
-              inputMode="numeric"
-              required
-              error={fieldErrors.cepConcedente}
-            />
+            <div className="relative">
+              <FormField
+                id="cepConcedente"
+                label="CEP"
+                value={form.cepConcedente}
+                onChange={(event) => {
+                  handleCepChange('cepConcedente', event)
+                }}
+                inputMode="numeric"
+                required
+                error={fieldErrors.cepConcedente}
+              />
+
+              {cepConcedenteLoading && (
+                <FontAwesomeIcon
+                  icon={faSpinner}
+                  className="pointer-events-none absolute right-3 top-[50px] h-4 w-4 -translate-y-1/2 animate-spin text-green-900"
+                />
+              )}
+            </div>
 
             <div>
               <label

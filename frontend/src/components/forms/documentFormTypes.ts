@@ -92,4 +92,6 @@ export type SectionProps = {
   handleCepChange: (field: DocumentField, event: ChangeEvent<HTMLInputElement>) => void
   handlePhoneChange: (event: ChangeEvent<HTMLInputElement>) => void
   documentId?: number
+  cepLoading?: boolean
+  cepConcedenteLoading?: boolean
 }

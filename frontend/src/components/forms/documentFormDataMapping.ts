@@ -1,6 +1,6 @@
 import type { DocumentFormData, BackendDocumentResponse } from './documentFormTypes.ts'
 import INITIAL_FORM from './documentFormConstants.ts'
-import { formatCpf } from '../../utils/validation.ts'
+import { formatCep } from '../../utils/validation.ts'
 
 export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFormData {
   const formData = (data.form_data ?? {}) as Record<string, string | undefined>
@@ -56,7 +56,7 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
         setor: formData.setor ?? '',
         cnpjCpf: formData.cnpjCpf ?? '',
         registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
-        cpf: formatCpf(formData.cpf ?? ''),
+        cep: formatCep(formData.cep ?? ''),
         endereco: formData.endereco ?? '',
         bairro: formData.bairro ?? '',
         cidade: formData.cidade ?? '',

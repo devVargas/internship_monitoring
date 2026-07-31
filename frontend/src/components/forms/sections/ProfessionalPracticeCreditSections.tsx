@@ -1,9 +1,12 @@
+import { faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { SectionProps } from '../documentFormTypes.ts'
+import { BRAZILIAN_UFS } from '../documentFormConstants.ts'
 import { selectClass } from '../documentFormStyles.ts'
 import FormField from '../../ui/FormField.tsx'
 import TextareaField from '../../ui/TextareaField.tsx'
 import FileUploadField from '../../ui/FileUploadField.tsx'
-import { formatCpfCnpj, formatCpf } from '../../../utils/validation.ts'
+import { formatCpfCnpj } from '../../../utils/validation.ts'
 
 export default function ProfessionalPracticeCreditSections({
   form,
@@ -12,8 +15,10 @@ export default function ProfessionalPracticeCreditSections({
   sectionOffset,
   currentSection,
   supervisors,
+  handleCepChange,
   handlePhoneChange,
   documentId,
+  cepLoading,
 }: SectionProps) {
   return (
     <>
@@ -176,17 +181,26 @@ export default function ProfessionalPracticeCreditSections({
             />
           </div>
 
-          <FormField
-            id="cpf"
-            label="CPF"
-            value={form.cpf}
-            onChange={(event) => {
-              updateField('cpf', formatCpf(event.target.value))
-            }}
-            inputMode="numeric"
-            required
-            error={fieldErrors.cpf}
-          />
+          <div className="relative">
+            <FormField
+              id="cepPPC"
+              label="CEP"
+              value={form.cep}
+              onChange={(event) => {
+                handleCepChange('cep', event)
+              }}
+              inputMode="numeric"
+              required
+              error={fieldErrors.cep}
+            />
+
+            {cepLoading && (
+              <FontAwesomeIcon
+                icon={faSpinner}
+                className="pointer-events-none absolute right-3 top-[50px] h-4 w-4 -translate-y-1/2 animate-spin text-green-900"
+              />
+            )}
+          </div>
 
           <FormField
             id="enderecoPPC"
@@ -224,16 +238,32 @@ export default function ProfessionalPracticeCreditSections({
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="estado"
-              label="Estado"
-              value={form.estado}
-              onChange={(event) => {
-                updateField('estado', event.target.value)
-              }}
-              required
-              error={fieldErrors.estado}
-            />
+            <div>
+              <label
+                htmlFor="uf"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                UF <span className="text-red-600">*</span>
+              </label>
+
+              <select
+                id="uf"
+                value={form.estado}
+                onChange={(event) => {
+                  updateField('estado', event.target.value)
+                }}
+                className={selectClass(fieldErrors.estado)}
+              >
+                <option value="">Selecione...</option>
+                {BRAZILIAN_UFS.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+
+              {fieldErrors.estado && (
+                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.estado}</p>
+              )}
+            </div>
 
             <FormField
               id="email"

@@ -8,6 +8,7 @@ import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
 import { getErrorMessage } from '../../utils/errors.ts'
 import { formatCep, formatPhone } from '../../utils/validation.ts'
+import { useCepLookup } from '../../hooks/useCepLookup.ts'
 import Button from '../ui/Button.tsx'
 import type { DocumentFormData, DocumentField, DocumentErrors, Supervisor, Coordinator, BackendDocumentResponse } from './documentFormTypes.ts'
 import INITIAL_FORM, { DOCUMENT_TYPE_LABELS, SECTION_FIELDS } from './documentFormConstants.ts'
@@ -36,6 +37,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
   const { fetchWithAuth } = useAPI()
+  const { isLoading: cepLoading, lookup: lookupCep } = useCepLookup()
+  const { isLoading: cepConcedenteLoading, lookup: lookupCepConcedente } = useCepLookup()
 
   const canSeeStudentOptions = Boolean(
     currentUser?.is_superuser || currentUser?.groups.includes('Student'),
@@ -281,7 +284,26 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   }
 
   function handleCepChange(field: DocumentField, event: ChangeEvent<HTMLInputElement>) {
-    updateField(field, formatCep(event.target.value))
+    const formatted = formatCep(event.target.value)
+    updateField(field, formatted)
+
+    const lookup = field === 'cep' ? lookupCep : lookupCepConcedente
+    void lookup(formatted).then((address) => {
+      if (!address) return
+
+      if (field === 'cep') {
+        updateField('endereco', address.logradouro)
+        updateField('bairro', address.bairro)
+        updateField('cidade', address.localidade)
+        updateField('uf', address.uf)
+        updateField('estado', address.uf)
+      } else {
+        updateField('enderecoConcedente', address.logradouro)
+        updateField('bairroConcedente', address.bairro)
+        updateField('cidadeConcedente', address.localidade)
+        updateField('ufConcedente', address.uf)
+      }
+    })
   }
 
   function handlePhoneChange(event: ChangeEvent<HTMLInputElement>) {
@@ -377,11 +399,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       </div>
       )}
 
-      {documentType === 'mandatory_internship' && <MandatoryInternshipSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
+      {documentType === 'mandatory_internship' && <MandatoryInternshipSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepConcedenteLoading={cepConcedenteLoading} />}
 
       {documentType === 'non_mandatory_internship_credit' && <NonMandatoryInternshipCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
 
-      {documentType === 'professional_practice_credit' && <ProfessionalPracticeCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
+      {documentType === 'professional_practice_credit' && <ProfessionalPracticeCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} />}
 
       {documentType === 'supervisor_evaluation' && <SupervisorEvaluationSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
 

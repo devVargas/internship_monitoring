@@ -64,7 +64,7 @@ export function buildPayload(
           setor: form.setor,
           cnpjCpf: form.cnpjCpf,
           registroConselhoProfissional: form.registroConselhoProfissional,
-          cpf: form.cpf,
+          cep: form.cep,
           endereco: form.endereco,
           bairro: form.bairro,
           cidade: form.cidade,

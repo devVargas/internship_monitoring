@@ -24,7 +24,7 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
   ],
   professional_practice_credit: [
     ['modalidade', 'situacao', 'especificarSituacao', 'dataPrevisaoConclusao', 'cargo', 'setor'],
-    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cpf', 'endereco', 'bairro', 'cidade', 'estado', 'email', 'telefone', 'ramoAtividade'],
+    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cep', 'endereco', 'bairro', 'cidade', 'estado', 'email', 'telefone', 'ramoAtividade'],
     ['supervisor_id', 'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade', 'fimHorarioAtividade', 'horasSemanais', 'attachment'],
     ['descricaoAtividades'],
     ['cidadeAssinatura'],

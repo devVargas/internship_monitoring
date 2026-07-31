@@ -9,7 +9,6 @@ import {
   validateCpfCnpj,
   validatePhone,
   validateNumbersOnly,
-  validateCpf,
   validateEmail,
   validateMilitaryTime,
 } from '../../utils/validation.ts'
@@ -94,7 +93,7 @@ export function validateProfessionalPracticeCredit(form: DocumentFormData): Docu
   addError('setor', validateRequired(form.setor) ?? validateLettersPunct(form.setor))
   addError('razaoSocial', validateRequired(form.razaoSocial))
   addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
-  addError('cpf', validateRequired(form.cpf) ?? validateCpf(form.cpf))
+  addError('cep', validateRequired(form.cep) ?? validateCep(form.cep))
   addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
   addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
   addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
