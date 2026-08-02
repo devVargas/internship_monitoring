@@ -49,7 +49,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 DB_NAME=
 DB_USER=
 DB_PASSWORD=
-DB_HOST=localhost
+DB_HOST=postgres
 DB_PORT=5432
 
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173

@@ -14,8 +14,7 @@ import { useDocumentReview } from '../hooks/useDocumentReview.ts'
 import {
   DOCUMENT_TYPE_LABELS,
   formatDate,
-  formatFormValue,
-  humanizeFormKey,
+  getDocumentFormReviewEntries,
 } from '../utils/documents.ts'
 
 export default function DocumentReviewDetailPage() {
@@ -38,7 +37,10 @@ export default function DocumentReviewDetailPage() {
 
   const formEntries =
     document && isRecord(document.formData)
-      ? Object.entries(document.formData)
+      ? getDocumentFormReviewEntries(
+          document.documentType,
+          document.formData,
+        )
       : []
 
   const isCurrentReviewer =
@@ -240,13 +242,13 @@ export default function DocumentReviewDetailPage() {
                     </p>
                   ) : (
                     <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-                      {formEntries.map(([key, value]) => (
-                        <div key={key}>
+                      {formEntries.map((entry) => (
+                        <div key={entry.key}>
                           <dt className="text-sm font-medium text-neutral-500">
-                            {humanizeFormKey(key)}
+                            {entry.label}
                           </dt>
                           <dd className="mt-1 break-words text-neutral-900">
-                            {formatFormValue(value)}
+                            {entry.value}
                           </dd>
                         </div>
                       ))}
