@@ -1,8 +1,5 @@
-import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
-import { getCurrentUserRequest } from '../../api/auth.ts'
-import { useAPI } from '../../context/api-context.ts'
 import { useAuth } from '../../hooks/useAuth.ts'
 
 type RoleProtectedRouteProps = {
@@ -10,56 +7,30 @@ type RoleProtectedRouteProps = {
   allowedGroups: readonly string[]
 }
 
-export default function RoleProtectedRoute({
-  children,
-  allowedGroups,
-}: RoleProtectedRouteProps) {
-  const { isAuthenticated } = useAuth()
-  const { fetchWithAuth } = useAPI()
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null)
+export default function RoleProtectedRoute({children, allowedGroups}: RoleProtectedRouteProps) {
+  const { isAuthenticated, isCheckingSession, user } = useAuth()
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      return
-    }
-
-    let cancelled = false
-
-    async function checkAccess() {
-      try {
-        const user = await getCurrentUserRequest(fetchWithAuth)
-        const belongsToAllowedGroup = user.groups.some((group) =>
-          allowedGroups.includes(group),
-        )
-
-        if (!cancelled) {
-          setHasAccess(user.is_superuser || belongsToAllowedGroup)
-        }
-      } catch {
-        if (!cancelled) {
-          setHasAccess(false)
-        }
-      }
-    }
-
-    void checkAccess()
-
-    return () => {
-      cancelled = true
-    }
-  }, [allowedGroups, fetchWithAuth, isAuthenticated])
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
-  if (hasAccess === null) {
+  if (isCheckingSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <p className="text-sm text-neutral-600">Verificando acesso...</p>
+        <p className="text-sm text-neutral-600">
+          Verificando acesso...
+        </p>
       </div>
     )
   }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />
+  }
+
+  const belongsToAllowedGroup =
+    user.groups.some((group) =>
+      allowedGroups.includes(group),
+    )
+
+  const hasAccess =
+    user.is_superuser || belongsToAllowedGroup
 
   if (!hasAccess) {
     return <Navigate to="/" replace />
