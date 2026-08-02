@@ -221,26 +221,54 @@ ON CONFLICT (user_id) DO UPDATE SET
     phone_number = EXCLUDED.phone_number,
     updated_at = CURRENT_TIMESTAMP;
 
+
 -- 5. Limpa somente dados demo de execução anterior ----------------------------
+
+UPDATE document_document
+SET related_document_id = NULL
+WHERE related_document_id IN (
+    SELECT id
+    FROM document_document
+    WHERE student_email LIKE '%@demo.local'
+);
 
 DELETE FROM doc_activity_documentactivity
 WHERE document_id IN (
     SELECT id
     FROM document_document
-    WHERE form_data ->> 'demo_sql' = 'true'
+    WHERE student_email LIKE '%@demo.local'
 );
 
-UPDATE document_document
-SET related_document_id = NULL
-WHERE form_data ->> 'demo_sql' = 'true';
-
 DELETE FROM document_document
-WHERE form_data ->> 'demo_sql' = 'true';
+WHERE student_email LIKE '%@demo.local';
+
+-- As chaves abaixo existem apenas durante esta execução. Elas não são gravadas
+-- em form_data e desaparecem no COMMIT.
+CREATE TEMP TABLE demo_document_refs (
+    reference_name TEXT PRIMARY KEY,
+    document_id BIGINT NOT NULL
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE demo_document_source (
+    reference_name TEXT PRIMARY KEY,
+    student_username TEXT NOT NULL,
+    supervisor_username TEXT,
+    reviewer_username TEXT,
+    document_type TEXT NOT NULL,
+    coordinator_name TEXT NOT NULL,
+    company TEXT NOT NULL,
+    city TEXT NOT NULL,
+    document_date DATE NOT NULL,
+    form_data JSONB NOT NULL,
+    status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+) ON COMMIT DROP;
 
 -- 6. Documentos base ----------------------------------------------------------
 
-WITH document_data (
-    demo_key,
+INSERT INTO demo_document_source (
+    reference_name,
     student_username,
     supervisor_username,
     reviewer_username,
@@ -253,287 +281,432 @@ WITH document_data (
     status,
     created_at,
     updated_at
-) AS (
-    VALUES
-        (
-            'submitted-simple',
-            'aluno01@demo.local',
-            NULL,
-            NULL,
-            'professional_practice_credit',
-            'Fernanda Moura',
-            'Freelancer',
-            'Porto Alegre',
-            CURRENT_DATE - 12,
-            jsonb_build_object(
-                'demo_sql', true,
-                'cargo', 'Desenvolvedora júnior',
-                'carga_horaria', 420,
-                'atividades', 'Desenvolvimento de APIs e testes automatizados'
-            ),
-            'submitted',
-            CURRENT_TIMESTAMP - INTERVAL '12 days',
-            CURRENT_TIMESTAMP - INTERVAL '11 days'
-        ),
-        (
-            'submitted-with-evaluation',
-            'aluno02@demo.local',
-            'supervisor01@demo.local',
-            NULL,
-            'mandatory_internship',
-            'Carlos Ribeiro',
-            'TechSul Sistemas',
-            'Canoas',
-            CURRENT_DATE - 20,
-            jsonb_build_object(
-                'demo_sql', true,
-                'setor', 'Engenharia de Software',
-                'carga_horaria_semanal', 30,
-                'data_inicio', to_char(CURRENT_DATE - 60, 'YYYY-MM-DD'),
-                'data_fim', to_char(CURRENT_DATE + 60, 'YYYY-MM-DD')
-            ),
-            'submitted',
-            CURRENT_TIMESTAMP - INTERVAL '20 days',
-            CURRENT_TIMESTAMP - INTERVAL '4 days'
-        ),
-        (
-            'in-review',
-            'aluno03@demo.local',
-            'supervisor02@demo.local',
-            'professor01@demo.local',
-            'non_mandatory_internship_credit',
-            'Patrícia Nunes',
-            'Inova Software',
-            'São Leopoldo',
-            CURRENT_DATE - 9,
-            jsonb_build_object(
-                'demo_sql', true,
-                'cargo', 'Estagiária de desenvolvimento',
-                'tecnologias', jsonb_build_array('React', 'TypeScript', 'Python'),
-                'carga_horaria', 300
-            ),
-            'in_review',
-            CURRENT_TIMESTAMP - INTERVAL '9 days',
-            CURRENT_TIMESTAMP - INTERVAL '1 day'
-        ),
-        (
-            'adjustment-requested',
-            'aluno01@demo.local',
-            'supervisor03@demo.local',
-            'professor02@demo.local',
-            'mandatory_internship',
-            'Fernanda Moura',
-            'Dados & Soluções',
-            'Novo Hamburgo',
-            CURRENT_DATE - 15,
-            jsonb_build_object(
-                'demo_sql', true,
-                'setor', 'Dados',
-                'carga_horaria_semanal', 30,
-                'observacao', 'Documento propositalmente incompleto para teste'
-            ),
-            'adjustment_requested',
-            CURRENT_TIMESTAMP - INTERVAL '15 days',
-            CURRENT_TIMESTAMP - INTERVAL '2 days'
-        ),
-        (
-            'approved',
-            'aluno02@demo.local',
-            NULL,
-            'coordenador01@demo.local',
-            'professional_practice_credit',
-            'Fernanda Moura',
-            'Projeto Autônomo',
-            'Canoas',
-            CURRENT_DATE - 35,
-            jsonb_build_object(
-                'demo_sql', true,
-                'atividade', 'Desenvolvimento de sistema web',
-                'carga_horaria', 520,
-                'resultado', 'Sistema implantado e validado pelo cliente'
-            ),
-            'approved',
-            CURRENT_TIMESTAMP - INTERVAL '35 days',
-            CURRENT_TIMESTAMP - INTERVAL '25 days'
-        ),
-        (
-            'rejected',
-            'aluno03@demo.local',
-            NULL,
-            'professor03@demo.local',
-            'professional_practice_credit',
-            'Carlos Ribeiro',
-            'Empresa não identificada',
-            'Porto Alegre',
-            CURRENT_DATE - 28,
-            jsonb_build_object(
-                'demo_sql', true,
-                'atividade', 'Suporte técnico',
-                'carga_horaria', 40,
-                'motivo_teste', 'Carga horária insuficiente'
-            ),
-            'rejected',
-            CURRENT_TIMESTAMP - INTERVAL '28 days',
-            CURRENT_TIMESTAMP - INTERVAL '20 days'
-        ),
-        (
-            'waiting-supervisor',
-            'aluno01@demo.local',
-            'supervisor02@demo.local',
-            NULL,
-            'mandatory_internship',
-            'Patrícia Nunes',
-            'Inova Software',
-            'São Leopoldo',
-            CURRENT_DATE - 3,
-            jsonb_build_object(
-                'demo_sql', true,
-                'setor', 'Qualidade',
-                'carga_horaria_semanal', 20
-            ),
-            'waiting_supervisor',
-            CURRENT_TIMESTAMP - INTERVAL '3 days',
-            CURRENT_TIMESTAMP - INTERVAL '2 days'
-        ),
-        (
-            'cancelled',
-            'aluno02@demo.local',
-            NULL,
-            NULL,
-            'non_mandatory_internship_credit',
-            'Fernanda Moura',
-            'Projeto cancelado',
-            'Canoas',
-            CURRENT_DATE - 40,
-            jsonb_build_object(
-                'demo_sql', true,
-                'motivo', 'Aluno desistiu da solicitação'
-            ),
-            'cancelled',
-            CURRENT_TIMESTAMP - INTERVAL '40 days',
-            CURRENT_TIMESTAMP - INTERVAL '38 days'
-        )
 )
-INSERT INTO document_document (
-    student_id,
-    supervisor_id,
-    reviewed_by_id,
-    related_document_id,
-    document_type,
-    student_name,
-    student_email,
-    student_registration_number,
-    student_course,
-    student_campus,
-    coordinator_name,
-    company,
-    city,
-    document_date,
-    attachment,
-    form_data,
-    status,
-    created_at,
-    updated_at
+VALUES
+    (
+        'submitted-simple',
+        'aluno01@demo.local',
+        NULL,
+        NULL,
+        'professional_practice_credit',
+        'Fernanda Moura',
+        'Freelancer',
+        'Porto Alegre',
+        CURRENT_DATE - 12,
+        jsonb_build_object(
+            'modalidade', 'superior',
+            'dataPrevisaoConclusao', to_char(CURRENT_DATE + 180, 'YYYY-MM-DD'),
+            'situacao', 'proprietario_socio',
+            'especificarSituacao', '',
+            'cargo', 'Desenvolvedora júnior',
+            'setor', 'Desenvolvimento de software',
+            'cnpjCpf', '123.456.789-09',
+            'registroConselhoProfissional', '',
+            'cep', '90010-000',
+            'endereco', 'Rua dos Andradas, 100',
+            'bairro', 'Centro Histórico',
+            'cidade', 'Porto Alegre',
+            'estado', 'RS',
+            'email', 'contato@freelancer.demo.local',
+            'telefone', '(51) 99999-3001',
+            'ramoAtividade', 'Desenvolvimento de software',
+            'inicioAtividade', to_char(CURRENT_DATE - 180, 'YYYY-MM-DD'),
+            'fimAtividade', to_char(CURRENT_DATE - 15, 'YYYY-MM-DD'),
+            'inicioHorarioAtividade', '13:00',
+            'fimHorarioAtividade', '17:00',
+            'horasSemanais', '20',
+            'descricaoAtividades', 'Desenvolvimento de APIs e testes automatizados.'
+        ),
+        'submitted',
+        CURRENT_TIMESTAMP - INTERVAL '12 days',
+        CURRENT_TIMESTAMP - INTERVAL '11 days'
+    ),
+    (
+        'submitted-with-evaluation',
+        'aluno02@demo.local',
+        'supervisor01@demo.local',
+        NULL,
+        'mandatory_internship',
+        'Carlos Ribeiro',
+        'TechSul Sistemas',
+        'Canoas',
+        CURRENT_DATE - 20,
+        jsonb_build_object(
+            'cep', '93210-000',
+            'endereco', 'Rua Quinze de Janeiro, 200',
+            'bairro', 'Centro',
+            'cidade', 'Canoas',
+            'uf', 'RS',
+            'dataEstimadaConclusao', to_char(CURRENT_DATE + 365, 'YYYY-MM-DD'),
+            'cnpjCpf', '12.345.678/0001-10',
+            'registroConselhoProfissional', '',
+            'cepConcedente', '92010-300',
+            'enderecoConcedente', 'Avenida Inconfidência, 500',
+            'bairroConcedente', 'Marechal Rondon',
+            'cidadeConcedente', 'Canoas',
+            'ufConcedente', 'RS',
+            'telefone', '(51) 98888-2001',
+            'ramoAtividade', 'Tecnologia da informação',
+            'inicioEstagio', to_char(CURRENT_DATE - 60, 'YYYY-MM-DD'),
+            'fimEstagio', to_char(CURRENT_DATE + 60, 'YYYY-MM-DD'),
+            'horasSemanais', '30',
+            'totalHorasTrabalhadas', '180',
+            'atividadesProfissionais', 'Desenvolvimento de funcionalidades e testes de software.',
+            'dificuldadesEncontradas', 'Adaptação inicial às ferramentas utilizadas pela equipe.',
+            'conclusao', 'O estágio contribuiu para aplicar conhecimentos técnicos em situações reais.'
+        ),
+        'submitted',
+        CURRENT_TIMESTAMP - INTERVAL '20 days',
+        CURRENT_TIMESTAMP - INTERVAL '4 days'
+    ),
+    (
+        'in-review',
+        'aluno03@demo.local',
+        'supervisor02@demo.local',
+        'professor01@demo.local',
+        'non_mandatory_internship_credit',
+        'Patrícia Nunes',
+        'Inova Software',
+        'São Leopoldo',
+        CURRENT_DATE - 9,
+        '{}'::jsonb,
+        'in_review',
+        CURRENT_TIMESTAMP - INTERVAL '9 days',
+        CURRENT_TIMESTAMP - INTERVAL '1 day'
+    ),
+    (
+        'adjustment-requested',
+        'aluno01@demo.local',
+        'supervisor03@demo.local',
+        'professor02@demo.local',
+        'mandatory_internship',
+        'Fernanda Moura',
+        'Dados & Soluções',
+        'Novo Hamburgo',
+        CURRENT_DATE - 15,
+        jsonb_build_object(
+            'cep', '93010-000',
+            'endereco', 'Rua Independência, 80',
+            'bairro', 'Centro',
+            'cidade', 'São Leopoldo',
+            'uf', 'RS',
+            'dataEstimadaConclusao', to_char(CURRENT_DATE + 300, 'YYYY-MM-DD'),
+            'cnpjCpf', '34.567.890/0001-30',
+            'registroConselhoProfissional', '',
+            'cepConcedente', '93510-060',
+            'enderecoConcedente', 'Rua Bento Gonçalves, 700',
+            'bairroConcedente', 'Centro',
+            'cidadeConcedente', 'Novo Hamburgo',
+            'ufConcedente', 'RS',
+            'telefone', '(51) 98888-2003',
+            'ramoAtividade', 'Análise de dados',
+            'inicioEstagio', to_char(CURRENT_DATE - 45, 'YYYY-MM-DD'),
+            'fimEstagio', to_char(CURRENT_DATE + 75, 'YYYY-MM-DD'),
+            'horasSemanais', '30',
+            'totalHorasTrabalhadas', '120',
+            'atividadesProfissionais', 'Tratamento de dados e manutenção de relatórios.',
+            'dificuldadesEncontradas', 'Necessidade de revisar a descrição das atividades.',
+            'conclusao', 'As atividades contribuíram para o desenvolvimento profissional.'
+        ),
+        'adjustment_requested',
+        CURRENT_TIMESTAMP - INTERVAL '15 days',
+        CURRENT_TIMESTAMP - INTERVAL '2 days'
+    ),
+    (
+        'approved',
+        'aluno02@demo.local',
+        NULL,
+        'coordenador01@demo.local',
+        'professional_practice_credit',
+        'Fernanda Moura',
+        'Projeto Autônomo',
+        'Canoas',
+        CURRENT_DATE - 35,
+        jsonb_build_object(
+            'modalidade', 'superior',
+            'dataPrevisaoConclusao', to_char(CURRENT_DATE + 120, 'YYYY-MM-DD'),
+            'situacao', 'proprietario_socio',
+            'especificarSituacao', '',
+            'cargo', 'Desenvolvedor responsável',
+            'setor', 'Desenvolvimento',
+            'cnpjCpf', '987.654.321-00',
+            'registroConselhoProfissional', '',
+            'cep', '92020-000',
+            'endereco', 'Rua Brasil, 350',
+            'bairro', 'Centro',
+            'cidade', 'Canoas',
+            'estado', 'RS',
+            'email', 'contato@projetoautonomo.demo.local',
+            'telefone', '(51) 99999-3002',
+            'ramoAtividade', 'Desenvolvimento de sistemas',
+            'inicioAtividade', to_char(CURRENT_DATE - 240, 'YYYY-MM-DD'),
+            'fimAtividade', to_char(CURRENT_DATE - 45, 'YYYY-MM-DD'),
+            'inicioHorarioAtividade', '08:00',
+            'fimHorarioAtividade', '17:00',
+            'horasSemanais', '40',
+            'descricaoAtividades', 'Desenvolvimento e implantação de sistema web para atendimento ao cliente.'
+        ),
+        'approved',
+        CURRENT_TIMESTAMP - INTERVAL '35 days',
+        CURRENT_TIMESTAMP - INTERVAL '25 days'
+    ),
+    (
+        'rejected',
+        'aluno03@demo.local',
+        NULL,
+        'professor03@demo.local',
+        'professional_practice_credit',
+        'Carlos Ribeiro',
+        'Empresa não identificada',
+        'Porto Alegre',
+        CURRENT_DATE - 28,
+        jsonb_build_object(
+            'modalidade', 'superior',
+            'dataPrevisaoConclusao', to_char(CURRENT_DATE + 200, 'YYYY-MM-DD'),
+            'situacao', 'estagiario_funcionario_supervisor',
+            'especificarSituacao', '',
+            'cargo', 'Suporte técnico',
+            'setor', 'Atendimento',
+            'cnpjCpf', '11.222.333/0001-44',
+            'registroConselhoProfissional', '',
+            'cep', '90020-000',
+            'endereco', 'Rua Voluntários da Pátria, 90',
+            'bairro', 'Centro Histórico',
+            'cidade', 'Porto Alegre',
+            'estado', 'RS',
+            'email', 'contato@empresa.demo.local',
+            'telefone', '(51) 99999-3003',
+            'ramoAtividade', 'Suporte em tecnologia',
+            'inicioAtividade', to_char(CURRENT_DATE - 30, 'YYYY-MM-DD'),
+            'fimAtividade', to_char(CURRENT_DATE - 20, 'YYYY-MM-DD'),
+            'inicioHorarioAtividade', '14:00',
+            'fimHorarioAtividade', '18:00',
+            'horasSemanais', '20',
+            'descricaoAtividades', 'Atendimento de chamados e manutenção básica de computadores.'
+        ),
+        'rejected',
+        CURRENT_TIMESTAMP - INTERVAL '28 days',
+        CURRENT_TIMESTAMP - INTERVAL '20 days'
+    ),
+    (
+        'waiting-supervisor',
+        'aluno01@demo.local',
+        'supervisor02@demo.local',
+        NULL,
+        'mandatory_internship',
+        'Patrícia Nunes',
+        'Inova Software',
+        'São Leopoldo',
+        CURRENT_DATE - 3,
+        jsonb_build_object(
+            'cep', '93020-000',
+            'endereco', 'Avenida João Corrêa, 150',
+            'bairro', 'Centro',
+            'cidade', 'São Leopoldo',
+            'uf', 'RS',
+            'dataEstimadaConclusao', to_char(CURRENT_DATE + 420, 'YYYY-MM-DD'),
+            'cnpjCpf', '23.456.789/0001-20',
+            'registroConselhoProfissional', '',
+            'cepConcedente', '93010-010',
+            'enderecoConcedente', 'Rua Primeiro de Março, 400',
+            'bairroConcedente', 'Centro',
+            'cidadeConcedente', 'São Leopoldo',
+            'ufConcedente', 'RS',
+            'telefone', '(51) 98888-2002',
+            'ramoAtividade', 'Desenvolvimento de software',
+            'inicioEstagio', to_char(CURRENT_DATE - 10, 'YYYY-MM-DD'),
+            'fimEstagio', to_char(CURRENT_DATE + 110, 'YYYY-MM-DD'),
+            'horasSemanais', '20',
+            'totalHorasTrabalhadas', '40',
+            'atividadesProfissionais', 'Execução de testes e registro de defeitos.',
+            'dificuldadesEncontradas', 'Aprendizado inicial do processo de qualidade.',
+            'conclusao', 'O estágio está em andamento.'
+        ),
+        'waiting_supervisor',
+        CURRENT_TIMESTAMP - INTERVAL '3 days',
+        CURRENT_TIMESTAMP - INTERVAL '2 days'
+    ),
+    (
+        'cancelled',
+        'aluno02@demo.local',
+        NULL,
+        NULL,
+        'non_mandatory_internship_credit',
+        'Fernanda Moura',
+        'Projeto cancelado',
+        'Canoas',
+        CURRENT_DATE - 40,
+        '{}'::jsonb,
+        'cancelled',
+        CURRENT_TIMESTAMP - INTERVAL '40 days',
+        CURRENT_TIMESTAMP - INTERVAL '38 days'
+    );
+
+WITH inserted_documents AS (
+    INSERT INTO document_document (
+        student_id,
+        supervisor_id,
+        reviewed_by_id,
+        related_document_id,
+        document_type,
+        student_name,
+        student_email,
+        student_registration_number,
+        student_course,
+        student_campus,
+        coordinator_name,
+        company,
+        city,
+        document_date,
+        attachment,
+        form_data,
+        status,
+        created_at,
+        updated_at
+    )
+    SELECT
+        student_profile.id,
+        supervisor_profile.id,
+        reviewer.id,
+        NULL,
+        source.document_type,
+        student_user.first_name || ' ' || student_user.last_name,
+        student_user.email,
+        student_profile.registration_number,
+        student_profile.course,
+        student_profile.campus,
+        source.coordinator_name,
+        source.company,
+        source.city,
+        source.document_date,
+        NULL,
+        source.form_data,
+        source.status,
+        source.created_at,
+        source.updated_at
+    FROM demo_document_source AS source
+    JOIN auth_user AS student_user
+        ON student_user.username = source.student_username
+    JOIN students_studentprofile AS student_profile
+        ON student_profile.user_id = student_user.id
+    LEFT JOIN auth_user AS supervisor_user
+        ON supervisor_user.username = source.supervisor_username
+    LEFT JOIN accounts_supervisorprofile AS supervisor_profile
+        ON supervisor_profile.user_id = supervisor_user.id
+    LEFT JOIN auth_user AS reviewer
+        ON reviewer.username = source.reviewer_username
+    RETURNING
+        id,
+        student_id,
+        document_type,
+        company,
+        document_date,
+        status,
+        created_at
 )
-SELECT
-    student_profile.id,
-    supervisor_profile.id,
-    reviewer.id,
-    NULL,
-    document_data.document_type,
-    student_user.first_name || ' ' || student_user.last_name,
-    student_user.email,
-    student_profile.registration_number,
-    student_profile.course,
-    student_profile.campus,
-    document_data.coordinator_name,
-    document_data.company,
-    document_data.city,
-    document_data.document_date,
-    NULL,
-    document_data.form_data || jsonb_build_object('demo_key', document_data.demo_key),
-    document_data.status,
-    document_data.created_at,
-    document_data.updated_at
-FROM document_data
+INSERT INTO demo_document_refs (reference_name, document_id)
+SELECT source.reference_name, inserted.id
+FROM demo_document_source AS source
 JOIN auth_user AS student_user
-    ON student_user.username = document_data.student_username
+    ON student_user.username = source.student_username
 JOIN students_studentprofile AS student_profile
     ON student_profile.user_id = student_user.id
-LEFT JOIN auth_user AS supervisor_user
-    ON supervisor_user.username = document_data.supervisor_username
-LEFT JOIN accounts_supervisorprofile AS supervisor_profile
-    ON supervisor_profile.user_id = supervisor_user.id
-LEFT JOIN auth_user AS reviewer
-    ON reviewer.username = document_data.reviewer_username;
+JOIN inserted_documents AS inserted
+    ON inserted.student_id = student_profile.id
+   AND inserted.document_type = source.document_type
+   AND inserted.company = source.company
+   AND inserted.document_date = source.document_date
+   AND inserted.status = source.status
+   AND inserted.created_at = source.created_at;
 
 -- 7. Avaliação aprovada vinculada ao documento submitted-with-evaluation -------
 
-INSERT INTO document_document (
-    student_id,
-    supervisor_id,
-    reviewed_by_id,
-    related_document_id,
-    document_type,
-    student_name,
-    student_email,
-    student_registration_number,
-    student_course,
-    student_campus,
-    coordinator_name,
-    company,
-    city,
-    document_date,
-    attachment,
-    form_data,
-    status,
-    created_at,
-    updated_at
+WITH related_document AS (
+    SELECT document_id
+    FROM demo_document_refs
+    WHERE reference_name = 'submitted-with-evaluation'
+),
+inserted_evaluation AS (
+    INSERT INTO document_document (
+        student_id,
+        supervisor_id,
+        reviewed_by_id,
+        related_document_id,
+        document_type,
+        student_name,
+        student_email,
+        student_registration_number,
+        student_course,
+        student_campus,
+        coordinator_name,
+        company,
+        city,
+        document_date,
+        attachment,
+        form_data,
+        status,
+        created_at,
+        updated_at
+    )
+    SELECT
+        student_profile.id,
+        supervisor_profile.id,
+        coordinator.id,
+        related_document.document_id,
+        'supervisor_evaluation',
+        student_user.first_name || ' ' || student_user.last_name,
+        student_user.email,
+        student_profile.registration_number,
+        student_profile.course,
+        student_profile.campus,
+        'Carlos Ribeiro',
+        supervisor_profile.company_name,
+        'Canoas',
+        CURRENT_DATE - 5,
+        NULL,
+        jsonb_build_object(
+            'aprendizadoNoEstagio', 'MB',
+            'segurancaExecucao', 'O',
+            'interessePeloTrabalho', 'MB',
+            'iniciativaPropria', 'B',
+            'conhecimentosTecnicos', 'MB',
+            'produtividade', 'MB',
+            'qualidadeDoTrabalho', 'O',
+            'disciplina', 'O',
+            'relacionamentoSocial', 'MB',
+            'cooperacao', 'O',
+            'esforcoSuperarFalhas', 'MB',
+            'pontualidade', 'O',
+            'assiduidade', 'O',
+            'capacidadeDirecaoCoordenacao', 'MB',
+            'modoAvaliacao', 'Avaliação de desempenho',
+            'periodicidadeAvaliacao', 'Mensal',
+            'observacoes', 'Ótimo desempenho durante o estágio.'
+        ),
+        'approved',
+        CURRENT_TIMESTAMP - INTERVAL '5 days',
+        CURRENT_TIMESTAMP - INTERVAL '4 days'
+    FROM auth_user AS student_user
+    JOIN students_studentprofile AS student_profile
+        ON student_profile.user_id = student_user.id
+    JOIN auth_user AS supervisor_user
+        ON supervisor_user.username = 'supervisor01@demo.local'
+    JOIN accounts_supervisorprofile AS supervisor_profile
+        ON supervisor_profile.user_id = supervisor_user.id
+    JOIN auth_user AS coordinator
+        ON coordinator.username = 'coordenador01@demo.local'
+    CROSS JOIN related_document
+    WHERE student_user.username = 'aluno02@demo.local'
+    RETURNING id
 )
-SELECT
-    student_profile.id,
-    supervisor_profile.id,
-    coordinator.id,
-    related_document.id,
-    'supervisor_evaluation',
-    student_user.first_name || ' ' || student_user.last_name,
-    student_user.email,
-    student_profile.registration_number,
-    student_profile.course,
-    student_profile.campus,
-    'Carlos Ribeiro',
-    supervisor_profile.company_name,
-    'Canoas',
-    CURRENT_DATE - 5,
-    NULL,
-    jsonb_build_object(
-        'demo_sql', true,
-        'demo_key', 'approved-supervisor-evaluation',
-        'pontualidade', 5,
-        'conhecimento_tecnico', 4,
-        'trabalho_em_equipe', 5,
-        'comentario', 'Ótimo desempenho durante o estágio'
-    ),
-    'approved',
-    CURRENT_TIMESTAMP - INTERVAL '5 days',
-    CURRENT_TIMESTAMP - INTERVAL '4 days'
-FROM auth_user AS student_user
-JOIN students_studentprofile AS student_profile
-    ON student_profile.user_id = student_user.id
-JOIN auth_user AS supervisor_user
-    ON supervisor_user.username = 'supervisor01@demo.local'
-JOIN accounts_supervisorprofile AS supervisor_profile
-    ON supervisor_profile.user_id = supervisor_user.id
-JOIN auth_user AS coordinator
-    ON coordinator.username = 'coordenador01@demo.local'
-JOIN document_document AS related_document
-    ON related_document.form_data ->> 'demo_key' = 'submitted-with-evaluation'
-WHERE student_user.username = 'aluno02@demo.local';
+INSERT INTO demo_document_refs (reference_name, document_id)
+SELECT 'approved-supervisor-evaluation', id
+FROM inserted_evaluation;
 
 -- 8. Histórico dos documentos -------------------------------------------------
 
 WITH activity_data (
-    demo_key,
+    reference_name,
     action,
     description,
     performed_username,
@@ -559,7 +732,7 @@ WITH activity_data (
         ('adjustment-requested', 'created', 'Documento criado pelo aluno.', 'aluno01@demo.local', CURRENT_TIMESTAMP - INTERVAL '15 days'),
         ('adjustment-requested', 'submitted', 'Documento enviado para revisão.', 'aluno01@demo.local', CURRENT_TIMESTAMP - INTERVAL '14 days'),
         ('adjustment-requested', 'in_review', 'Revisão iniciada pela professora Mariana Alves.', 'professor02@demo.local', CURRENT_TIMESTAMP - INTERVAL '3 days'),
-        ('adjustment-requested', 'adjustment_requested', 'Ajustes solicitados: informe a data final e anexe o plano de atividades.', 'professor02@demo.local', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+        ('adjustment-requested', 'adjustment_requested', 'Ajustes solicitados: revise a descrição das atividades e a conclusão.', 'professor02@demo.local', CURRENT_TIMESTAMP - INTERVAL '2 days'),
 
         ('approved', 'created', 'Documento criado pelo aluno.', 'aluno02@demo.local', CURRENT_TIMESTAMP - INTERVAL '35 days'),
         ('approved', 'submitted', 'Documento enviado para revisão.', 'aluno02@demo.local', CURRENT_TIMESTAMP - INTERVAL '34 days'),
@@ -586,14 +759,14 @@ INSERT INTO doc_activity_documentactivity (
     created_at
 )
 SELECT
-    document_document.id,
+    refs.document_id,
     activity_data.action,
     activity_data.description,
     auth_user.id,
     activity_data.created_at
 FROM activity_data
-JOIN document_document
-    ON document_document.form_data ->> 'demo_key' = activity_data.demo_key
+JOIN demo_document_refs AS refs
+    ON refs.reference_name = activity_data.reference_name
 JOIN auth_user
     ON auth_user.username = activity_data.performed_username;
 
@@ -615,6 +788,6 @@ ORDER BY auth_group.name;
 
 SELECT status, COUNT(*) AS documentos_demo
 FROM document_document
-WHERE form_data ->> 'demo_sql' = 'true'
+WHERE student_email LIKE '%@demo.local'
 GROUP BY status
 ORDER BY status;
