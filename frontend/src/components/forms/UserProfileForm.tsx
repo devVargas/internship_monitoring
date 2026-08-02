@@ -15,6 +15,7 @@ import {
 } from '../../utils/validation.ts'
 import Button from '../ui/Button.tsx'
 import FormField from '../ui/FormField.tsx'
+import AcademicEmailField from '../ui/AcademicEmailField.tsx'
 
 type UserProfileFormProps = {
   profile: UserProfile
@@ -180,19 +181,32 @@ export default function UserProfileForm({
         </div>
 
         <div className="mt-5">
-          <FormField
-            id="profileEmail"
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={(event) => {
-              updateField('email', event.target.value)
-            }}
-            autoComplete="email"
-            required
-            disabled={isSaving}
-            error={fieldErrors.email}
-          />
+          {requiresAcademicEmail ? (
+            <AcademicEmailField
+              id="profileEmail"
+              value={form.email}
+              onChange={(value) => {
+                updateField('email', value)
+              }}
+              required
+              disabled={isSaving}
+              error={fieldErrors.email}
+            />
+          ) : (
+            <FormField
+              id="profileEmail"
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(event) => {
+                updateField('email', event.target.value)
+              }}
+              autoComplete="email"
+              required
+              disabled={isSaving}
+              error={fieldErrors.email}
+            />
+          )}
         </div>
       </section>
 

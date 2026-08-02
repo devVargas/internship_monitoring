@@ -11,6 +11,7 @@ import {
 import Button from '../ui/Button.tsx'
 import FormField from '../ui/FormField.tsx'
 import PasswordField from '../ui/PasswordField.tsx'
+import AcademicEmailField from '../ui/AcademicEmailField.tsx'
 
 type AcademicUserFormProps = {
   userType: AcademicUserType
@@ -123,16 +124,14 @@ export default function AcademicUserForm({ userType }: AcademicUserFormProps) {
         />
       </div>
 
-      <FormField
-        id="academicEmail"
-        label="Email"
-        type="email"
+      <AcademicEmailField
+        id="academicUserEmail"
         value={form.email}
-        onChange={(event) => {
-          updateField('email', event.target.value)
+        onChange={(value) => {
+          updateField('email', value)
         }}
-        autoComplete="email"
         required
+        disabled={isLoading}
         error={fieldErrors.email}
       />
 

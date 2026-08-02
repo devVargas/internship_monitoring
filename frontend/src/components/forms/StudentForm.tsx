@@ -13,6 +13,7 @@ import {
 import Button from '../ui/Button.tsx'
 import FormField from '../ui/FormField.tsx'
 import PasswordField from '../ui/PasswordField.tsx'
+import AcademicEmailField from '../ui/AcademicEmailField.tsx'
 
 type StudentFormData = {
   firstName: string
@@ -134,16 +135,14 @@ export default function StudentForm() {
         />
       </div>
 
-      <FormField
-        id="email"
-        label="Email"
-        type="email"
+      <AcademicEmailField
+        id="studentEmail"
         value={form.email}
-        onChange={(event) => {
-          updateField('email', event.target.value)
+        onChange={(value) => {
+          updateField('email', value)
         }}
-        autoComplete="email"
         required
+        disabled={isLoading}
         error={fieldErrors.email}
       />
 

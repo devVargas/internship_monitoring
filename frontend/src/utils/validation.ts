@@ -11,18 +11,49 @@ export function validateEmail(value: string): string | null {
   return emailPattern.test(value) ? null : 'Email inválido'
 }
 
+export const ACADEMIC_EMAIL_DOMAIN = '@academico.ifsul.edu.br'
+
+export function buildAcademicEmail(localPart: string): string {
+  const normalizedLocalPart = localPart.trim()
+
+  if (!normalizedLocalPart) {
+    return ''
+  }
+
+  return `${normalizedLocalPart}${ACADEMIC_EMAIL_DOMAIN}`
+}
+
+export function extractAcademicEmailLocalPart(email: string): string {
+  const normalizedEmail = email.trim()
+
+  if (
+    normalizedEmail
+      .toLocaleLowerCase('pt-BR')
+      .endsWith(ACADEMIC_EMAIL_DOMAIN)
+  ) {
+    return normalizedEmail.slice(
+      0,
+      -ACADEMIC_EMAIL_DOMAIN.length,
+    )
+  }
+
+  return normalizedEmail.split('@')[0] ?? ''
+}
+
 export function validateAcademicEmail(value: string): string | null {
   const emailError = validateEmail(value)
 
-  if (emailError) return emailError
+  if (emailError) {
+    return emailError
+  }
 
   if (
     !value
       .trim()
       .toLocaleLowerCase('pt-BR')
-      .endsWith("@academico.ifsul.edu.br")
+      .endsWith(ACADEMIC_EMAIL_DOMAIN)
   ) {
-    return "Use seu email acadêmico (@academico.ifsul.edu.br)"
+    return `Use seu email acadêmico (${ACADEMIC_EMAIL_DOMAIN})`
   }
 
   return null
