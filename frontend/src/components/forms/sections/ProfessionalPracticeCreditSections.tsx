@@ -19,6 +19,7 @@ export default function ProfessionalPracticeCreditSections({
   handlePhoneChange,
   documentId,
   cepLoading,
+  cepError,
 }: SectionProps) {
   return (
     <>
@@ -191,7 +192,7 @@ export default function ProfessionalPracticeCreditSections({
               }}
               inputMode="numeric"
               required
-              error={fieldErrors.cep}
+              error={fieldErrors.cep ?? cepError}
             />
 
             {cepLoading && (

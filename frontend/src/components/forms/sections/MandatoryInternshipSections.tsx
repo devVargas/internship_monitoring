@@ -20,6 +20,8 @@ export default function MandatoryInternshipSections({
   documentId,
   cepLoading,
   cepConcedenteLoading,
+  cepError,
+  cepConcedenteError,
 }: SectionProps) {
   return (
     <>
@@ -40,7 +42,7 @@ export default function MandatoryInternshipSections({
                 }}
                 inputMode="numeric"
                 required
-                error={fieldErrors.cep}
+                error={fieldErrors.cep ?? cepError}
               />
 
               {cepLoading && (
@@ -179,7 +181,7 @@ export default function MandatoryInternshipSections({
                 }}
                 inputMode="numeric"
                 required
-                error={fieldErrors.cepConcedente}
+                error={fieldErrors.cepConcedente ?? cepConcedenteError}
               />
 
               {cepConcedenteLoading && (

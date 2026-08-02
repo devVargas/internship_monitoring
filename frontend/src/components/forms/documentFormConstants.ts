@@ -74,7 +74,6 @@ const INITIAL_FORM: DocumentFormData = {
   especificarSituacao: '',
   cargo: '',
   setor: '',
-  cpf: '',
   estado: '',
   email: '',
   inicioAtividade: '',

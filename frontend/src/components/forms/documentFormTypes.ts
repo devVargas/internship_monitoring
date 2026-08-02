@@ -39,7 +39,6 @@ export type DocumentFormData = {
   especificarSituacao: string
   cargo: string
   setor: string
-  cpf: string
   estado: string
   email: string
   inicioAtividade: string
@@ -89,9 +88,11 @@ export type SectionProps = {
   currentSection: number
   supervisors: Supervisor[]
   coordinators: Coordinator[]
-  handleCepChange: (field: DocumentField, event: ChangeEvent<HTMLInputElement>) => void
+  handleCepChange: (field: 'cep' | 'cepConcedente', event: ChangeEvent<HTMLInputElement>) => void
   handlePhoneChange: (event: ChangeEvent<HTMLInputElement>) => void
   documentId?: number
   cepLoading?: boolean
   cepConcedenteLoading?: boolean
+  cepError?: string | null
+  cepConcedenteError?: string | null
 }

@@ -64,7 +64,7 @@ export type ProfessionalPracticeCreditFormData = {
   setor: string
   cnpjCpf: string
   registroConselhoProfissional: string
-  cpf: string
+  cep: string
   endereco: string
   bairro: string
   cidade: string

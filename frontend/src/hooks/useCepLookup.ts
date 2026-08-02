@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export interface AddressData {
   logradouro: string
@@ -7,53 +7,86 @@ export interface AddressData {
   uf: string
 }
 
+type ViaCepResponse = {
+  erro?: boolean
+  logradouro?: string
+  bairro?: string
+  localidade?: string
+  uf?: string
+}
+
 export function useCepLookup() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const controllerRef = useRef<AbortController | null>(null)
 
   const lookup = useCallback(async (cep: string): Promise<AddressData | null> => {
     const digits = cep.replace(/\D/g, '')
 
-    if (digits.length !== 8) return null
+    controllerRef.current?.abort()
+    controllerRef.current = null
 
-    if (timerRef.current) clearTimeout(timerRef.current)
+    if (digits.length !== 8) {
+      setIsLoading(false)
+      setError(null)
+      return null
+    }
 
-    return new Promise((resolve) => {
-      timerRef.current = setTimeout(async () => {
-        setIsLoading(true)
-        setError(null)
+    const controller = new AbortController()
+    controllerRef.current = controller
+    setIsLoading(true)
+    setError(null)
 
-        try {
-          const response = await fetch(
-            `https://viacep.com.br/ws/${digits}/json/`,
-          )
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`, {
+        signal: controller.signal,
+      })
 
-          if (!response.ok) {
-            throw new Error('Erro na requisição')
-          }
+      if (!response.ok) {
+        throw new Error('Erro na requisição')
+      }
 
-          const data = await response.json()
+      const data = (await response.json()) as ViaCepResponse
 
-          if (data.erro) {
-            setError('CEP não encontrado')
-            resolve(null)
-          } else {
-            resolve({
-              logradouro: data.logradouro ?? '',
-              bairro: data.bairro ?? '',
-              localidade: data.localidade ?? '',
-              uf: data.uf ?? '',
-            })
-          }
-        } catch {
-          setError('Erro ao buscar CEP')
-          resolve(null)
-        } finally {
-          setIsLoading(false)
-        }
-      }, 400)
-    })
+      if (controllerRef.current !== controller) return null
+
+      if (data.erro) {
+        setError('CEP não encontrado')
+        return null
+      }
+
+      if (!data.localidade || !data.uf) {
+        throw new Error('Resposta inválida')
+      }
+
+      return {
+        logradouro: data.logradouro ?? '',
+        bairro: data.bairro ?? '',
+        localidade: data.localidade,
+        uf: data.uf,
+      }
+    } catch (requestError) {
+      if (requestError instanceof Error && requestError.name === 'AbortError') {
+        return null
+      }
+
+      if (controllerRef.current === controller) {
+        setError('Erro ao buscar CEP')
+      }
+
+      return null
+    } finally {
+      if (controllerRef.current === controller) {
+        controllerRef.current = null
+        setIsLoading(false)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      controllerRef.current?.abort()
+    }
   }, [])
 
   return { isLoading, error, lookup }

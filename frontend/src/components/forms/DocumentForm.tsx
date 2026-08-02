@@ -37,8 +37,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
   const { fetchWithAuth } = useAPI()
-  const { isLoading: cepLoading, lookup: lookupCep } = useCepLookup()
-  const { isLoading: cepConcedenteLoading, lookup: lookupCepConcedente } = useCepLookup()
+  const { isLoading: cepLoading, error: cepError, lookup: lookupCep } = useCepLookup()
+  const { isLoading: cepConcedenteLoading, error: cepConcedenteError, lookup: lookupCepConcedente } = useCepLookup()
 
   const canSeeStudentOptions = Boolean(
     currentUser?.is_superuser || currentUser?.groups.includes('Student'),
@@ -283,11 +283,25 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     }
   }
 
-  function handleCepChange(field: DocumentField, event: ChangeEvent<HTMLInputElement>) {
+  function handleCepChange(field: 'cep' | 'cepConcedente', event: ChangeEvent<HTMLInputElement>) {
     const formatted = formatCep(event.target.value)
     updateField(field, formatted)
 
+    if (field === 'cep') {
+      updateField('endereco', '')
+      updateField('bairro', '')
+      updateField('cidade', '')
+      updateField('uf', '')
+      updateField('estado', '')
+    } else {
+      updateField('enderecoConcedente', '')
+      updateField('bairroConcedente', '')
+      updateField('cidadeConcedente', '')
+      updateField('ufConcedente', '')
+    }
+
     const lookup = field === 'cep' ? lookupCep : lookupCepConcedente
+
     void lookup(formatted).then((address) => {
       if (!address) return
 
@@ -297,12 +311,13 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         updateField('cidade', address.localidade)
         updateField('uf', address.uf)
         updateField('estado', address.uf)
-      } else {
-        updateField('enderecoConcedente', address.logradouro)
-        updateField('bairroConcedente', address.bairro)
-        updateField('cidadeConcedente', address.localidade)
-        updateField('ufConcedente', address.uf)
+        return
       }
+
+      updateField('enderecoConcedente', address.logradouro)
+      updateField('bairroConcedente', address.bairro)
+      updateField('cidadeConcedente', address.localidade)
+      updateField('ufConcedente', address.uf)
     })
   }
 
@@ -362,7 +377,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-900 transition-all duration-300"
-            style={{ width: `${((currentSection - 1) / (totalSections - 2)) * 100}%` }}
+            style={{ width: `${String(((currentSection - 1) / (totalSections - 2)) * 100)}%` }}
           />
         </div>
       )}
@@ -399,11 +414,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       </div>
       )}
 
-      {documentType === 'mandatory_internship' && <MandatoryInternshipSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepConcedenteLoading={cepConcedenteLoading} />}
+      {documentType === 'mandatory_internship' && <MandatoryInternshipSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepConcedenteLoading={cepConcedenteLoading} cepError={cepError} cepConcedenteError={cepConcedenteError} />}
 
       {documentType === 'non_mandatory_internship_credit' && <NonMandatoryInternshipCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
 
-      {documentType === 'professional_practice_credit' && <ProfessionalPracticeCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} />}
+      {documentType === 'professional_practice_credit' && <ProfessionalPracticeCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepError={cepError} />}
 
       {documentType === 'supervisor_evaluation' && <SupervisorEvaluationSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
 
