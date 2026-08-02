@@ -11,6 +11,23 @@ export function validateEmail(value: string): string | null {
   return emailPattern.test(value) ? null : 'Email inválido'
 }
 
+export function validateAcademicEmail(value: string): string | null {
+  const emailError = validateEmail(value)
+
+  if (emailError) return emailError
+
+  if (
+    !value
+      .trim()
+      .toLocaleLowerCase('pt-BR')
+      .endsWith("@academico.ifsul.edu.br")
+  ) {
+    return "Use seu email acadêmico (@academico.ifsul.edu.br)"
+  }
+
+  return null
+}
+
 export function validateName(value: string): string | null {
   if (!value) {
     return null
