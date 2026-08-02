@@ -11,6 +11,7 @@ import {
   validateName,
   validatePhone,
   validateRequired,
+  validateAcademicEmail,
 } from '../../utils/validation.ts'
 import Button from '../ui/Button.tsx'
 import FormField from '../ui/FormField.tsx'
@@ -51,11 +52,7 @@ function createInitialForm(profile: UserProfile): ProfileFormData {
   }
 }
 
-function validateForm(
-  form: ProfileFormData,
-  isStudent: boolean,
-  isSupervisor: boolean,
-): ProfileErrors {
+function validateForm(form: ProfileFormData, isStudent: boolean, isSupervisor: boolean, requiresAcademicEmail: boolean): ProfileErrors {
   const errors: ProfileErrors = {}
 
   function addError(field: ProfileField, error: string | null) {
@@ -70,9 +67,12 @@ function validateForm(
   )
   addError('lastName', validateName(form.lastName))
   addError(
-    'email',
-    validateRequired(form.email) ?? validateEmail(form.email),
-  )
+  'email',
+  validateRequired(form.email) ??
+    (requiresAcademicEmail
+      ? validateAcademicEmail(form.email)
+      : validateEmail(form.email)),
+)
 
   if (isStudent) {
     addError('registrationNumber', validateRequired(form.registrationNumber))
@@ -103,6 +103,13 @@ export default function UserProfileForm({
   const isStudent = profile.groups.includes('Student')
   const isSupervisor = profile.groups.includes('Supervisor')
 
+  const requiresAcademicEmail = profile.groups.some(
+    (group) =>
+      group === 'Student' ||
+      group === 'Professor' ||
+      group === 'Coordinator',
+  )
+
   function updateField(field: ProfileField, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((errors) => ({ ...errors, [field]: undefined }))
@@ -110,7 +117,7 @@ export default function UserProfileForm({
   }
 
   async function submitForm(): Promise<void> {
-    const errors = validateForm(form, isStudent, isSupervisor)
+    const errors = validateForm(form, isStudent, isSupervisor, requiresAcademicEmail)
     setFieldErrors(errors)
     setSuccessMessage('')
 

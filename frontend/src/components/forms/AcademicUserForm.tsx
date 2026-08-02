@@ -2,7 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import type { AcademicUserType } from '../../api/auth.ts'
 import { useRegisterAcademicUser } from '../../hooks/useRegisterAcademicUser.ts'
 import {
-  validateEmail,
+  validateAcademicEmail,
   validateName,
   validatePassword,
   validatePasswordConfirmation,
@@ -46,7 +46,7 @@ function validateForm(form: AcademicUserFormData): AcademicUserErrors {
 
   addError('firstName', validateRequired(form.firstName) ?? validateName(form.firstName))
   addError('lastName', validateName(form.lastName))
-  addError('email', validateRequired(form.email) ?? validateEmail(form.email))
+  addError('email', validateRequired(form.email) ?? validateAcademicEmail(form.email))
   addError('password', validateRequired(form.password) ?? validatePassword(form.password))
   addError('confirmPassword', validatePasswordConfirmation(form.password, form.confirmPassword))
 
