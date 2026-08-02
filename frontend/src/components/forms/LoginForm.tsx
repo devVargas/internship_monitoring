@@ -70,6 +70,11 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} noValidate>
       <div className="mb-8">
+        <img
+          src="/logo.png"
+          alt="Instituto Federal Sul-rio-grandense"
+          className="mb-6 h-16 w-auto object-contain"
+        />
         <p className="text-sm font-semibold text-green-900">Bem-vindo</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">
           Entre na sua conta
@@ -84,7 +89,7 @@ export default function LoginForm() {
           label="Usuário"
           value={username}
           onChange={handleUsernameChange}
-          placeholder="Digite seu usuário"
+          placeholder="Digite seu email"
           autoComplete="username"
           autoFocus
           required
