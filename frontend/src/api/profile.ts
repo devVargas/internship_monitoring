@@ -16,6 +16,14 @@ export type UserProfile = {
   course: string
   campus: string
   phone_number: string
+  mobile_number: string
+  zip_code: string
+  address: string
+  address_number: string
+  address_complement: string
+  neighborhood: string
+  city: string
+  state: string
   company_name: string
   company_cnpj: string
 }
@@ -45,6 +53,14 @@ function isUserProfile(value: unknown): value is UserProfile {
     typeof value.course === 'string' &&
     typeof value.campus === 'string' &&
     typeof value.phone_number === 'string' &&
+    typeof value.mobile_number === 'string' &&
+    typeof value.zip_code === 'string' &&
+    typeof value.address === 'string' &&
+    typeof value.address_number === 'string' &&
+    typeof value.address_complement === 'string' &&
+    typeof value.neighborhood === 'string' &&
+    typeof value.city === 'string' &&
+    typeof value.state === 'string' &&
     typeof value.company_name === 'string' &&
     typeof value.company_cnpj === 'string'
   )

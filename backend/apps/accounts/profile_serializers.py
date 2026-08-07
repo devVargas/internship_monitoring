@@ -1,10 +1,17 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
+
 from apps.accounts.models import SupervisorProfile
 from apps.students.models import StudentProfile
+from apps.students.serializers import (
+    BrazilianStateField,
+    validate_phone,
+    validate_zip_code,
+)
 
 User = get_user_model()
+
 
 class UserProfileSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -35,6 +42,48 @@ class UserProfileSerializer(serializers.Serializer):
     )
     phone_number = serializers.CharField(
         max_length=30,
+        validators=[validate_phone],
+        required=False,
+        allow_blank=True,
+    )
+    mobile_number = serializers.CharField(
+        max_length=30,
+        validators=[validate_phone],
+        required=False,
+        allow_blank=True,
+    )
+    zip_code = serializers.CharField(
+        max_length=9,
+        validators=[validate_zip_code],
+        required=False,
+        allow_blank=True,
+    )
+    address = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+    )
+    address_number = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+    )
+    address_complement = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    neighborhood = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    city = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    state = BrazilianStateField(
         required=False,
         allow_blank=True,
     )
@@ -87,15 +136,22 @@ class UserProfileSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         errors = {}
+        student_profile = self._get_student_profile(self.instance)
 
-        if self._get_student_profile(self.instance):
-            self._require_if_provided(
-                attrs,
-                errors,
+        if student_profile:
+            for field in (
                 "registration_number",
-            )
-            self._require_if_provided(attrs, errors, "course")
-            self._require_if_provided(attrs, errors, "campus")
+                "course",
+                "campus",
+                "mobile_number",
+                "zip_code",
+                "address",
+                "address_number",
+                "neighborhood",
+                "city",
+                "state",
+            ):
+                self._require_if_provided(attrs, errors, field)
 
         if self._get_supervisor_profile(self.instance):
             self._require_if_provided(
@@ -142,6 +198,14 @@ class UserProfileSerializer(serializers.Serializer):
                     "course",
                     "campus",
                     "phone_number",
+                    "mobile_number",
+                    "zip_code",
+                    "address",
+                    "address_number",
+                    "address_complement",
+                    "neighborhood",
+                    "city",
+                    "state",
                 ),
             )
 
@@ -172,6 +236,14 @@ class UserProfileSerializer(serializers.Serializer):
             "course": "",
             "campus": "",
             "phone_number": "",
+            "mobile_number": "",
+            "zip_code": "",
+            "address": "",
+            "address_number": "",
+            "address_complement": "",
+            "neighborhood": "",
+            "city": "",
+            "state": "",
             "company_name": "",
             "company_cnpj": "",
         }
@@ -187,6 +259,14 @@ class UserProfileSerializer(serializers.Serializer):
                     "course": student_profile.course,
                     "campus": student_profile.campus,
                     "phone_number": student_profile.phone_number,
+                    "mobile_number": student_profile.mobile_number,
+                    "zip_code": student_profile.zip_code,
+                    "address": student_profile.address,
+                    "address_number": student_profile.address_number,
+                    "address_complement": student_profile.address_complement,
+                    "neighborhood": student_profile.neighborhood,
+                    "city": student_profile.city,
+                    "state": student_profile.state,
                 }
             )
 
@@ -228,7 +308,12 @@ class UserProfileSerializer(serializers.Serializer):
 
         for field in fields:
             if field in data:
-                setattr(profile, field, data[field].strip())
+                value = data[field]
+
+                if isinstance(value, str):
+                    value = value.strip()
+
+                setattr(profile, field, value)
                 fields_to_update.append(field)
 
         if fields_to_update:

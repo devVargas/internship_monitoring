@@ -29,6 +29,14 @@ export type RegisterStudentData = {
   campus: string
   course: string
   phone_number: string
+  mobile_number: string
+  zip_code: string
+  address: string
+  address_number: string
+  address_complement: string
+  neighborhood: string
+  city: string
+  state: string
 }
 
 export type RegisterAcademicUserData = {
