@@ -13,40 +13,120 @@ import {
   validateMilitaryTime,
 } from '../../utils/validation.ts'
 
-export function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
+function addError(
+  errors: DocumentErrors,
+  field: DocumentField,
+  error: string | null,
+) {
+  if (error) {
+    errors[field] = error
+  }
+}
+
+function validateSemesterYear(value: string): string | null {
+  if (!value) return null
+  return /^\d{4}\/[12]$/.test(value.trim())
+    ? null
+    : 'Use o formato AAAA/1 ou AAAA/2'
+}
+
+function validateStudentIdentification(
+  form: DocumentFormData,
+  options: { address: boolean; campus: boolean; modality: boolean; phoneRequired?: boolean },
+): DocumentErrors {
   const errors: DocumentErrors = {}
 
-  function addError(field: DocumentField, error: string | null) {
-    if (error) {
-      errors[field] = error
+  addError(errors, 'nomeAluno', validateRequired(form.nomeAluno) ?? validateLettersPunct(form.nomeAluno))
+  addError(errors, 'matriculaAluno', validateRequired(form.matriculaAluno))
+  addError(errors, 'cursoAluno', validateRequired(form.cursoAluno))
+  addError(errors, 'emailAluno', validateRequired(form.emailAluno) ?? validateEmail(form.emailAluno))
+  if (options.phoneRequired === false) {
+    addError(errors, 'telefoneAluno', form.telefoneAluno ? validatePhone(form.telefoneAluno) : null)
+  } else {
+    addError(errors, 'telefoneAluno', validateRequired(form.telefoneAluno) ?? validatePhone(form.telefoneAluno))
+  }
+  addError(
+    errors,
+    'semestreAnoConclusao',
+    validateRequired(form.semestreAnoConclusao) ?? validateSemesterYear(form.semestreAnoConclusao),
+  )
+
+  if (options.campus) {
+    addError(errors, 'campusAluno', validateRequired(form.campusAluno))
+  }
+
+  if (options.modality) {
+    addError(errors, 'modalidade', validateRequired(form.modalidade))
+    if (form.modalidade === 'outros') {
+      addError(errors, 'especificarModalidade', validateRequired(form.especificarModalidade))
     }
   }
 
-  addError('cep', validateRequired(form.cep) ?? validateCep(form.cep))
-  addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
-  addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
-  addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
-  addError('uf', validateRequired(form.uf) ?? validateUf(form.uf))
-  addError('dataEstimadaConclusao', validateRequired(form.dataEstimadaConclusao))
-  addError('razaoSocial', validateRequired(form.razaoSocial))
-  addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
-  addError('cepConcedente', validateRequired(form.cepConcedente) ?? validateCep(form.cepConcedente))
-  addError('bairroConcedente', validateRequired(form.bairroConcedente) ?? validateLettersPunct(form.bairroConcedente))
-  addError('cidadeConcedente', validateRequired(form.cidadeConcedente) ?? validateLettersPunct(form.cidadeConcedente))
-  addError('ufConcedente', validateRequired(form.ufConcedente) ?? validateUf(form.ufConcedente))
-  addError('enderecoConcedente', validateRequired(form.enderecoConcedente) ?? validateLettersAndNumbers(form.enderecoConcedente))
-  addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
-  addError('ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
-  addError('supervisor_id', validateRequired(form.supervisor_id))
-  addError('inicioEstagio', validateRequired(form.inicioEstagio))
-  addError('fimEstagio', validateRequired(form.fimEstagio))
-  addError('horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
-  addError('totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas) ?? validateNumbersOnly(form.totalHorasTrabalhadas))
-  addError('atividadesProfissionais', validateRequired(form.atividadesProfissionais) ?? validateLettersAndNumbers(form.atividadesProfissionais))
-  addError('dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas) ?? validateLettersAndNumbers(form.dificuldadesEncontradas))
-  addError('conclusao', validateRequired(form.conclusao) ?? validateLettersAndNumbers(form.conclusao))
-  addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
-  addError('attachment', form.attachment ? null : 'Campo obrigatório')
+  if (options.address) {
+    addError(errors, 'celularAluno', validateRequired(form.celularAluno) ?? validatePhone(form.celularAluno))
+    addError(errors, 'cepAluno', validateRequired(form.cepAluno) ?? validateCep(form.cepAluno))
+    addError(errors, 'enderecoAluno', validateRequired(form.enderecoAluno) ?? validateLettersAndNumbers(form.enderecoAluno))
+    addError(errors, 'numeroEnderecoAluno', validateRequired(form.numeroEnderecoAluno))
+    addError(errors, 'bairroAluno', validateRequired(form.bairroAluno) ?? validateLettersPunct(form.bairroAluno))
+    addError(errors, 'cidadeAluno', validateRequired(form.cidadeAluno) ?? validateLettersPunct(form.cidadeAluno))
+    addError(errors, 'ufAluno', validateRequired(form.ufAluno) ?? validateUf(form.ufAluno))
+  }
+
+  return errors
+}
+
+function validateCompany(form: DocumentFormData, requireEmail: boolean): DocumentErrors {
+  const errors: DocumentErrors = {}
+
+  addError(errors, 'razaoSocial', validateRequired(form.razaoSocial))
+  addError(errors, 'cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
+  addError(errors, 'cepConcedente', validateRequired(form.cepConcedente) ?? validateCep(form.cepConcedente))
+  addError(errors, 'enderecoConcedente', validateRequired(form.enderecoConcedente) ?? validateLettersAndNumbers(form.enderecoConcedente))
+  addError(errors, 'bairroConcedente', validateRequired(form.bairroConcedente) ?? validateLettersPunct(form.bairroConcedente))
+  addError(errors, 'cidadeConcedente', validateRequired(form.cidadeConcedente) ?? validateLettersPunct(form.cidadeConcedente))
+  addError(errors, 'ufConcedente', validateRequired(form.ufConcedente) ?? validateUf(form.ufConcedente))
+  addError(errors, 'telefoneConcedente', validateRequired(form.telefoneConcedente) ?? validatePhone(form.telefoneConcedente))
+  addError(errors, 'ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
+
+  if (requireEmail) {
+    addError(errors, 'emailConcedente', validateRequired(form.emailConcedente) ?? validateEmail(form.emailConcedente))
+  }
+
+  return errors
+}
+
+function validateSupervisor(form: DocumentFormData): DocumentErrors {
+  const errors: DocumentErrors = {}
+
+  addError(errors, 'supervisor_id', validateRequired(form.supervisor_id))
+  addError(errors, 'cargoFuncaoSupervisor', validateRequired(form.cargoFuncaoSupervisor) ?? validateLettersPunct(form.cargoFuncaoSupervisor))
+  addError(errors, 'emailSupervisor', validateRequired(form.emailSupervisor) ?? validateEmail(form.emailSupervisor))
+  addError(errors, 'telefoneSupervisor', validateRequired(form.telefoneSupervisor) ?? validatePhone(form.telefoneSupervisor))
+
+  return errors
+}
+
+export function validateMandatoryInternship(form: DocumentFormData): DocumentErrors {
+  const errors: DocumentErrors = {
+    ...validateStudentIdentification(form, {
+      address: true,
+      campus: false,
+      modality: false,
+      phoneRequired: false,
+    }),
+    ...validateCompany(form, false),
+    ...validateSupervisor(form),
+  }
+
+  addError(errors, 'inicioEstagio', validateRequired(form.inicioEstagio))
+  addError(errors, 'fimEstagio', validateRequired(form.fimEstagio))
+  addError(errors, 'horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
+  addError(errors, 'totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas) ?? validateNumbersOnly(form.totalHorasTrabalhadas))
+  addError(errors, 'atividadesProfissionais', validateRequired(form.atividadesProfissionais) ?? validateLettersAndNumbers(form.atividadesProfissionais))
+  addError(errors, 'dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas) ?? validateLettersAndNumbers(form.dificuldadesEncontradas))
+  addError(errors, 'conclusao', validateRequired(form.conclusao) ?? validateLettersAndNumbers(form.conclusao))
+  addError(errors, 'cidadeAssinatura', validateRequired(form.cidadeAssinatura) ?? validateLettersPunct(form.cidadeAssinatura))
+  addError(errors, 'attachment', form.attachment ? null : 'Campo obrigatório')
 
   if (form.inicioEstagio && form.fimEstagio && form.fimEstagio <= form.inicioEstagio) {
     errors.fimEstagio = 'A data de fim deve ser posterior à data de início'
@@ -55,91 +135,99 @@ export function validateMandatoryInternship(form: DocumentFormData): DocumentErr
   return errors
 }
 
-export function validateNonMandatoryInternshipCredit(form: DocumentFormData): DocumentErrors {
-  const errors: DocumentErrors = {}
-
-  function addError(field: DocumentField, error: string | null) {
-    if (error) {
-      errors[field] = error
-    }
+function validateActivityValidation(form: DocumentFormData, requireCampus: boolean): DocumentErrors {
+  const errors: DocumentErrors = {
+    ...validateStudentIdentification(form, {
+      address: false,
+      campus: requireCampus,
+      modality: true,
+    }),
+    ...validateCompany(form, true),
+    ...validateSupervisor(form),
   }
 
-  addError('nomeCoordenador', validateRequired(form.nomeCoordenador))
-  addError('empresa', validateRequired(form.empresa))
-  addError('cidade', validateRequired(form.cidade))
-  addError('attachment', form.attachment ? null : 'Campo obrigatório')
+  addError(errors, 'situacao', validateRequired(form.situacao))
+
+  if (form.situacao === 'outra') {
+    addError(errors, 'especificarSituacao', validateRequired(form.especificarSituacao))
+  }
+
+  addError(errors, 'cargo', validateRequired(form.cargo) ?? validateLettersPunct(form.cargo))
+  addError(errors, 'setor', validateRequired(form.setor) ?? validateLettersPunct(form.setor))
+  addError(errors, 'inicioAtividade', validateRequired(form.inicioAtividade))
+  addError(errors, 'fimAtividade', validateRequired(form.fimAtividade))
+  addError(errors, 'inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade) ?? validateMilitaryTime(form.inicioHorarioAtividade))
+  addError(errors, 'fimHorarioAtividade', validateRequired(form.fimHorarioAtividade) ?? validateMilitaryTime(form.fimHorarioAtividade))
+  addError(errors, 'horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
+  addError(errors, 'totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas) ?? validateNumbersOnly(form.totalHorasTrabalhadas))
+  addError(errors, 'descricaoAtividades', validateRequired(form.descricaoAtividades) ?? validateLettersAndNumbers(form.descricaoAtividades))
+  addError(errors, 'cidadeAssinatura', validateRequired(form.cidadeAssinatura) ?? validateLettersPunct(form.cidadeAssinatura))
+  addError(errors, 'attachment', form.attachment ? null : 'Campo obrigatório')
+
+  if (form.inicioAtividade && form.fimAtividade && form.fimAtividade <= form.inicioAtividade) {
+    errors.fimAtividade = 'A data de fim deve ser posterior à data de início'
+  }
 
   return errors
 }
 
-export function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErrors {
-  const errors: DocumentErrors = {}
-
-  function addError(field: DocumentField, error: string | null) {
-    if (error) {
-      errors[field] = error
-    }
-  }
-
-  addError('modalidade', validateRequired(form.modalidade))
-  addError('dataPrevisaoConclusao', validateRequired(form.dataPrevisaoConclusao))
-  addError('situacao', validateRequired(form.situacao))
-
-  if (form.situacao === 'outra') {
-    addError('especificarSituacao', validateRequired(form.especificarSituacao))
-  }
-
-  addError('cargo', validateRequired(form.cargo) ?? validateLettersPunct(form.cargo))
-  addError('setor', validateRequired(form.setor) ?? validateLettersPunct(form.setor))
-  addError('razaoSocial', validateRequired(form.razaoSocial))
-  addError('cnpjCpf', validateRequired(form.cnpjCpf) ?? validateCpfCnpj(form.cnpjCpf))
-  addError('cep', validateRequired(form.cep) ?? validateCep(form.cep))
-  addError('endereco', validateRequired(form.endereco) ?? validateLettersAndNumbers(form.endereco))
-  addError('bairro', validateRequired(form.bairro) ?? validateLettersPunct(form.bairro))
-  addError('cidade', validateRequired(form.cidade) ?? validateLettersPunct(form.cidade))
-  addError('estado', validateRequired(form.estado))
-  addError('email', validateRequired(form.email) ?? validateEmail(form.email))
-  addError('telefone', validateRequired(form.telefone) ?? validatePhone(form.telefone))
-  addError('ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
-  addError('inicioAtividade', validateRequired(form.inicioAtividade))
-  addError('fimAtividade', validateRequired(form.fimAtividade))
-  addError('inicioHorarioAtividade', validateRequired(form.inicioHorarioAtividade) ?? validateMilitaryTime(form.inicioHorarioAtividade))
-  addError('fimHorarioAtividade', validateRequired(form.fimHorarioAtividade) ?? validateMilitaryTime(form.fimHorarioAtividade))
-  addError('horasSemanais', validateRequired(form.horasSemanais) ?? validateNumbersOnly(form.horasSemanais))
-  addError('supervisor_id', validateRequired(form.supervisor_id))
-  addError('descricaoAtividades', validateRequired(form.descricaoAtividades) ?? validateLettersAndNumbers(form.descricaoAtividades))
-  addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
-  addError('attachment', form.attachment ? null : 'Campo obrigatório')
-
+export function validateNonMandatoryInternshipCredit(form: DocumentFormData): DocumentErrors {
+  const errors = validateActivityValidation(form, true)
+  addError(errors, 'nomeCoordenador', validateRequired(form.nomeCoordenador))
   return errors
+}
+
+export function validateProfessionalPracticeCredit(form: DocumentFormData): DocumentErrors {
+  return validateActivityValidation(form, false)
 }
 
 export function validateSupervisorEvaluation(form: DocumentFormData): DocumentErrors {
   const errors: DocumentErrors = {}
 
-  function addError(field: DocumentField, error: string | null) {
-    if (error) {
-      errors[field] = error
-    }
+  addError(errors, 'situacao', validateRequired(form.situacao))
+  if (form.situacao === 'outra') {
+    addError(errors, 'especificarSituacao', validateRequired(form.especificarSituacao))
+  }
+  addError(
+    errors,
+    'semestreAnoConclusao',
+    validateRequired(form.semestreAnoConclusao) ?? validateSemesterYear(form.semestreAnoConclusao),
+  )
+  addError(errors, 'funcaoPrincipalAluno', validateRequired(form.funcaoPrincipalAluno) ?? validateLettersPunct(form.funcaoPrincipalAluno))
+
+  const ratingFields: DocumentField[] = [
+    'aprendizadoNoEstagio',
+    'segurancaExecucao',
+    'interessePeloTrabalho',
+    'iniciativaPropria',
+    'conhecimentosTecnicos',
+    'produtividade',
+    'qualidadeDoTrabalho',
+    'disciplina',
+    'relacionamentoSocial',
+    'cooperacao',
+    'esforcoSuperarFalhas',
+    'pontualidade',
+    'assiduidade',
+    'capacidadeDirecaoCoordenacao',
+  ]
+
+  for (const field of ratingFields) {
+    addError(errors, field, validateRequired(String(form[field])))
   }
 
-  addError('aprendizadoNoEstagio', validateRequired(form.aprendizadoNoEstagio))
-  addError('segurancaExecucao', validateRequired(form.segurancaExecucao))
-  addError('interessePeloTrabalho', validateRequired(form.interessePeloTrabalho))
-  addError('iniciativaPropria', validateRequired(form.iniciativaPropria))
-  addError('conhecimentosTecnicos', validateRequired(form.conhecimentosTecnicos))
-  addError('produtividade', validateRequired(form.produtividade))
-  addError('qualidadeDoTrabalho', validateRequired(form.qualidadeDoTrabalho))
-  addError('disciplina', validateRequired(form.disciplina))
-  addError('relacionamentoSocial', validateRequired(form.relacionamentoSocial))
-  addError('cooperacao', validateRequired(form.cooperacao))
-  addError('esforcoSuperarFalhas', validateRequired(form.esforcoSuperarFalhas))
-  addError('pontualidade', validateRequired(form.pontualidade))
-  addError('assiduidade', validateRequired(form.assiduidade))
-  addError('capacidadeDirecaoCoordenacao', validateRequired(form.capacidadeDirecaoCoordenacao))
-  addError('modoAvaliacao', validateRequired(form.modoAvaliacao))
-  addError('periodicidadeAvaliacao', validateRequired(form.periodicidadeAvaliacao))
-  addError('cidadeAssinatura', validateRequired(form.cidadeAssinatura))
+  addError(errors, 'modoAvaliacao', validateRequired(form.modoAvaliacao))
+  if (form.modoAvaliacao === 'outros') {
+    addError(errors, 'outrosMeiosAvaliacao', validateRequired(form.outrosMeiosAvaliacao))
+  }
+
+  addError(errors, 'periodicidadeAvaliacao', validateRequired(form.periodicidadeAvaliacao))
+  if (form.periodicidadeAvaliacao === 'outro') {
+    addError(errors, 'outraPeriodicidadeAvaliacao', validateRequired(form.outraPeriodicidadeAvaliacao))
+  }
+
+  addError(errors, 'contratacaoAposTce', validateRequired(form.contratacaoAposTce))
+  addError(errors, 'cidadeAssinatura', validateRequired(form.cidadeAssinatura) ?? validateLettersPunct(form.cidadeAssinatura))
 
   return errors
 }

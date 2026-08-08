@@ -90,17 +90,21 @@ class DocumentViewSet(viewsets.ModelViewSet):
             DocumentStatus.WAITING_SUPERVISOR if supervisor else DocumentStatus.SUBMITTED
         )
 
+        form_data = serializer.validated_data.get("form_data", {})
+
         return serializer.save(
             student=student,
             supervisor=supervisor,
             related_document=related_document,
             status=initial_status,
-            student_name=user.get_full_name(),
-            student_email=user.email,
-            student_registration_number=student.registration_number,
-            student_course=student.course,
-            student_campus=student.campus,
-            document_date=timezone.now().date(),
+            student_name=form_data.get("nomeAluno") or user.get_full_name(),
+            student_email=form_data.get("emailAluno") or user.email,
+            student_registration_number=(
+                form_data.get("matriculaAluno") or student.registration_number
+            ),
+            student_course=form_data.get("cursoAluno") or student.course,
+            student_campus=form_data.get("campusAluno") or student.campus,
+            document_date=timezone.localdate(),
         )
 
     def create_supervisor_document(self, serializer, related_document):
@@ -164,7 +168,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
             student_course=related_document.student_course,
             student_campus=related_document.student_campus,
             company=related_document.company,
-            document_date=timezone.now().date(),
+            document_date=timezone.localdate(),
         )
 
         set_document_status(
@@ -192,10 +196,29 @@ class DocumentViewSet(viewsets.ModelViewSet):
             if related_document_id is not None
             else document.related_document
         )
-        document = serializer.save(
-            supervisor=supervisor,
-            related_document=related_document,
-        )
+        save_kwargs = {
+            "supervisor": supervisor,
+            "related_document": related_document,
+        }
+
+        if document.document_type != DocumentType.SUPERVISOR_EVALUATION:
+            form_data = serializer.validated_data.get("form_data", {})
+            student = document.student
+            student_user = student.user
+            save_kwargs.update(
+                student_name=(
+                    form_data.get("nomeAluno") or student_user.get_full_name()
+                ),
+                student_email=form_data.get("emailAluno") or student_user.email,
+                student_registration_number=(
+                    form_data.get("matriculaAluno")
+                    or student.registration_number
+                ),
+                student_course=form_data.get("cursoAluno") or student.course,
+                student_campus=form_data.get("campusAluno") or student.campus,
+            )
+
+        document = serializer.save(**save_kwargs)
 
         register_activity(
             document=document,

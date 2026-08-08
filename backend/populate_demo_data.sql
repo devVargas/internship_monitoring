@@ -2,6 +2,7 @@
 -- PostgreSQL
 -- Execute após: python manage.py migrate
 -- Requer a coluna document_document.reviewed_by_id.
+-- Compatível com feat/expand-student-registration e feat/align-document-forms.
 -- Senha de todas as contas demo: Teste@123
 -- Não execute em produção.
 
@@ -149,23 +150,84 @@ ON CONFLICT (user_id, group_id) DO NOTHING;
 
 -- 4. Perfis -------------------------------------------------------------------
 
+-- Os campos acadêmicos continuam no perfil por compatibilidade com o fluxo atual,
+-- mas os documentos agora guardam seu próprio snapshot em form_data.
+-- Os novos dados residenciais acompanham a branch de cadastro do aluno.
 WITH student_data (
     username,
     registration_number,
     course,
     campus,
-    phone_number
+    phone_number,
+    mobile_number,
+    zip_code,
+    address,
+    address_number,
+    address_complement,
+    neighborhood,
+    city,
+    state
 ) AS (
     VALUES
-        ('aluno01@demo.local', '2026001', 'Engenharia de Software', 'Sapucaia do Sul', '(51) 99999-1001'),
-        ('aluno02@demo.local', '2026002', 'Análise e Desenvolvimento de Sistemas', 'Sapucaia do Sul', '(51) 99999-1002'),
-        ('aluno03@demo.local', '2026003', 'Ciência da Computação', 'Sapucaia do Sul', '(51) 99999-1003')
+        (
+            'aluno01@demo.local',
+            '2026001',
+            'Engenharia Civil',
+            'Sapucaia do Sul',
+            '(51) 3474-1001',
+            '(51) 99999-1001',
+            '93214-170',
+            'Avenida João Pereira de Vargas',
+            '2843',
+            'Apto 201',
+            'Camboim',
+            'Sapucaia do Sul',
+            'RS'
+        ),
+        (
+            'aluno02@demo.local',
+            '2026002',
+            'Análise e Desenvolvimento de Sistemas',
+            'Pelotas',
+            '(53) 3025-1002',
+            '(53) 99999-1002',
+            '96015-560',
+            'Rua General Osório',
+            '725',
+            '',
+            'Centro',
+            'Pelotas',
+            'RS'
+        ),
+        (
+            'aluno03@demo.local',
+            '2026003',
+            'Ciência da Computação',
+            'Passo Fundo',
+            '(54) 3311-1003',
+            '(54) 99999-1003',
+            '99010-121',
+            'Rua Morom',
+            '1230',
+            'Casa 2',
+            'Centro',
+            'Passo Fundo',
+            'RS'
+        )
 )
 INSERT INTO students_studentprofile (
     registration_number,
     course,
     campus,
     phone_number,
+    mobile_number,
+    zip_code,
+    address,
+    address_number,
+    address_complement,
+    neighborhood,
+    city,
+    state,
     created_at,
     updated_at,
     user_id
@@ -175,6 +237,14 @@ SELECT
     student_data.course,
     student_data.campus,
     student_data.phone_number,
+    student_data.mobile_number,
+    student_data.zip_code,
+    student_data.address,
+    student_data.address_number,
+    student_data.address_complement,
+    student_data.neighborhood,
+    student_data.city,
+    student_data.state,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
     auth_user.id
@@ -185,6 +255,14 @@ ON CONFLICT (user_id) DO UPDATE SET
     course = EXCLUDED.course,
     campus = EXCLUDED.campus,
     phone_number = EXCLUDED.phone_number,
+    mobile_number = EXCLUDED.mobile_number,
+    zip_code = EXCLUDED.zip_code,
+    address = EXCLUDED.address,
+    address_number = EXCLUDED.address_number,
+    address_complement = EXCLUDED.address_complement,
+    neighborhood = EXCLUDED.neighborhood,
+    city = EXCLUDED.city,
+    state = EXCLUDED.state,
     updated_at = CURRENT_TIMESTAMP;
 
 WITH supervisor_data (
@@ -194,8 +272,8 @@ WITH supervisor_data (
     phone_number
 ) AS (
     VALUES
-        ('supervisor01@demo.local', 'TechSul Sistemas', '12.345.678/0001-10', '(51) 98888-2001'),
-        ('supervisor02@demo.local', 'Inova Software', '23.456.789/0001-20', '(51) 98888-2002'),
+        ('supervisor01@demo.local', 'TechSul Sistemas', '12.345.678/0001-95', '(51) 98888-2001'),
+        ('supervisor02@demo.local', 'Inova Software', '23.456.789/0001-95', '(51) 98888-2002'),
         ('supervisor03@demo.local', 'Dados & Soluções', '34.567.890/0001-30', '(51) 98888-2003')
 )
 INSERT INTO accounts_supervisorprofile (
@@ -221,7 +299,6 @@ ON CONFLICT (user_id) DO UPDATE SET
     phone_number = EXCLUDED.phone_number,
     updated_at = CURRENT_TIMESTAMP;
 
-
 -- 5. Limpa somente dados demo de execução anterior ----------------------------
 
 UPDATE document_document
@@ -243,7 +320,7 @@ DELETE FROM document_document
 WHERE student_email LIKE '%@demo.local';
 
 -- As chaves abaixo existem apenas durante esta execução. Elas não são gravadas
--- em form_data e desaparecem no COMMIT.
+-- fora dos documentos demo e desaparecem no COMMIT.
 CREATE TEMP TABLE demo_document_refs (
     reference_name TEXT PRIMARY KEY,
     document_id BIGINT NOT NULL
@@ -266,6 +343,8 @@ CREATE TEMP TABLE demo_document_source (
 ) ON COMMIT DROP;
 
 -- 6. Documentos base ----------------------------------------------------------
+-- Os JSON abaixo usam as mesmas chaves de feat/align-document-forms.
+-- "city" é a cidade da assinatura; a data vem de document_date.
 
 INSERT INTO demo_document_source (
     reference_name,
@@ -286,36 +365,47 @@ VALUES
     (
         'submitted-simple',
         'aluno01@demo.local',
-        NULL,
+        'supervisor03@demo.local',
         NULL,
         'professional_practice_credit',
         'Fernanda Moura',
-        'Freelancer',
+        'Dados & Soluções',
         'Porto Alegre',
         CURRENT_DATE - 12,
         jsonb_build_object(
+            'nomeAluno', 'Ana Silva',
+            'matriculaAluno', '2026001',
+            'cursoAluno', 'Engenharia Elétrica',
+            'emailAluno', 'aluno01@demo.local',
+            'telefoneAluno', '(51) 3474-1001',
             'modalidade', 'superior',
-            'dataPrevisaoConclusao', to_char(CURRENT_DATE + 180, 'YYYY-MM-DD'),
-            'situacao', 'proprietario_socio',
+            'especificarModalidade', '',
+            'semestreAnoConclusao', '2027/1',
+            'situacao', 'funcionario_servidor',
             'especificarSituacao', '',
             'cargo', 'Desenvolvedora júnior',
             'setor', 'Desenvolvimento de software',
-            'cnpjCpf', '123.456.789-09',
+            'cnpjCpf', '34.567.890/0001-30',
             'registroConselhoProfissional', '',
-            'cep', '90010-000',
-            'endereco', 'Rua dos Andradas, 100',
-            'bairro', 'Centro Histórico',
-            'cidade', 'Porto Alegre',
-            'estado', 'RS',
-            'email', 'contato@freelancer.demo.local',
-            'telefone', '(51) 99999-3001',
-            'ramoAtividade', 'Desenvolvimento de software',
+            'cepConcedente', '90010-000',
+            'enderecoConcedente', 'Rua dos Andradas, 100',
+            'bairroConcedente', 'Centro Histórico',
+            'cidadeConcedente', 'Porto Alegre',
+            'ufConcedente', 'RS',
+            'emailConcedente', 'contato@dadosesolucoes.demo.local',
+            'telefoneConcedente', '(51) 98888-2003',
+            'ramoAtividade', 'Análise de dados',
+            'cargoFuncaoSupervisor', 'Coordenador de desenvolvimento',
+            'emailSupervisor', 'supervisor03@demo.local',
+            'telefoneSupervisor', '(51) 98888-2003',
             'inicioAtividade', to_char(CURRENT_DATE - 180, 'YYYY-MM-DD'),
             'fimAtividade', to_char(CURRENT_DATE - 15, 'YYYY-MM-DD'),
             'inicioHorarioAtividade', '13:00',
             'fimHorarioAtividade', '17:00',
+            'outroHorario', '',
             'horasSemanais', '20',
-            'descricaoAtividades', 'Desenvolvimento de APIs e testes automatizados.'
+            'totalHorasTrabalhadas', '660',
+            'descricaoAtividades', 'Desenvolvimento de APIs, manutenção de integrações e criação de testes automatizados.'
         ),
         'submitted',
         CURRENT_TIMESTAMP - INTERVAL '12 days',
@@ -332,28 +422,40 @@ VALUES
         'Canoas',
         CURRENT_DATE - 20,
         jsonb_build_object(
-            'cep', '93210-000',
-            'endereco', 'Rua Quinze de Janeiro, 200',
-            'bairro', 'Centro',
-            'cidade', 'Canoas',
-            'uf', 'RS',
-            'dataEstimadaConclusao', to_char(CURRENT_DATE + 365, 'YYYY-MM-DD'),
-            'cnpjCpf', '12.345.678/0001-10',
-            'registroConselhoProfissional', '',
+            'nomeAluno', 'Bruno Costa',
+            'matriculaAluno', '2026002',
+            'cursoAluno', 'Análise e Desenvolvimento de Sistemas',
+            'emailAluno', 'aluno02@demo.local',
+            'telefoneAluno', '(53) 3025-1002',
+            'celularAluno', '(53) 99999-1002',
+            'cepAluno', '96015-560',
+            'enderecoAluno', 'Rua General Osório',
+            'numeroEnderecoAluno', '725',
+            'complementoEnderecoAluno', '',
+            'bairroAluno', 'Centro',
+            'cidadeAluno', 'Pelotas',
+            'ufAluno', 'RS',
+            'semestreAnoConclusao', '2026/2',
+            'cnpjCpf', '12.345.678/0001-95',
+            'registroConselhoProfissional', 'CREA-RS 123456',
             'cepConcedente', '92010-300',
             'enderecoConcedente', 'Avenida Inconfidência, 500',
             'bairroConcedente', 'Marechal Rondon',
             'cidadeConcedente', 'Canoas',
             'ufConcedente', 'RS',
-            'telefone', '(51) 98888-2001',
+            'telefoneConcedente', '(51) 98888-2001',
             'ramoAtividade', 'Tecnologia da informação',
+            'cargoFuncaoSupervisor', 'Engenheiro de software',
+            'emailSupervisor', 'supervisor01@demo.local',
+            'telefoneSupervisor', '(51) 98888-2001',
+            'registroConselhoSupervisor', '',
             'inicioEstagio', to_char(CURRENT_DATE - 60, 'YYYY-MM-DD'),
             'fimEstagio', to_char(CURRENT_DATE + 60, 'YYYY-MM-DD'),
             'horasSemanais', '30',
             'totalHorasTrabalhadas', '180',
-            'atividadesProfissionais', 'Desenvolvimento de funcionalidades e testes de software.',
-            'dificuldadesEncontradas', 'Adaptação inicial às ferramentas utilizadas pela equipe.',
-            'conclusao', 'O estágio contribuiu para aplicar conhecimentos técnicos em situações reais.'
+            'atividadesProfissionais', 'Desenvolvimento de funcionalidades, correção de defeitos e criação de testes de software.',
+            'dificuldadesEncontradas', 'Adaptação inicial às ferramentas e ao fluxo de revisão de código da equipe.',
+            'conclusao', 'O estágio permitiu aplicar conhecimentos do curso em situações reais de desenvolvimento.'
         ),
         'submitted',
         CURRENT_TIMESTAMP - INTERVAL '20 days',
@@ -369,7 +471,42 @@ VALUES
         'Inova Software',
         'São Leopoldo',
         CURRENT_DATE - 9,
-        '{}'::jsonb,
+        jsonb_build_object(
+            'nomeAluno', 'Carla Pereira',
+            'matriculaAluno', '2026003',
+            'campusAluno', 'Sapucaia do Sul',
+            'cursoAluno', 'Ciência da Computação',
+            'emailAluno', 'aluno03@demo.local',
+            'telefoneAluno', '(54) 3311-1003',
+            'modalidade', 'superior',
+            'especificarModalidade', '',
+            'semestreAnoConclusao', '2027/2',
+            'situacao', 'estagiario',
+            'especificarSituacao', '',
+            'cargo', 'Estagiária de desenvolvimento',
+            'setor', 'Engenharia de software',
+            'cnpjCpf', '23.456.789/0001-95',
+            'registroConselhoProfissional', '',
+            'cepConcedente', '93010-010',
+            'enderecoConcedente', 'Rua Primeiro de Março, 400',
+            'bairroConcedente', 'Centro',
+            'cidadeConcedente', 'São Leopoldo',
+            'ufConcedente', 'RS',
+            'emailConcedente', 'contato@inovasoftware.demo.local',
+            'telefoneConcedente', '(51) 98888-2002',
+            'ramoAtividade', 'Desenvolvimento de software',
+            'cargoFuncaoSupervisor', 'Líder de desenvolvimento',
+            'emailSupervisor', 'supervisor02@demo.local',
+            'telefoneSupervisor', '(51) 98888-2002',
+            'inicioAtividade', to_char(CURRENT_DATE - 210, 'YYYY-MM-DD'),
+            'fimAtividade', to_char(CURRENT_DATE - 15, 'YYYY-MM-DD'),
+            'inicioHorarioAtividade', '08:00',
+            'fimHorarioAtividade', '14:00',
+            'outroHorario', '',
+            'horasSemanais', '30',
+            'totalHorasTrabalhadas', '780',
+            'descricaoAtividades', 'Implementação de telas, integração com APIs e participação nas cerimônias da equipe.'
+        ),
         'in_review',
         CURRENT_TIMESTAMP - INTERVAL '9 days',
         CURRENT_TIMESTAMP - INTERVAL '1 day'
@@ -385,12 +522,20 @@ VALUES
         'Novo Hamburgo',
         CURRENT_DATE - 15,
         jsonb_build_object(
-            'cep', '93010-000',
-            'endereco', 'Rua Independência, 80',
-            'bairro', 'Centro',
-            'cidade', 'São Leopoldo',
-            'uf', 'RS',
-            'dataEstimadaConclusao', to_char(CURRENT_DATE + 300, 'YYYY-MM-DD'),
+            'nomeAluno', 'Ana Silva',
+            'matriculaAluno', '2026001',
+            'cursoAluno', 'Engenharia Civil',
+            'emailAluno', 'aluno01@demo.local',
+            'telefoneAluno', '(51) 3474-1001',
+            'celularAluno', '(51) 99999-1001',
+            'cepAluno', '93214-170',
+            'enderecoAluno', 'Avenida João Pereira de Vargas',
+            'numeroEnderecoAluno', '2843',
+            'complementoEnderecoAluno', 'Apto 201',
+            'bairroAluno', 'Camboim',
+            'cidadeAluno', 'Sapucaia do Sul',
+            'ufAluno', 'RS',
+            'semestreAnoConclusao', '2027/1',
             'cnpjCpf', '34.567.890/0001-30',
             'registroConselhoProfissional', '',
             'cepConcedente', '93510-060',
@@ -398,15 +543,19 @@ VALUES
             'bairroConcedente', 'Centro',
             'cidadeConcedente', 'Novo Hamburgo',
             'ufConcedente', 'RS',
-            'telefone', '(51) 98888-2003',
+            'telefoneConcedente', '(51) 98888-2003',
             'ramoAtividade', 'Análise de dados',
+            'cargoFuncaoSupervisor', 'Coordenador de projetos',
+            'emailSupervisor', 'supervisor03@demo.local',
+            'telefoneSupervisor', '(51) 98888-2003',
+            'registroConselhoSupervisor', '',
             'inicioEstagio', to_char(CURRENT_DATE - 45, 'YYYY-MM-DD'),
             'fimEstagio', to_char(CURRENT_DATE + 75, 'YYYY-MM-DD'),
             'horasSemanais', '30',
             'totalHorasTrabalhadas', '120',
-            'atividadesProfissionais', 'Tratamento de dados e manutenção de relatórios.',
-            'dificuldadesEncontradas', 'Necessidade de revisar a descrição das atividades.',
-            'conclusao', 'As atividades contribuíram para o desenvolvimento profissional.'
+            'atividadesProfissionais', 'Tratamento de dados, manutenção de relatórios e apoio à automação de rotinas.',
+            'dificuldadesEncontradas', 'A descrição inicial das atividades ficou genérica e precisa ser detalhada.',
+            'conclusao', 'As atividades contribuíram para o desenvolvimento profissional e integração com a equipe.'
         ),
         'adjustment_requested',
         CURRENT_TIMESTAMP - INTERVAL '15 days',
@@ -415,36 +564,47 @@ VALUES
     (
         'approved',
         'aluno02@demo.local',
-        NULL,
+        'supervisor01@demo.local',
         'coordenador01@demo.local',
         'professional_practice_credit',
         'Fernanda Moura',
-        'Projeto Autônomo',
+        'TechSul Sistemas',
         'Canoas',
         CURRENT_DATE - 35,
         jsonb_build_object(
+            'nomeAluno', 'Bruno Costa',
+            'matriculaAluno', '2026002',
+            'cursoAluno', 'Análise e Desenvolvimento de Sistemas',
+            'emailAluno', 'aluno02@demo.local',
+            'telefoneAluno', '(53) 3025-1002',
             'modalidade', 'superior',
-            'dataPrevisaoConclusao', to_char(CURRENT_DATE + 120, 'YYYY-MM-DD'),
-            'situacao', 'proprietario_socio',
+            'especificarModalidade', '',
+            'semestreAnoConclusao', '2026/2',
+            'situacao', 'funcionario_servidor',
             'especificarSituacao', '',
-            'cargo', 'Desenvolvedor responsável',
-            'setor', 'Desenvolvimento',
-            'cnpjCpf', '987.654.321-00',
+            'cargo', 'Desenvolvedor de sistemas',
+            'setor', 'Produtos digitais',
+            'cnpjCpf', '12.345.678/0001-95',
             'registroConselhoProfissional', '',
-            'cep', '92020-000',
-            'endereco', 'Rua Brasil, 350',
-            'bairro', 'Centro',
-            'cidade', 'Canoas',
-            'estado', 'RS',
-            'email', 'contato@projetoautonomo.demo.local',
-            'telefone', '(51) 99999-3002',
-            'ramoAtividade', 'Desenvolvimento de sistemas',
+            'cepConcedente', '92010-300',
+            'enderecoConcedente', 'Avenida Inconfidência, 500',
+            'bairroConcedente', 'Marechal Rondon',
+            'cidadeConcedente', 'Canoas',
+            'ufConcedente', 'RS',
+            'emailConcedente', 'contato@techsul.demo.local',
+            'telefoneConcedente', '(51) 98888-2001',
+            'ramoAtividade', 'Tecnologia da informação',
+            'cargoFuncaoSupervisor', 'Engenheiro de software',
+            'emailSupervisor', 'supervisor01@demo.local',
+            'telefoneSupervisor', '(51) 98888-2001',
             'inicioAtividade', to_char(CURRENT_DATE - 240, 'YYYY-MM-DD'),
             'fimAtividade', to_char(CURRENT_DATE - 45, 'YYYY-MM-DD'),
             'inicioHorarioAtividade', '08:00',
             'fimHorarioAtividade', '17:00',
+            'outroHorario', 'Intervalo das 12:00 às 13:00',
             'horasSemanais', '40',
-            'descricaoAtividades', 'Desenvolvimento e implantação de sistema web para atendimento ao cliente.'
+            'totalHorasTrabalhadas', '1560',
+            'descricaoAtividades', 'Desenvolvimento e implantação de sistema web, revisão de código e suporte às entregas.'
         ),
         'approved',
         CURRENT_TIMESTAMP - INTERVAL '35 days',
@@ -453,36 +613,47 @@ VALUES
     (
         'rejected',
         'aluno03@demo.local',
-        NULL,
+        'supervisor02@demo.local',
         'professor03@demo.local',
         'professional_practice_credit',
         'Carlos Ribeiro',
-        'Empresa não identificada',
+        'Inova Software',
         'Porto Alegre',
         CURRENT_DATE - 28,
         jsonb_build_object(
+            'nomeAluno', 'Carla Pereira',
+            'matriculaAluno', '2026003',
+            'cursoAluno', 'Ciência da Computação',
+            'emailAluno', 'aluno03@demo.local',
+            'telefoneAluno', '(54) 3311-1003',
             'modalidade', 'superior',
-            'dataPrevisaoConclusao', to_char(CURRENT_DATE + 200, 'YYYY-MM-DD'),
-            'situacao', 'estagiario_funcionario_supervisor',
+            'especificarModalidade', '',
+            'semestreAnoConclusao', '2027/2',
+            'situacao', 'bolsista',
             'especificarSituacao', '',
-            'cargo', 'Suporte técnico',
+            'cargo', 'Bolsista de suporte',
             'setor', 'Atendimento',
-            'cnpjCpf', '11.222.333/0001-44',
+            'cnpjCpf', '23.456.789/0001-95',
             'registroConselhoProfissional', '',
-            'cep', '90020-000',
-            'endereco', 'Rua Voluntários da Pátria, 90',
-            'bairro', 'Centro Histórico',
-            'cidade', 'Porto Alegre',
-            'estado', 'RS',
-            'email', 'contato@empresa.demo.local',
-            'telefone', '(51) 99999-3003',
+            'cepConcedente', '90020-000',
+            'enderecoConcedente', 'Rua Voluntários da Pátria, 90',
+            'bairroConcedente', 'Centro Histórico',
+            'cidadeConcedente', 'Porto Alegre',
+            'ufConcedente', 'RS',
+            'emailConcedente', 'contato@inovasoftware.demo.local',
+            'telefoneConcedente', '(51) 98888-2002',
             'ramoAtividade', 'Suporte em tecnologia',
+            'cargoFuncaoSupervisor', 'Coordenadora de suporte',
+            'emailSupervisor', 'supervisor02@demo.local',
+            'telefoneSupervisor', '(51) 98888-2002',
             'inicioAtividade', to_char(CURRENT_DATE - 30, 'YYYY-MM-DD'),
             'fimAtividade', to_char(CURRENT_DATE - 20, 'YYYY-MM-DD'),
             'inicioHorarioAtividade', '14:00',
             'fimHorarioAtividade', '18:00',
+            'outroHorario', '',
             'horasSemanais', '20',
-            'descricaoAtividades', 'Atendimento de chamados e manutenção básica de computadores.'
+            'totalHorasTrabalhadas', '40',
+            'descricaoAtividades', 'Atendimento de chamados, documentação de ocorrências e manutenção básica de computadores.'
         ),
         'rejected',
         CURRENT_TIMESTAMP - INTERVAL '28 days',
@@ -499,28 +670,40 @@ VALUES
         'São Leopoldo',
         CURRENT_DATE - 3,
         jsonb_build_object(
-            'cep', '93020-000',
-            'endereco', 'Avenida João Corrêa, 150',
-            'bairro', 'Centro',
-            'cidade', 'São Leopoldo',
-            'uf', 'RS',
-            'dataEstimadaConclusao', to_char(CURRENT_DATE + 420, 'YYYY-MM-DD'),
-            'cnpjCpf', '23.456.789/0001-20',
+            'nomeAluno', 'Ana Silva',
+            'matriculaAluno', '2026001',
+            'cursoAluno', 'Engenharia Civil',
+            'emailAluno', 'aluno01@demo.local',
+            'telefoneAluno', '(51) 3474-1001',
+            'celularAluno', '(51) 99999-1001',
+            'cepAluno', '93214-170',
+            'enderecoAluno', 'Avenida João Pereira de Vargas',
+            'numeroEnderecoAluno', '2843',
+            'complementoEnderecoAluno', 'Apto 201',
+            'bairroAluno', 'Camboim',
+            'cidadeAluno', 'Sapucaia do Sul',
+            'ufAluno', 'RS',
+            'semestreAnoConclusao', '2027/1',
+            'cnpjCpf', '23.456.789/0001-95',
             'registroConselhoProfissional', '',
             'cepConcedente', '93010-010',
             'enderecoConcedente', 'Rua Primeiro de Março, 400',
             'bairroConcedente', 'Centro',
             'cidadeConcedente', 'São Leopoldo',
             'ufConcedente', 'RS',
-            'telefone', '(51) 98888-2002',
+            'telefoneConcedente', '(51) 98888-2002',
             'ramoAtividade', 'Desenvolvimento de software',
+            'cargoFuncaoSupervisor', 'Líder de desenvolvimento',
+            'emailSupervisor', 'supervisor02@demo.local',
+            'telefoneSupervisor', '(51) 98888-2002',
+            'registroConselhoSupervisor', '',
             'inicioEstagio', to_char(CURRENT_DATE - 10, 'YYYY-MM-DD'),
             'fimEstagio', to_char(CURRENT_DATE + 110, 'YYYY-MM-DD'),
             'horasSemanais', '20',
             'totalHorasTrabalhadas', '40',
-            'atividadesProfissionais', 'Execução de testes e registro de defeitos.',
-            'dificuldadesEncontradas', 'Aprendizado inicial do processo de qualidade.',
-            'conclusao', 'O estágio está em andamento.'
+            'atividadesProfissionais', 'Execução de testes, registro de defeitos e acompanhamento de correções.',
+            'dificuldadesEncontradas', 'Aprendizado inicial do processo de qualidade e das ferramentas internas.',
+            'conclusao', 'O estágio está em andamento e já contribuiu para ampliar a experiência prática.'
         ),
         'waiting_supervisor',
         CURRENT_TIMESTAMP - INTERVAL '3 days',
@@ -529,18 +712,65 @@ VALUES
     (
         'cancelled',
         'aluno02@demo.local',
-        NULL,
+        'supervisor01@demo.local',
         NULL,
         'non_mandatory_internship_credit',
         'Fernanda Moura',
-        'Projeto cancelado',
-        'Canoas',
+        'TechSul Sistemas',
+        'Pelotas',
         CURRENT_DATE - 40,
-        '{}'::jsonb,
+        jsonb_build_object(
+            'nomeAluno', 'Bruno Costa',
+            'matriculaAluno', '2026002',
+            'campusAluno', 'Pelotas',
+            'cursoAluno', 'Análise e Desenvolvimento de Sistemas',
+            'emailAluno', 'aluno02@demo.local',
+            'telefoneAluno', '(53) 3025-1002',
+            'modalidade', 'superior',
+            'especificarModalidade', '',
+            'semestreAnoConclusao', '2026/2',
+            'situacao', 'estagiario',
+            'especificarSituacao', '',
+            'cargo', 'Estagiário de desenvolvimento',
+            'setor', 'Produtos digitais',
+            'cnpjCpf', '12.345.678/0001-95',
+            'registroConselhoProfissional', '',
+            'cepConcedente', '92010-300',
+            'enderecoConcedente', 'Avenida Inconfidência, 500',
+            'bairroConcedente', 'Marechal Rondon',
+            'cidadeConcedente', 'Canoas',
+            'ufConcedente', 'RS',
+            'emailConcedente', 'contato@techsul.demo.local',
+            'telefoneConcedente', '(51) 98888-2001',
+            'ramoAtividade', 'Tecnologia da informação',
+            'cargoFuncaoSupervisor', 'Engenheiro de software',
+            'emailSupervisor', 'supervisor01@demo.local',
+            'telefoneSupervisor', '(51) 98888-2001',
+            'inicioAtividade', to_char(CURRENT_DATE - 120, 'YYYY-MM-DD'),
+            'fimAtividade', to_char(CURRENT_DATE - 60, 'YYYY-MM-DD'),
+            'inicioHorarioAtividade', '13:00',
+            'fimHorarioAtividade', '19:00',
+            'outroHorario', '',
+            'horasSemanais', '30',
+            'totalHorasTrabalhadas', '360',
+            'descricaoAtividades', 'Implementação de funcionalidades e testes sob acompanhamento do supervisor.'
+        ),
         'cancelled',
         CURRENT_TIMESTAMP - INTERVAL '40 days',
         CURRENT_TIMESTAMP - INTERVAL '38 days'
     );
+
+-- O formulário atual armazena a referência do supervisor dentro de form_data.
+-- O ID é resolvido dinamicamente para o script continuar idempotente.
+UPDATE demo_document_source AS source
+SET form_data = source.form_data || jsonb_build_object(
+    'supervisorIdReferencia',
+    supervisor_profile.id::text
+)
+FROM auth_user AS supervisor_user
+JOIN accounts_supervisorprofile AS supervisor_profile
+    ON supervisor_profile.user_id = supervisor_user.id
+WHERE source.supervisor_username = supervisor_user.username;
 
 WITH inserted_documents AS (
     INSERT INTO document_document (
@@ -570,11 +800,26 @@ WITH inserted_documents AS (
         reviewer.id,
         NULL,
         source.document_type,
-        student_user.first_name || ' ' || student_user.last_name,
-        student_user.email,
-        student_profile.registration_number,
-        student_profile.course,
-        student_profile.campus,
+        COALESCE(
+            NULLIF(source.form_data->>'nomeAluno', ''),
+            student_user.first_name || ' ' || student_user.last_name
+        ),
+        COALESCE(
+            NULLIF(source.form_data->>'emailAluno', ''),
+            student_user.email
+        ),
+        COALESCE(
+            NULLIF(source.form_data->>'matriculaAluno', ''),
+            student_profile.registration_number
+        ),
+        COALESCE(
+            NULLIF(source.form_data->>'cursoAluno', ''),
+            student_profile.course
+        ),
+        COALESCE(
+            NULLIF(source.form_data->>'campusAluno', ''),
+            student_profile.campus
+        ),
         source.coordinator_name,
         source.company,
         source.city,
@@ -622,9 +867,11 @@ JOIN inserted_documents AS inserted
 -- 7. Avaliação aprovada vinculada ao documento submitted-with-evaluation -------
 
 WITH related_document AS (
-    SELECT document_id
+    SELECT document_document.*
     FROM demo_document_refs
-    WHERE reference_name = 'submitted-with-evaluation'
+    JOIN document_document
+        ON document_document.id = demo_document_refs.document_id
+    WHERE demo_document_refs.reference_name = 'submitted-with-evaluation'
 ),
 inserted_evaluation AS (
     INSERT INTO document_document (
@@ -649,22 +896,27 @@ inserted_evaluation AS (
         updated_at
     )
     SELECT
-        student_profile.id,
+        related_document.student_id,
         supervisor_profile.id,
         coordinator.id,
-        related_document.document_id,
+        related_document.id,
         'supervisor_evaluation',
-        student_user.first_name || ' ' || student_user.last_name,
-        student_user.email,
-        student_profile.registration_number,
-        student_profile.course,
-        student_profile.campus,
+        related_document.student_name,
+        related_document.student_email,
+        related_document.student_registration_number,
+        related_document.student_course,
+        related_document.student_campus,
         'Carlos Ribeiro',
-        supervisor_profile.company_name,
+        related_document.company,
         'Canoas',
         CURRENT_DATE - 5,
         NULL,
         jsonb_build_object(
+            'situacao', 'estagiario',
+            'especificarSituacao', '',
+            'dataFormatura', '',
+            'semestreAnoConclusao', '2026/2',
+            'funcaoPrincipalAluno', 'Desenvolvimento e testes de software',
             'aprendizadoNoEstagio', 'MB',
             'segurancaExecucao', 'O',
             'interessePeloTrabalho', 'MB',
@@ -679,24 +931,24 @@ inserted_evaluation AS (
             'pontualidade', 'O',
             'assiduidade', 'O',
             'capacidadeDirecaoCoordenacao', 'MB',
-            'modoAvaliacao', 'Avaliação de desempenho',
-            'periodicidadeAvaliacao', 'Mensal',
-            'observacoes', 'Ótimo desempenho durante o estágio.'
+            'modoAvaliacao', 'reunioes',
+            'outrosMeiosAvaliacao', '',
+            'periodicidadeAvaliacao', 'semanalmente',
+            'outraPeriodicidadeAvaliacao', '',
+            'contratacaoAposTce', 'contratado',
+            'observacoes', 'Ótimo desempenho durante o estágio, com boa evolução técnica e participação nas atividades.',
+            'registroConselhoSupervisor', ''
         ),
         'approved',
         CURRENT_TIMESTAMP - INTERVAL '5 days',
         CURRENT_TIMESTAMP - INTERVAL '4 days'
-    FROM auth_user AS student_user
-    JOIN students_studentprofile AS student_profile
-        ON student_profile.user_id = student_user.id
+    FROM related_document
     JOIN auth_user AS supervisor_user
         ON supervisor_user.username = 'supervisor01@demo.local'
     JOIN accounts_supervisorprofile AS supervisor_profile
         ON supervisor_profile.user_id = supervisor_user.id
     JOIN auth_user AS coordinator
         ON coordinator.username = 'coordenador01@demo.local'
-    CROSS JOIN related_document
-    WHERE student_user.username = 'aluno02@demo.local'
     RETURNING id
 )
 INSERT INTO demo_document_refs (reference_name, document_id)

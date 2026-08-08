@@ -29,21 +29,34 @@ export type DocumentType =
   (typeof DOCUMENT_TYPES)[number]
 
 export type MandatoryInternshipFormData = {
-  cep: string
-  endereco: string
-  bairro: string
-  cidade: string
-  uf: string
-  dataEstimadaConclusao: string
+  nomeAluno: string
+  matriculaAluno: string
+  cursoAluno: string
+  emailAluno: string
+  telefoneAluno: string
+  celularAluno: string
+  cepAluno: string
+  enderecoAluno: string
+  numeroEnderecoAluno: string
+  complementoEnderecoAluno: string
+  bairroAluno: string
+  cidadeAluno: string
+  ufAluno: string
+  semestreAnoConclusao: string
   cnpjCpf: string
   registroConselhoProfissional: string
   cepConcedente: string
+  enderecoConcedente: string
   bairroConcedente: string
   cidadeConcedente: string
   ufConcedente: string
-  enderecoConcedente: string
-  telefone: string
+  telefoneConcedente: string
   ramoAtividade: string
+  supervisorIdReferencia: string
+  cargoFuncaoSupervisor: string
+  emailSupervisor: string
+  telefoneSupervisor: string
+  registroConselhoSupervisor: string
   inicioEstagio: string
   fimEstagio: string
   horasSemanais: string
@@ -53,34 +66,57 @@ export type MandatoryInternshipFormData = {
   conclusao: string
 }
 
-export type NonMandatoryInternshipCreditFormData = Record<string, never>
-
-export type ProfessionalPracticeCreditFormData = {
+export type ActivityValidationFormData = {
+  nomeAluno: string
+  matriculaAluno: string
+  cursoAluno: string
+  emailAluno: string
+  telefoneAluno: string
   modalidade: string
-  dataPrevisaoConclusao: string
+  especificarModalidade: string
+  semestreAnoConclusao: string
   situacao: string
   especificarSituacao: string
   cargo: string
   setor: string
   cnpjCpf: string
   registroConselhoProfissional: string
-  cep: string
-  endereco: string
-  bairro: string
-  cidade: string
-  estado: string
-  email: string
-  telefone: string
+  cepConcedente: string
+  enderecoConcedente: string
+  bairroConcedente: string
+  cidadeConcedente: string
+  ufConcedente: string
+  emailConcedente: string
+  telefoneConcedente: string
   ramoAtividade: string
+  supervisorIdReferencia: string
+  cargoFuncaoSupervisor: string
+  emailSupervisor: string
+  telefoneSupervisor: string
   inicioAtividade: string
   fimAtividade: string
   inicioHorarioAtividade: string
   fimHorarioAtividade: string
+  outroHorario: string
   horasSemanais: string
+  totalHorasTrabalhadas: string
   descricaoAtividades: string
 }
 
+export type NonMandatoryInternshipCreditFormData =
+  ActivityValidationFormData & {
+    campusAluno: string
+  }
+
+export type ProfessionalPracticeCreditFormData =
+  ActivityValidationFormData
+
 export type MandatoryInternshipEvaluationFormData = {
+  situacao: string
+  especificarSituacao: string
+  dataFormatura: string
+  semestreAnoConclusao: string
+  funcaoPrincipalAluno: string
   aprendizadoNoEstagio: string
   segurancaExecucao: string
   interessePeloTrabalho: string
@@ -96,8 +132,12 @@ export type MandatoryInternshipEvaluationFormData = {
   assiduidade: string
   capacidadeDirecaoCoordenacao: string
   modoAvaliacao: string
+  outrosMeiosAvaliacao: string
   periodicidadeAvaliacao: string
+  outraPeriodicidadeAvaliacao: string
+  contratacaoAposTce: string
   observacoes: string
+  registroConselhoSupervisor: string
 }
 
 export type RegisterDocumentPayload =

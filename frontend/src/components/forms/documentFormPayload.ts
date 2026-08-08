@@ -1,6 +1,57 @@
 import type { DocumentFormData } from './documentFormTypes.ts'
 import type { RegisterDocumentPayload, DocumentType } from '../../api/documents.ts'
 
+function buildCompanyData(form: DocumentFormData) {
+  return {
+    cnpjCpf: form.cnpjCpf,
+    registroConselhoProfissional: form.registroConselhoProfissional,
+    cepConcedente: form.cepConcedente,
+    enderecoConcedente: form.enderecoConcedente,
+    bairroConcedente: form.bairroConcedente,
+    cidadeConcedente: form.cidadeConcedente,
+    ufConcedente: form.ufConcedente,
+    telefoneConcedente: form.telefoneConcedente,
+    ramoAtividade: form.ramoAtividade,
+  }
+}
+
+function buildSupervisorData(form: DocumentFormData) {
+  return {
+    supervisorIdReferencia: form.supervisor_id,
+    cargoFuncaoSupervisor: form.cargoFuncaoSupervisor,
+    emailSupervisor: form.emailSupervisor,
+    telefoneSupervisor: form.telefoneSupervisor,
+  }
+}
+
+function buildActivityValidationData(form: DocumentFormData) {
+  return {
+    nomeAluno: form.nomeAluno,
+    matriculaAluno: form.matriculaAluno,
+    cursoAluno: form.cursoAluno,
+    emailAluno: form.emailAluno,
+    telefoneAluno: form.telefoneAluno,
+    modalidade: form.modalidade,
+    especificarModalidade: form.especificarModalidade,
+    semestreAnoConclusao: form.semestreAnoConclusao,
+    situacao: form.situacao,
+    especificarSituacao: form.especificarSituacao,
+    cargo: form.cargo,
+    setor: form.setor,
+    ...buildCompanyData(form),
+    emailConcedente: form.emailConcedente,
+    ...buildSupervisorData(form),
+    inicioAtividade: form.inicioAtividade,
+    fimAtividade: form.fimAtividade,
+    inicioHorarioAtividade: form.inicioHorarioAtividade,
+    fimHorarioAtividade: form.fimHorarioAtividade,
+    outroHorario: form.outroHorario,
+    horasSemanais: form.horasSemanais,
+    totalHorasTrabalhadas: form.totalHorasTrabalhadas,
+    descricaoAtividades: form.descricaoAtividades,
+  }
+}
+
 export function buildPayload(
   documentType: DocumentType,
   form: DocumentFormData,
@@ -15,21 +66,23 @@ export function buildPayload(
         company: form.razaoSocial,
         supervisor_id: Number(form.supervisor_id),
         form_data: {
-          cep: form.cep,
-          endereco: form.endereco,
-          bairro: form.bairro,
-          cidade: form.cidade,
-          uf: form.uf,
-          dataEstimadaConclusao: form.dataEstimadaConclusao,
-          cnpjCpf: form.cnpjCpf,
-          registroConselhoProfissional: form.registroConselhoProfissional,
-          cepConcedente: form.cepConcedente,
-          bairroConcedente: form.bairroConcedente,
-          cidadeConcedente: form.cidadeConcedente,
-          ufConcedente: form.ufConcedente,
-          enderecoConcedente: form.enderecoConcedente,
-          telefone: form.telefone,
-          ramoAtividade: form.ramoAtividade,
+          nomeAluno: form.nomeAluno,
+          matriculaAluno: form.matriculaAluno,
+          cursoAluno: form.cursoAluno,
+          emailAluno: form.emailAluno,
+          telefoneAluno: form.telefoneAluno,
+          celularAluno: form.celularAluno,
+          cepAluno: form.cepAluno,
+          enderecoAluno: form.enderecoAluno,
+          numeroEnderecoAluno: form.numeroEnderecoAluno,
+          complementoEnderecoAluno: form.complementoEnderecoAluno,
+          bairroAluno: form.bairroAluno,
+          cidadeAluno: form.cidadeAluno,
+          ufAluno: form.ufAluno,
+          semestreAnoConclusao: form.semestreAnoConclusao,
+          ...buildCompanyData(form),
+          ...buildSupervisorData(form),
+          registroConselhoSupervisor: form.registroConselhoSupervisor,
           inicioEstagio: form.inicioEstagio,
           fimEstagio: form.fimEstagio,
           horasSemanais: form.horasSemanais,
@@ -42,11 +95,14 @@ export function buildPayload(
     case 'non_mandatory_internship_credit':
       return {
         document_type: 'non_mandatory_internship_credit',
-        city: form.cidade,
-        company: form.empresa,
+        city: form.cidadeAssinatura,
+        company: form.razaoSocial,
         attachment: form.attachment,
         coordinator_name: form.nomeCoordenador,
-        form_data: {},
+        form_data: {
+          ...buildActivityValidationData(form),
+          campusAluno: form.campusAluno,
+        },
       }
     case 'professional_practice_credit':
       return {
@@ -55,36 +111,18 @@ export function buildPayload(
         supervisor_id: Number(form.supervisor_id),
         company: form.razaoSocial,
         city: form.cidadeAssinatura,
-        form_data: {
-          modalidade: form.modalidade,
-          dataPrevisaoConclusao: form.dataPrevisaoConclusao,
-          situacao: form.situacao,
-          especificarSituacao: form.especificarSituacao,
-          cargo: form.cargo,
-          setor: form.setor,
-          cnpjCpf: form.cnpjCpf,
-          registroConselhoProfissional: form.registroConselhoProfissional,
-          cep: form.cep,
-          endereco: form.endereco,
-          bairro: form.bairro,
-          cidade: form.cidade,
-          estado: form.estado,
-          email: form.email,
-          telefone: form.telefone,
-          ramoAtividade: form.ramoAtividade,
-          inicioAtividade: form.inicioAtividade,
-          fimAtividade: form.fimAtividade,
-          inicioHorarioAtividade: form.inicioHorarioAtividade,
-          fimHorarioAtividade: form.fimHorarioAtividade,
-          horasSemanais: form.horasSemanais,
-          descricaoAtividades: form.descricaoAtividades,
-        },
+        form_data: buildActivityValidationData(form),
       }
     case 'supervisor_evaluation':
       return {
         document_type: 'supervisor_evaluation',
         city: form.cidadeAssinatura,
         form_data: {
+          situacao: form.situacao,
+          especificarSituacao: form.especificarSituacao,
+          dataFormatura: form.dataFormatura,
+          semestreAnoConclusao: form.semestreAnoConclusao,
+          funcaoPrincipalAluno: form.funcaoPrincipalAluno,
           aprendizadoNoEstagio: form.aprendizadoNoEstagio,
           segurancaExecucao: form.segurancaExecucao,
           interessePeloTrabalho: form.interessePeloTrabalho,
@@ -100,8 +138,12 @@ export function buildPayload(
           assiduidade: form.assiduidade,
           capacidadeDirecaoCoordenacao: form.capacidadeDirecaoCoordenacao,
           modoAvaliacao: form.modoAvaliacao,
+          outrosMeiosAvaliacao: form.outrosMeiosAvaliacao,
           periodicidadeAvaliacao: form.periodicidadeAvaliacao,
+          outraPeriodicidadeAvaliacao: form.outraPeriodicidadeAvaliacao,
+          contratacaoAposTce: form.contratacaoAposTce,
           observacoes: form.observacoes,
+          registroConselhoSupervisor: form.registroConselhoSupervisor,
         },
         ...(relatedDocumentId !== undefined && { related_document_id: relatedDocumentId }),
       }

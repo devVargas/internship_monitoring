@@ -1,41 +1,69 @@
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { SectionProps } from '../documentFormTypes.ts'
-import { BRAZILIAN_UFS } from '../documentFormConstants.ts'
+import {
+  BRAZILIAN_UFS,
+  COURSE_MODALITY_OPTIONS,
+  PROFESSIONAL_STATUS_OPTIONS,
+} from '../documentFormConstants.ts'
 import { selectClass } from '../documentFormStyles.ts'
 import FormField from '../../ui/FormField.tsx'
 import SelectField from '../../ui/SelectField.tsx'
 import TextareaField from '../../ui/TextareaField.tsx'
 import FileUploadField from '../../ui/FileUploadField.tsx'
 import { formatCpfCnpj, formatPhone } from '../../../utils/validation.ts'
-import { IFSUL_HIGHER_EDUCATION_COURSE_OPTIONS } from '../../../utils/ifsulAcademicOptions.ts'
+import {
+  IFSUL_CAMPUS_OPTIONS,
+  IFSUL_HIGHER_EDUCATION_COURSE_OPTIONS,
+} from '../../../utils/ifsulAcademicOptions.ts'
 
-export default function MandatoryInternshipSections({
+type ActivityValidationSectionsProps = SectionProps & {
+  includeRequestData: boolean
+}
+
+export default function ActivityValidationSections({
   form,
   fieldErrors,
   updateField,
   sectionOffset,
   currentSection,
   supervisors,
+  coordinators,
   handleCepChange,
   documentId,
-  cepAlunoLoading,
   cepConcedenteLoading,
-  cepAlunoError,
   cepConcedenteError,
-}: SectionProps) {
+  includeRequestData,
+}: ActivityValidationSectionsProps) {
   return (
     <>
       {currentSection === sectionOffset + 0 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
-            Identificação da/o estudante
+            Dados da/o estudante
           </h3>
+
+          {includeRequestData && (
+            <SelectField
+              id="nomeCoordenador"
+              label="Coordenador(a) do curso"
+              value={form.nomeCoordenador}
+              onChange={(event) => {
+                updateField('nomeCoordenador', event.target.value)
+              }}
+              options={coordinators.map((coordinator) => ({
+                value: coordinator.full_name,
+                label: coordinator.full_name,
+              }))}
+              required
+              error={fieldErrors.nomeCoordenador}
+            />
+          )}
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
-              id="nomeAlunoMI"
-              label="Nome completo"
+              id="nomeAlunoAV"
+              label="Nome da/o estudante"
               value={form.nomeAluno}
               onChange={(event) => {
                 updateField('nomeAluno', event.target.value)
@@ -45,7 +73,7 @@ export default function MandatoryInternshipSections({
             />
 
             <FormField
-              id="matriculaAlunoMI"
+              id="matriculaAlunoAV"
               label="Matrícula"
               value={form.matriculaAluno}
               onChange={(event) => {
@@ -56,9 +84,23 @@ export default function MandatoryInternshipSections({
             />
           </div>
 
+          {includeRequestData && (
+            <SelectField
+              id="campusAlunoAV"
+              label="Câmpus"
+              value={form.campusAluno}
+              onChange={(event) => {
+                updateField('campusAluno', event.target.value)
+              }}
+              options={IFSUL_CAMPUS_OPTIONS}
+              required
+              error={fieldErrors.campusAluno}
+            />
+          )}
+
           <div className="grid gap-5 sm:grid-cols-2">
             <SelectField
-              id="cursoAlunoMI"
+              id="cursoAlunoAV"
               label="Curso"
               value={form.cursoAluno}
               onChange={(event) => {
@@ -69,22 +111,38 @@ export default function MandatoryInternshipSections({
               error={fieldErrors.cursoAluno}
             />
 
-            <FormField
-              id="semestreAnoConclusaoMI"
-              label="Semestre/ano previsto para conclusão do curso"
-              value={form.semestreAnoConclusao}
+            <SelectField
+              id="modalidadeAV"
+              label="Modalidade"
+              value={form.modalidade}
               onChange={(event) => {
-                updateField('semestreAnoConclusao', event.target.value)
+                updateField('modalidade', event.target.value)
+                if (event.target.value !== 'outros') {
+                  updateField('especificarModalidade', '')
+                }
               }}
-              placeholder="Ex.: 2027/1"
+              options={COURSE_MODALITY_OPTIONS}
               required
-              error={fieldErrors.semestreAnoConclusao}
+              error={fieldErrors.modalidade}
             />
           </div>
 
+          {form.modalidade === 'outros' && (
+            <FormField
+              id="especificarModalidadeAV"
+              label="Outra modalidade"
+              value={form.especificarModalidade}
+              onChange={(event) => {
+                updateField('especificarModalidade', event.target.value)
+              }}
+              required
+              error={fieldErrors.especificarModalidade}
+            />
+          )}
+
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
-              id="emailAlunoMI"
+              id="emailAlunoAV"
               label="E-mail"
               type="email"
               value={form.emailAluno}
@@ -96,119 +154,81 @@ export default function MandatoryInternshipSections({
             />
 
             <FormField
-              id="telefoneAlunoMI"
+              id="telefoneAlunoAV"
               label="Telefone com DDD"
               value={form.telefoneAluno}
               onChange={(event) => {
                 updateField('telefoneAluno', formatPhone(event.target.value))
               }}
               inputMode="tel"
+              required
               error={fieldErrors.telefoneAluno}
             />
           </div>
 
           <FormField
-            id="celularAlunoMI"
-            label="Celular"
-            value={form.celularAluno}
+            id="semestreAnoConclusaoAV"
+            label="Semestre/ano previsto para conclusão do curso"
+            value={form.semestreAnoConclusao}
             onChange={(event) => {
-              updateField('celularAluno', formatPhone(event.target.value))
+              updateField('semestreAnoConclusao', event.target.value)
             }}
-            inputMode="tel"
+            placeholder="Ex.: 2027/1"
             required
-            error={fieldErrors.celularAluno}
+            error={fieldErrors.semestreAnoConclusao}
           />
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <div className="relative">
-              <FormField
-                id="cepAlunoMI"
-                label="CEP"
-                value={form.cepAluno}
-                onChange={(event) => {
-                  handleCepChange('cepAluno', event)
-                }}
-                inputMode="numeric"
-                required
-                error={fieldErrors.cepAluno ?? cepAlunoError}
-              />
-
-              {cepAlunoLoading && (
-                <FontAwesomeIcon
-                  icon={faSpinner}
-                  className="pointer-events-none absolute right-3 top-[50px] h-4 w-4 -translate-y-1/2 animate-spin text-green-900"
-                />
-              )}
-            </div>
-
             <SelectField
-              id="ufAlunoMI"
-              label="UF"
-              value={form.ufAluno}
+              id="situacaoAV"
+              label="Situação"
+              value={form.situacao}
               onChange={(event) => {
-                updateField('ufAluno', event.target.value)
+                updateField('situacao', event.target.value)
+                if (event.target.value !== 'outra') {
+                  updateField('especificarSituacao', '')
+                }
               }}
-              options={BRAZILIAN_UFS.map((uf) => ({ value: uf, label: uf }))}
+              options={PROFESSIONAL_STATUS_OPTIONS}
               required
-              error={fieldErrors.ufAluno}
-            />
-          </div>
-
-          <FormField
-            id="enderecoAlunoMI"
-            label="Endereço residencial"
-            value={form.enderecoAluno}
-            onChange={(event) => {
-              updateField('enderecoAluno', event.target.value)
-            }}
-            required
-            error={fieldErrors.enderecoAluno}
-          />
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="numeroEnderecoAlunoMI"
-              label="Número"
-              value={form.numeroEnderecoAluno}
-              onChange={(event) => {
-                updateField('numeroEnderecoAluno', event.target.value)
-              }}
-              required
-              error={fieldErrors.numeroEnderecoAluno}
+              error={fieldErrors.situacao}
             />
 
-            <FormField
-              id="complementoEnderecoAlunoMI"
-              label="Complemento"
-              value={form.complementoEnderecoAluno}
-              onChange={(event) => {
-                updateField('complementoEnderecoAluno', event.target.value)
-              }}
-              error={fieldErrors.complementoEnderecoAluno}
-            />
+            {form.situacao === 'outra' && (
+              <FormField
+                id="especificarSituacaoAV"
+                label="Se outra, especificar"
+                value={form.especificarSituacao}
+                onChange={(event) => {
+                  updateField('especificarSituacao', event.target.value)
+                }}
+                required
+                error={fieldErrors.especificarSituacao}
+              />
+            )}
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
-              id="bairroAlunoMI"
-              label="Bairro"
-              value={form.bairroAluno}
+              id="cargoAV"
+              label="Cargo da/o estudante na concedente"
+              value={form.cargo}
               onChange={(event) => {
-                updateField('bairroAluno', event.target.value)
+                updateField('cargo', event.target.value)
               }}
               required
-              error={fieldErrors.bairroAluno}
+              error={fieldErrors.cargo}
             />
 
             <FormField
-              id="cidadeAlunoMI"
-              label="Cidade"
-              value={form.cidadeAluno}
+              id="setorAV"
+              label="Setor da/o estudante na concedente"
+              value={form.setor}
               onChange={(event) => {
-                updateField('cidadeAluno', event.target.value)
+                updateField('setor', event.target.value)
               }}
               required
-              error={fieldErrors.cidadeAluno}
+              error={fieldErrors.setor}
             />
           </div>
         </>
@@ -221,8 +241,8 @@ export default function MandatoryInternshipSections({
           </h3>
 
           <FormField
-            id="razaoSocialMI"
-            label="Razão social"
+            id="razaoSocialAV"
+            label="Razão social da empresa"
             value={form.razaoSocial}
             onChange={(event) => {
               updateField('razaoSocial', event.target.value)
@@ -233,7 +253,7 @@ export default function MandatoryInternshipSections({
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
-              id="cnpjCpfMI"
+              id="cnpjCpfAV"
               label="CNPJ ou CPF (profissional liberal)"
               value={form.cnpjCpf}
               onChange={(event) => {
@@ -244,7 +264,7 @@ export default function MandatoryInternshipSections({
             />
 
             <FormField
-              id="registroConselhoProfissionalMI"
+              id="registroConselhoProfissionalAV"
               label="Registro ativo no conselho profissional (profissional liberal)"
               value={form.registroConselhoProfissional}
               onChange={(event) => {
@@ -257,7 +277,7 @@ export default function MandatoryInternshipSections({
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="relative">
               <FormField
-                id="cepConcedenteMI"
+                id="cepConcedenteAV"
                 label="CEP"
                 value={form.cepConcedente}
                 onChange={(event) => {
@@ -277,8 +297,8 @@ export default function MandatoryInternshipSections({
             </div>
 
             <SelectField
-              id="ufConcedenteMI"
-              label="UF"
+              id="ufConcedenteAV"
+              label="Estado"
               value={form.ufConcedente}
               onChange={(event) => {
                 updateField('ufConcedente', event.target.value)
@@ -290,7 +310,7 @@ export default function MandatoryInternshipSections({
           </div>
 
           <FormField
-            id="enderecoConcedenteMI"
+            id="enderecoConcedenteAV"
             label="Endereço"
             value={form.enderecoConcedente}
             onChange={(event) => {
@@ -302,7 +322,7 @@ export default function MandatoryInternshipSections({
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
-              id="bairroConcedenteMI"
+              id="bairroConcedenteAV"
               label="Bairro"
               value={form.bairroConcedente}
               onChange={(event) => {
@@ -313,7 +333,7 @@ export default function MandatoryInternshipSections({
             />
 
             <FormField
-              id="cidadeConcedenteMI"
+              id="cidadeConcedenteAV"
               label="Cidade"
               value={form.cidadeConcedente}
               onChange={(event) => {
@@ -326,7 +346,19 @@ export default function MandatoryInternshipSections({
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
-              id="telefoneConcedenteMI"
+              id="emailConcedenteAV"
+              label="E-mail"
+              type="email"
+              value={form.emailConcedente}
+              onChange={(event) => {
+                updateField('emailConcedente', event.target.value)
+              }}
+              required
+              error={fieldErrors.emailConcedente}
+            />
+
+            <FormField
+              id="telefoneConcedenteAV"
               label="Telefone com DDD"
               value={form.telefoneConcedente}
               onChange={(event) => {
@@ -336,37 +368,126 @@ export default function MandatoryInternshipSections({
               required
               error={fieldErrors.telefoneConcedente}
             />
-
-            <FormField
-              id="ramoAtividadeMI"
-              label="Ramo de atividade"
-              value={form.ramoAtividade}
-              onChange={(event) => {
-                updateField('ramoAtividade', event.target.value)
-              }}
-              required
-              error={fieldErrors.ramoAtividade}
-            />
           </div>
+
+          <FormField
+            id="ramoAtividadeAV"
+            label="Ramo de atividade"
+            value={form.ramoAtividade}
+            onChange={(event) => {
+              updateField('ramoAtividade', event.target.value)
+            }}
+            required
+            error={fieldErrors.ramoAtividade}
+          />
         </>
       )}
 
       {currentSection === sectionOffset + 2 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
-            Supervisor/a e dados do estágio
+            Período, horário e supervisão
           </h3>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField
+              id="inicioAtividadeAV"
+              label="Início do período relatado"
+              type="date"
+              value={form.inicioAtividade}
+              onChange={(event) => {
+                updateField('inicioAtividade', event.target.value)
+              }}
+              required
+              error={fieldErrors.inicioAtividade}
+            />
+
+            <FormField
+              id="fimAtividadeAV"
+              label="Fim do período relatado"
+              type="date"
+              value={form.fimAtividade}
+              onChange={(event) => {
+                updateField('fimAtividade', event.target.value)
+              }}
+              required
+              error={fieldErrors.fimAtividade}
+            />
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField
+              id="inicioHorarioAtividadeAV"
+              label="Horário de trabalho — início"
+              type="time"
+              value={form.inicioHorarioAtividade}
+              onChange={(event) => {
+                updateField('inicioHorarioAtividade', event.target.value)
+              }}
+              required
+              error={fieldErrors.inicioHorarioAtividade}
+            />
+
+            <FormField
+              id="fimHorarioAtividadeAV"
+              label="Horário de trabalho — fim"
+              type="time"
+              value={form.fimHorarioAtividade}
+              onChange={(event) => {
+                updateField('fimHorarioAtividade', event.target.value)
+              }}
+              required
+              error={fieldErrors.fimHorarioAtividade}
+            />
+          </div>
+
+          <FormField
+            id="outroHorarioAV"
+            label="Outro horário"
+            value={form.outroHorario}
+            onChange={(event) => {
+              updateField('outroHorario', event.target.value)
+            }}
+            placeholder="Opcional"
+            error={fieldErrors.outroHorario}
+          />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField
+              id="horasSemanaisAV"
+              label="Total de horas semanais"
+              value={form.horasSemanais}
+              onChange={(event) => {
+                updateField('horasSemanais', event.target.value)
+              }}
+              inputMode="numeric"
+              required
+              error={fieldErrors.horasSemanais}
+            />
+
+            <FormField
+              id="totalHorasTrabalhadasAV"
+              label="Total de horas efetivamente trabalhadas"
+              value={form.totalHorasTrabalhadas}
+              onChange={(event) => {
+                updateField('totalHorasTrabalhadas', event.target.value)
+              }}
+              inputMode="numeric"
+              required
+              error={fieldErrors.totalHorasTrabalhadas}
+            />
+          </div>
 
           <div>
             <label
-              htmlFor="supervisor_id_mi"
+              htmlFor="supervisor_id_av"
               className="mb-1.5 block text-sm font-medium text-neutral-800"
             >
               Supervisor(a) de estágio ou chefia imediata <span className="text-red-600">*</span>
             </label>
 
             <select
-              id="supervisor_id_mi"
+              id="supervisor_id_av"
               value={form.supervisor_id}
               onChange={(event) => {
                 updateField('supervisor_id', event.target.value)
@@ -387,7 +508,7 @@ export default function MandatoryInternshipSections({
           </div>
 
           <FormField
-            id="cargoFuncaoSupervisorMI"
+            id="cargoFuncaoSupervisorAV"
             label="Cargo ou função do(a) supervisor(a)"
             value={form.cargoFuncaoSupervisor}
             onChange={(event) => {
@@ -399,7 +520,7 @@ export default function MandatoryInternshipSections({
 
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
-              id="emailSupervisorMI"
+              id="emailSupervisorAV"
               label="E-mail do(a) supervisor(a)"
               type="email"
               value={form.emailSupervisor}
@@ -411,7 +532,7 @@ export default function MandatoryInternshipSections({
             />
 
             <FormField
-              id="telefoneSupervisorMI"
+              id="telefoneSupervisorAV"
               label="Telefone do(a) supervisor(a)"
               value={form.telefoneSupervisor}
               onChange={(event) => {
@@ -423,70 +544,8 @@ export default function MandatoryInternshipSections({
             />
           </div>
 
-          <FormField
-            id="registroConselhoSupervisorMI"
-            label="Nº de registro do supervisor no conselho profissional (se houver)"
-            value={form.registroConselhoSupervisor}
-            onChange={(event) => {
-              updateField('registroConselhoSupervisor', event.target.value)
-            }}
-            error={fieldErrors.registroConselhoSupervisor}
-          />
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="inicioEstagio"
-              label="Início do estágio"
-              type="date"
-              value={form.inicioEstagio}
-              onChange={(event) => {
-                updateField('inicioEstagio', event.target.value)
-              }}
-              required
-              error={fieldErrors.inicioEstagio}
-            />
-
-            <FormField
-              id="fimEstagio"
-              label="Último dia do estágio"
-              type="date"
-              value={form.fimEstagio}
-              onChange={(event) => {
-                updateField('fimEstagio', event.target.value)
-              }}
-              required
-              error={fieldErrors.fimEstagio}
-            />
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="horasSemanais"
-              label="Número de horas de atividades semanais"
-              value={form.horasSemanais}
-              onChange={(event) => {
-                updateField('horasSemanais', event.target.value)
-              }}
-              inputMode="numeric"
-              required
-              error={fieldErrors.horasSemanais}
-            />
-
-            <FormField
-              id="totalHorasTrabalhadas"
-              label="Total de horas efetivamente trabalhadas"
-              value={form.totalHorasTrabalhadas}
-              onChange={(event) => {
-                updateField('totalHorasTrabalhadas', event.target.value)
-              }}
-              inputMode="numeric"
-              required
-              error={fieldErrors.totalHorasTrabalhadas}
-            />
-          </div>
-
           <FileUploadField
-            id="attachmentMI"
+            id="attachmentAV"
             label="Comprovante de vínculo com a concedente"
             value={form.attachment}
             onChange={(base64) => {
@@ -501,40 +560,18 @@ export default function MandatoryInternshipSections({
       {currentSection === sectionOffset + 3 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
-            Relatório de atividades
+            Atividades desenvolvidas
           </h3>
 
           <TextareaField
-            id="atividadesProfissionais"
-            label="Atividades profissionais desenvolvidas na concedente"
-            value={form.atividadesProfissionais}
+            id="descricaoAtividadesAV"
+            label="Descrição sucinta das atividades desenvolvidas na concedente"
+            value={form.descricaoAtividades}
             onChange={(event) => {
-              updateField('atividadesProfissionais', event.target.value)
+              updateField('descricaoAtividades', event.target.value)
             }}
             required
-            error={fieldErrors.atividadesProfissionais}
-          />
-
-          <TextareaField
-            id="dificuldadesEncontradas"
-            label="Dificuldades encontradas"
-            value={form.dificuldadesEncontradas}
-            onChange={(event) => {
-              updateField('dificuldadesEncontradas', event.target.value)
-            }}
-            required
-            error={fieldErrors.dificuldadesEncontradas}
-          />
-
-          <TextareaField
-            id="conclusao"
-            label="Conclusão"
-            value={form.conclusao}
-            onChange={(event) => {
-              updateField('conclusao', event.target.value)
-            }}
-            required
-            error={fieldErrors.conclusao}
+            error={fieldErrors.descricaoAtividades}
           />
         </>
       )}
@@ -550,7 +587,7 @@ export default function MandatoryInternshipSections({
           </p>
 
           <FormField
-            id="cidadeAssinaturaMI"
+            id="cidadeAssinaturaAV"
             label="Cidade"
             value={form.cidadeAssinatura}
             onChange={(event) => {
