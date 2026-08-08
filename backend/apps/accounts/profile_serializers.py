@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.accounts.models import SupervisorProfile
+from apps.accounts.validators import validate_company_document
 from apps.students.models import StudentProfile
 from apps.students.serializers import (
     BrazilianStateField,
@@ -25,6 +26,7 @@ class UserProfileSerializer(serializers.Serializer):
     is_staff = serializers.BooleanField(read_only=True)
     is_superuser = serializers.BooleanField(read_only=True)
 
+    # Student profile fields.
     registration_number = serializers.CharField(
         max_length=50,
         required=False,
@@ -87,13 +89,86 @@ class UserProfileSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
     )
+
+    # Supervisor profile fields.
+    job_title = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    professional_registration = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+    )
     company_name = serializers.CharField(
         max_length=150,
         required=False,
         allow_blank=True,
     )
-    company_cnpj = serializers.CharField(
+    company_document = serializers.CharField(
         max_length=20,
+        validators=[validate_company_document],
+        required=False,
+        allow_blank=True,
+    )
+    company_professional_registration = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+    )
+    company_zip_code = serializers.CharField(
+        max_length=9,
+        validators=[validate_zip_code],
+        required=False,
+        allow_blank=True,
+    )
+    company_address = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+    )
+    company_address_number = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+    )
+    company_address_complement = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    company_neighborhood = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    company_city = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    company_state = BrazilianStateField(
+        required=False,
+        allow_blank=True,
+    )
+    company_email = serializers.EmailField(
+        required=False,
+        allow_blank=True,
+    )
+    company_phone_number = serializers.CharField(
+        max_length=30,
+        validators=[validate_phone],
+        required=False,
+        allow_blank=True,
+    )
+    company_business_activity = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    company_business_activity_other = serializers.CharField(
+        max_length=150,
         required=False,
         allow_blank=True,
     )
@@ -137,6 +212,7 @@ class UserProfileSerializer(serializers.Serializer):
     def validate(self, attrs):
         errors = {}
         student_profile = self._get_student_profile(self.instance)
+        supervisor_profile = self._get_supervisor_profile(self.instance)
 
         if student_profile:
             for field in (
@@ -153,12 +229,40 @@ class UserProfileSerializer(serializers.Serializer):
             ):
                 self._require_if_provided(attrs, errors, field)
 
-        if self._get_supervisor_profile(self.instance):
-            self._require_if_provided(
-                attrs,
-                errors,
+        if supervisor_profile:
+            for field in (
+                "phone_number",
+                "job_title",
                 "company_name",
+                "company_document",
+                "company_zip_code",
+                "company_address",
+                "company_address_number",
+                "company_neighborhood",
+                "company_city",
+                "company_state",
+                "company_email",
+                "company_phone_number",
+                "company_business_activity",
+            ):
+                self._require_if_provided(attrs, errors, field)
+
+            business_activity = attrs.get(
+                "company_business_activity",
+                supervisor_profile.company_business_activity,
             )
+            business_activity_other = attrs.get(
+                "company_business_activity_other",
+                supervisor_profile.company_business_activity_other,
+            )
+
+            if (
+                business_activity == "Outro"
+                and not business_activity_other.strip()
+            ):
+                errors["company_business_activity_other"] = (
+                    "Informe o ramo de atividade da empresa."
+                )
 
         if errors:
             raise serializers.ValidationError(errors)
@@ -216,9 +320,23 @@ class UserProfileSerializer(serializers.Serializer):
                 supervisor_profile,
                 validated_data,
                 (
-                    "company_name",
-                    "company_cnpj",
                     "phone_number",
+                    "job_title",
+                    "professional_registration",
+                    "company_name",
+                    "company_document",
+                    "company_professional_registration",
+                    "company_zip_code",
+                    "company_address",
+                    "company_address_number",
+                    "company_address_complement",
+                    "company_neighborhood",
+                    "company_city",
+                    "company_state",
+                    "company_email",
+                    "company_phone_number",
+                    "company_business_activity",
+                    "company_business_activity_other",
                 ),
             )
 
@@ -244,8 +362,22 @@ class UserProfileSerializer(serializers.Serializer):
             "neighborhood": "",
             "city": "",
             "state": "",
+            "job_title": "",
+            "professional_registration": "",
             "company_name": "",
-            "company_cnpj": "",
+            "company_document": "",
+            "company_professional_registration": "",
+            "company_zip_code": "",
+            "company_address": "",
+            "company_address_number": "",
+            "company_address_complement": "",
+            "company_neighborhood": "",
+            "company_city": "",
+            "company_state": "",
+            "company_email": "",
+            "company_phone_number": "",
+            "company_business_activity": "",
+            "company_business_activity_other": "",
         }
 
         student_profile = self._get_student_profile(user)
@@ -275,9 +407,39 @@ class UserProfileSerializer(serializers.Serializer):
         if supervisor_profile:
             data.update(
                 {
-                    "company_name": supervisor_profile.company_name,
-                    "company_cnpj": supervisor_profile.company_cnpj,
                     "phone_number": supervisor_profile.phone_number,
+                    "job_title": supervisor_profile.job_title,
+                    "professional_registration": (
+                        supervisor_profile.professional_registration
+                    ),
+                    "company_name": supervisor_profile.company_name,
+                    "company_document": supervisor_profile.company_document,
+                    "company_professional_registration": (
+                        supervisor_profile.company_professional_registration
+                    ),
+                    "company_zip_code": supervisor_profile.company_zip_code,
+                    "company_address": supervisor_profile.company_address,
+                    "company_address_number": (
+                        supervisor_profile.company_address_number
+                    ),
+                    "company_address_complement": (
+                        supervisor_profile.company_address_complement
+                    ),
+                    "company_neighborhood": (
+                        supervisor_profile.company_neighborhood
+                    ),
+                    "company_city": supervisor_profile.company_city,
+                    "company_state": supervisor_profile.company_state,
+                    "company_email": supervisor_profile.company_email,
+                    "company_phone_number": (
+                        supervisor_profile.company_phone_number
+                    ),
+                    "company_business_activity": (
+                        supervisor_profile.company_business_activity
+                    ),
+                    "company_business_activity_other": (
+                        supervisor_profile.company_business_activity_other
+                    ),
                 }
             )
 

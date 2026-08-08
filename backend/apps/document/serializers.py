@@ -59,6 +59,7 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
 
         if document_type in (
             DocumentType.MANDATORY_INTERNSHIP,
+            DocumentType.NON_MANDATORY_INTERNSHIP_CREDIT,
             DocumentType.PROFESSIONAL_PRACTICE_CREDIT,
         ) and not attrs.get("supervisor_id"):
             raise serializers.ValidationError(

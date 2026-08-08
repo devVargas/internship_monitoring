@@ -52,6 +52,7 @@ export type MandatoryInternshipFormData = {
   ufConcedente: string
   telefoneConcedente: string
   ramoAtividade: string
+  outroRamoAtividade: string
   supervisorIdReferencia: string
   cargoFuncaoSupervisor: string
   emailSupervisor: string
@@ -89,6 +90,7 @@ export type ActivityValidationFormData = {
   emailConcedente: string
   telefoneConcedente: string
   ramoAtividade: string
+  outroRamoAtividade: string
   supervisorIdReferencia: string
   cargoFuncaoSupervisor: string
   emailSupervisor: string
@@ -154,6 +156,7 @@ export type RegisterDocumentPayload =
       company: string
       city: string
       coordinator_name: string
+      supervisor_id: number
       attachment: File | null
       form_data: NonMandatoryInternshipCreditFormData
     }

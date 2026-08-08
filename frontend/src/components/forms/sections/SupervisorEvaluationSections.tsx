@@ -2,7 +2,6 @@ import type { SectionProps } from '../documentFormTypes.ts'
 import {
   EVALUATION_FREQUENCY_OPTIONS,
   EVALUATION_METHOD_OPTIONS,
-  PROFESSIONAL_STATUS_OPTIONS,
   TCE_HIRING_OPTIONS,
 } from '../documentFormConstants.ts'
 import RatingSelect from '../RatingSelect.tsx'
@@ -20,80 +19,6 @@ export default function SupervisorEvaluationSections({
   return (
     <>
       {currentSection === sectionOffset + 0 && (
-        <>
-          <h3 className="text-lg font-semibold text-neutral-900">
-            Dados complementares da avaliação
-          </h3>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <SelectField
-              id="situacaoSE"
-              label="Situação da/o estudante"
-              value={form.situacao}
-              onChange={(event) => {
-                updateField('situacao', event.target.value)
-                if (event.target.value !== 'outra') {
-                  updateField('especificarSituacao', '')
-                }
-              }}
-              options={PROFESSIONAL_STATUS_OPTIONS}
-              required
-              error={fieldErrors.situacao}
-            />
-
-            {form.situacao === 'outra' && (
-              <FormField
-                id="especificarSituacaoSE"
-                label="Se outra, especificar"
-                value={form.especificarSituacao}
-                onChange={(event) => {
-                  updateField('especificarSituacao', event.target.value)
-                }}
-                required
-                error={fieldErrors.especificarSituacao}
-              />
-            )}
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="dataFormaturaSE"
-              label="Data da formatura"
-              type="date"
-              value={form.dataFormatura}
-              onChange={(event) => {
-                updateField('dataFormatura', event.target.value)
-              }}
-              error={fieldErrors.dataFormatura}
-            />
-
-            <FormField
-              id="semestreAnoConclusaoSE"
-              label="Semestre/ano previsto para conclusão do curso"
-              value={form.semestreAnoConclusao}
-              onChange={(event) => {
-                updateField('semestreAnoConclusao', event.target.value)
-              }}
-              placeholder="Ex.: 2027/1"
-              required
-              error={fieldErrors.semestreAnoConclusao}
-            />
-          </div>
-
-          <FormField
-            id="funcaoPrincipalAlunoSE"
-            label="Função principal da/o estudante na concedente"
-            value={form.funcaoPrincipalAluno}
-            onChange={(event) => {
-              updateField('funcaoPrincipalAluno', event.target.value)
-            }}
-            required
-            error={fieldErrors.funcaoPrincipalAluno}
-          />
-        </>
-      )}
-
-      {currentSection === sectionOffset + 1 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
             Avaliação do desempenho
@@ -122,10 +47,10 @@ export default function SupervisorEvaluationSections({
         </>
       )}
 
-      {currentSection === sectionOffset + 2 && (
+      {currentSection === sectionOffset + 1 && (
         <>
           <h3 className="text-lg font-semibold text-neutral-900">
-            Detalhes da avaliação
+            Avaliação da concedente
           </h3>
 
           <SelectField
@@ -204,39 +129,6 @@ export default function SupervisorEvaluationSections({
               updateField('observacoes', event.target.value)
             }}
             error={fieldErrors.observacoes}
-          />
-
-          <FormField
-            id="registroConselhoSupervisorSE"
-            label="Nº de registro do supervisor no conselho profissional (se houver)"
-            value={form.registroConselhoSupervisor}
-            onChange={(event) => {
-              updateField('registroConselhoSupervisor', event.target.value)
-            }}
-            error={fieldErrors.registroConselhoSupervisor}
-          />
-        </>
-      )}
-
-      {currentSection === sectionOffset + 3 && (
-        <>
-          <h3 className="text-lg font-semibold text-neutral-900">
-            Local da assinatura
-          </h3>
-
-          <p className="text-sm text-neutral-600">
-            A data será preenchida automaticamente pelo sistema na geração do documento.
-          </p>
-
-          <FormField
-            id="cidadeAssinaturaSE"
-            label="Cidade"
-            value={form.cidadeAssinatura}
-            onChange={(event) => {
-              updateField('cidadeAssinatura', event.target.value)
-            }}
-            required
-            error={fieldErrors.cidadeAssinatura}
           />
         </>
       )}

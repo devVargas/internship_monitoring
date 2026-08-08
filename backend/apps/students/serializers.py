@@ -73,14 +73,63 @@ class StudentUserSerializer(serializers.ModelSerializer):
 
 class SupervisorUserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
+    email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
         model = SupervisorProfile
-        fields = ("id", "full_name")
+        fields = (
+            "id",
+            "full_name",
+            "display_name",
+            "email",
+            "phone_number",
+            "job_title",
+            "professional_registration",
+            "company_name",
+            "company_document",
+            "company_professional_registration",
+            "company_zip_code",
+            "company_address",
+            "company_address_number",
+            "company_address_complement",
+            "company_neighborhood",
+            "company_city",
+            "company_state",
+            "company_email",
+            "company_phone_number",
+            "company_business_activity",
+            "company_business_activity_other",
+        )
         read_only_fields = fields
 
     def get_full_name(self, obj):
-        return obj.user.get_full_name()
+        return obj.user.get_full_name() or obj.user.email
+
+    def get_display_name(self, obj):
+        full_name = self._display_case(self.get_full_name(obj))
+        company_name = self._display_case(obj.company_name)
+        return f"{full_name} [{company_name}]"
+
+    @staticmethod
+    def _display_case(value):
+        small_words = {"da", "das", "de", "do", "dos", "e"}
+        words = " ".join(value.split()).split(" ")
+        formatted = []
+
+        for index, word in enumerate(words):
+            lower = word.lower()
+
+            if index > 0 and lower in small_words:
+                formatted.append(lower)
+            elif word.isupper() and len(word) <= 5:
+                formatted.append(word)
+            elif word.islower() or word.isupper():
+                formatted.append(lower[:1].upper() + lower[1:])
+            else:
+                formatted.append(word[:1].upper() + word[1:])
+
+        return " ".join(formatted)
 
 
 class CoordinatorUserSerializer(serializers.ModelSerializer):
