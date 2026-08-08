@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ChangeEvent, type SubmitEvent } from
 import { useNavigate } from 'react-router-dom'
 import type { CurrentUser } from '../../api/auth.ts'
 import { getCurrentUserRequest } from '../../api/auth.ts'
+import { getUserProfileRequest } from '../../api/profile.ts'
 import type { DocumentType } from '../../api/documents.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
 import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
@@ -15,6 +16,11 @@ import INITIAL_FORM, { DOCUMENT_TYPE_LABELS, SECTION_FIELDS } from './documentFo
 import { validateForm } from './documentFormValidation.ts'
 import { buildPayload } from './documentFormPayload.ts'
 import { mapBackendDataToForm } from './documentFormDataMapping.ts'
+import {
+  mapStudentProfileToDocumentDefaults,
+  mergeStudentProfileDefaults,
+  type StudentProfileFormDefaults,
+} from './documentFormAutofill.ts'
 import { selectClass } from './documentFormStyles.ts'
 import MandatoryInternshipSections from './sections/MandatoryInternshipSections.tsx'
 import NonMandatoryInternshipCreditSections from './sections/NonMandatoryInternshipCreditSections.tsx'
@@ -28,6 +34,10 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [studentProfileDefaults, setStudentProfileDefaults] =
+    useState<StudentProfileFormDefaults>({})
+  const [isLoadingStudentProfile, setIsLoadingStudentProfile] = useState(false)
+  const [studentProfileError, setStudentProfileError] = useState<string | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [supervisors, setSupervisors] = useState<Supervisor[]>([])
   const [coordinators, setCoordinators] = useState<Coordinator[]>([])
@@ -76,6 +86,53 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       cancelled = true
     }
   }, [fetchWithAuth])
+
+  useEffect(() => {
+    if (
+      documentId ||
+      !currentUser?.groups.includes('Student')
+    ) {
+      return
+    }
+
+    let cancelled = false
+
+    async function loadStudentProfile() {
+      setIsLoadingStudentProfile(true)
+      setStudentProfileError(null)
+
+      try {
+        const profile = await getUserProfileRequest(fetchWithAuth)
+
+        if (cancelled) return
+
+        const defaults = mapStudentProfileToDocumentDefaults(profile)
+        setStudentProfileDefaults(defaults)
+        setForm((current) =>
+          mergeStudentProfileDefaults(current, defaults),
+        )
+      } catch (requestError) {
+        if (!cancelled) {
+          setStudentProfileError(
+            getErrorMessage(
+              requestError,
+              'Não foi possível preencher os dados do seu perfil automaticamente',
+            ),
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingStudentProfile(false)
+        }
+      }
+    }
+
+    void loadStudentProfile()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentUser, documentId, fetchWithAuth])
 
   useEffect(() => {
     if (!documentId || !currentUser) {
@@ -276,7 +333,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       value === 'supervisor_evaluation'
     ) {
       setUserSelectedType(value)
-      setForm(INITIAL_FORM)
+      setForm({ ...INITIAL_FORM, ...studentProfileDefaults })
       setFieldErrors({})
       setSuccessMessage('')
       setCurrentSection(0)
@@ -366,6 +423,21 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         >
           {loadError}
         </div>
+      )}
+
+      {studentProfileError && !documentId && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          {studentProfileError}. Você pode continuar preenchendo o formulário manualmente.
+        </div>
+      )}
+
+      {isLoadingStudentProfile && !documentId && (
+        <p className="text-sm text-neutral-600">
+          Preenchendo seus dados de cadastro...
+        </p>
       )}
 
       {!isLoadingUser && !loadError && (
