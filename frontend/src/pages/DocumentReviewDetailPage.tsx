@@ -194,7 +194,7 @@ export default function DocumentReviewDetailPage() {
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-neutral-500">
-                        Cidade
+                        Cidade da assinatura
                       </dt>
                       <dd className="mt-1 text-neutral-900">
                         {document.city}

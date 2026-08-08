@@ -38,169 +38,201 @@ const RATING_LABELS: Record<string, string> = {
   MB: 'Muito bom',
   B: 'Bom',
   R: 'Regular',
-  I: 'Insatisfatório',
+  I: 'Insuficiente',
 }
+
+const MODALITY_LABELS: Record<string, string> = {
+  integrado: 'Integrado',
+  modular_subsequente: 'Modular ou Subsequente',
+  superior: 'Superior',
+  outros: 'Outros',
+}
+
+const PROFESSIONAL_STATUS_LABELS: Record<string, string> = {
+  bolsista: 'Bolsista',
+  estagiario: 'Estagiário(a)',
+  funcionario_servidor: 'Funcionário(a) ou Servidor(a)',
+  monitor: 'Monitor(a)',
+  proprietario_socio: 'Proprietário(a) ou Sócio(a)',
+  outra: 'Outra situação',
+}
+
+const EVALUATION_METHOD_LABELS: Record<string, string> = {
+  reunioes: 'Através de reuniões',
+  folhas_servico: 'Folhas de serviço',
+  relatorios: 'Relatórios',
+  observacoes: 'Observações',
+  outros: 'Outros meios',
+}
+
+const EVALUATION_FREQUENCY_LABELS: Record<string, string> = {
+  diariamente: 'Diariamente',
+  semanalmente: 'Semanalmente',
+  quinzenalmente: 'Quinzenalmente',
+  outro: 'Outro',
+}
+
+const TCE_HIRING_LABELS: Record<string, string> = {
+  contratado: 'O(A) estudante foi contratado(a)',
+  nao_contratado: 'O(A) estudante NÃO foi contratado(a)',
+}
+
+const STUDENT_IDENTITY_FIELDS: readonly DocumentFormField[] = [
+  { key: 'nomeAluno', label: 'Nome da/o estudante' },
+  { key: 'matriculaAluno', label: 'Matrícula' },
+  { key: 'campusAluno', label: 'Câmpus' },
+  { key: 'cursoAluno', label: 'Curso' },
+  { key: 'emailAluno', label: 'E-mail da/o estudante' },
+  { key: 'telefoneAluno', label: 'Telefone da/o estudante' },
+  { key: 'celularAluno', label: 'Celular da/o estudante' },
+  { key: 'cepAluno', label: 'CEP residencial' },
+  { key: 'enderecoAluno', label: 'Endereço residencial' },
+  { key: 'numeroEnderecoAluno', label: 'Número residencial' },
+  { key: 'complementoEnderecoAluno', label: 'Complemento residencial' },
+  { key: 'bairroAluno', label: 'Bairro residencial' },
+  { key: 'cidadeAluno', label: 'Cidade residencial' },
+  { key: 'ufAluno', label: 'UF residencial' },
+  { key: 'modalidade', label: 'Modalidade', values: MODALITY_LABELS },
+  { key: 'especificarModalidade', label: 'Outra modalidade' },
+  { key: 'semestreAnoConclusao', label: 'Semestre/ano previsto para conclusão' },
+]
+
+const COMPANY_FIELDS: readonly DocumentFormField[] = [
+  { key: 'cnpjCpf', label: 'CNPJ/CPF da concedente' },
+  {
+    key: 'registroConselhoProfissional',
+    label: 'Registro ativo no conselho profissional da concedente',
+  },
+  { key: 'cepConcedente', label: 'CEP da concedente' },
+  { key: 'enderecoConcedente', label: 'Endereço da concedente' },
+  { key: 'bairroConcedente', label: 'Bairro da concedente' },
+  { key: 'cidadeConcedente', label: 'Cidade da concedente' },
+  { key: 'ufConcedente', label: 'UF da concedente' },
+  { key: 'emailConcedente', label: 'E-mail da concedente' },
+  { key: 'telefoneConcedente', label: 'Telefone da concedente' },
+  { key: 'ramoAtividade', label: 'Ramo de atividade' },
+]
+
+const SUPERVISOR_FIELDS: readonly DocumentFormField[] = [
+  { key: 'cargoFuncaoSupervisor', label: 'Cargo ou função do(a) supervisor(a)' },
+  { key: 'emailSupervisor', label: 'E-mail do(a) supervisor(a)' },
+  { key: 'telefoneSupervisor', label: 'Telefone do(a) supervisor(a)' },
+  {
+    key: 'registroConselhoSupervisor',
+    label: 'Registro do(a) supervisor(a) no conselho profissional',
+  },
+]
+
+const ACTIVITY_VALIDATION_FIELDS: readonly DocumentFormField[] = [
+  ...STUDENT_IDENTITY_FIELDS.filter((field) => ![
+    'cepAluno',
+    'enderecoAluno',
+    'numeroEnderecoAluno',
+    'complementoEnderecoAluno',
+    'bairroAluno',
+    'cidadeAluno',
+    'ufAluno',
+    'celularAluno',
+  ].includes(field.key)),
+  {
+    key: 'situacao',
+    label: 'Situação',
+    values: PROFESSIONAL_STATUS_LABELS,
+  },
+  {
+    key: 'especificarSituacao',
+    label: 'Outra situação — especificação',
+    isVisible: (formData) => formData.situacao === 'outra',
+  },
+  { key: 'cargo', label: 'Cargo da/o estudante' },
+  { key: 'setor', label: 'Setor da/o estudante' },
+  ...COMPANY_FIELDS,
+  { key: 'inicioAtividade', label: 'Início do período relatado', format: 'date' },
+  { key: 'fimAtividade', label: 'Fim do período relatado', format: 'date' },
+  { key: 'inicioHorarioAtividade', label: 'Horário de trabalho — início' },
+  { key: 'fimHorarioAtividade', label: 'Horário de trabalho — fim' },
+  { key: 'outroHorario', label: 'Outro horário' },
+  { key: 'horasSemanais', label: 'Total de horas semanais' },
+  { key: 'totalHorasTrabalhadas', label: 'Total de horas efetivamente trabalhadas' },
+  ...SUPERVISOR_FIELDS,
+  { key: 'descricaoAtividades', label: 'Descrição sucinta das atividades' },
+]
 
 const DOCUMENT_FORM_FIELDS: Record<DocumentType, readonly DocumentFormField[]> = {
   mandatory_internship: [
-    { key: 'cep', label: 'CEP do estudante' },
-    { key: 'endereco', label: 'Endereço do estudante' },
-    { key: 'bairro', label: 'Bairro do estudante' },
-    { key: 'cidade', label: 'Cidade do estudante' },
-    { key: 'uf', label: 'UF do estudante' },
-    {
-      key: 'dataEstimadaConclusao',
-      label: 'Data estimada de conclusão do curso',
-      format: 'date',
-    },
-    { key: 'cnpjCpf', label: 'CNPJ/CPF da concedente' },
-    {
-      key: 'registroConselhoProfissional',
-      label: 'Registro no conselho profissional',
-    },
-    { key: 'cepConcedente', label: 'CEP da concedente' },
-    { key: 'enderecoConcedente', label: 'Endereço da concedente' },
-    { key: 'bairroConcedente', label: 'Bairro da concedente' },
-    { key: 'cidadeConcedente', label: 'Cidade da concedente' },
-    { key: 'ufConcedente', label: 'UF da concedente' },
-    { key: 'telefone', label: 'Telefone da concedente' },
-    { key: 'ramoAtividade', label: 'Ramo de atividade' },
+    ...STUDENT_IDENTITY_FIELDS.filter((field) => field.key !== 'campusAluno' && field.key !== 'modalidade' && field.key !== 'especificarModalidade'),
+    ...COMPANY_FIELDS.filter((field) => field.key !== 'emailConcedente'),
+    ...SUPERVISOR_FIELDS,
     { key: 'inicioEstagio', label: 'Início do estágio', format: 'date' },
-    { key: 'fimEstagio', label: 'Fim do estágio', format: 'date' },
-    {
-      key: 'horasSemanais',
-      label: 'Número de horas de atividade semanais',
-    },
-    {
-      key: 'totalHorasTrabalhadas',
-      label: 'Total de horas efetivamente trabalhadas',
-    },
-    {
-      key: 'atividadesProfissionais',
-      label: 'Atividades profissionais desenvolvidas na concedente',
-    },
+    { key: 'fimEstagio', label: 'Último dia do estágio', format: 'date' },
+    { key: 'horasSemanais', label: 'Número de horas de atividades semanais' },
+    { key: 'totalHorasTrabalhadas', label: 'Total de horas efetivamente trabalhadas' },
+    { key: 'atividadesProfissionais', label: 'Atividades profissionais desenvolvidas' },
     { key: 'dificuldadesEncontradas', label: 'Dificuldades encontradas' },
     { key: 'conclusao', label: 'Conclusão' },
   ],
-  non_mandatory_internship_credit: [],
-  professional_practice_credit: [
-    {
-      key: 'modalidade',
-      label: 'Modalidade',
-      values: {
-        integrado: 'Integrado',
-        modular: 'Modular',
-        subsequente: 'Subsequente',
-        superior: 'Superior',
-        outros: 'Outros',
-      },
-    },
+  non_mandatory_internship_credit: ACTIVITY_VALIDATION_FIELDS,
+  professional_practice_credit: ACTIVITY_VALIDATION_FIELDS.filter(
+    (field) => field.key !== 'campusAluno',
+  ),
+  supervisor_evaluation: [
     {
       key: 'situacao',
-      label: 'Situação',
-      values: {
-        bolsista: 'Bolsista',
-        estagiario_funcionario_supervisor:
-          'Estagiário, funcionário ou supervisor',
-        monitor: 'Monitor',
-        proprietario_socio: 'Proprietário ou sócio',
-        outra: 'Outra situação',
-      },
+      label: 'Situação da/o estudante',
+      values: PROFESSIONAL_STATUS_LABELS,
     },
     {
       key: 'especificarSituacao',
-      label: 'Especificar situação',
+      label: 'Outra situação — especificação',
       isVisible: (formData) => formData.situacao === 'outra',
     },
-    {
-      key: 'dataPrevisaoConclusao',
-      label: 'Data de previsão para conclusão de curso',
-      format: 'date',
-    },
-    { key: 'cargo', label: 'Cargo' },
-    { key: 'setor', label: 'Setor' },
-    { key: 'cnpjCpf', label: 'CNPJ/CPF da concedente' },
-    {
-      key: 'registroConselhoProfissional',
-      label: 'Registro ativo no conselho profissional',
-    },
-    { key: 'cep', label: 'CEP da concedente' },
-    { key: 'endereco', label: 'Endereço da concedente' },
-    { key: 'bairro', label: 'Bairro da concedente' },
-    { key: 'cidade', label: 'Cidade da concedente' },
-    { key: 'estado', label: 'UF da concedente' },
-    { key: 'email', label: 'Email da concedente' },
-    { key: 'telefone', label: 'Telefone da concedente' },
-    { key: 'ramoAtividade', label: 'Ramo de atividade' },
-    { key: 'inicioAtividade', label: 'Início da atividade', format: 'date' },
-    { key: 'fimAtividade', label: 'Fim da atividade', format: 'date' },
-    {
-      key: 'inicioHorarioAtividade',
-      label: 'Início do horário de atividade',
-    },
-    { key: 'fimHorarioAtividade', label: 'Fim do horário de atividade' },
-    { key: 'horasSemanais', label: 'Total de horas semanais' },
-    {
-      key: 'descricaoAtividades',
-      label: 'Descrição sucinta das atividades',
-    },
-  ],
-  supervisor_evaluation: [
-    {
-      key: 'aprendizadoNoEstagio',
-      label: 'Aprendizado dentro do estágio',
-      format: 'rating',
-    },
-    {
-      key: 'segurancaExecucao',
-      label: 'Segurança na execução do trabalho',
-      format: 'rating',
-    },
-    {
-      key: 'interessePeloTrabalho',
-      label: 'Interesse pelo trabalho',
-      format: 'rating',
-    },
+    { key: 'dataFormatura', label: 'Data da formatura', format: 'date' },
+    { key: 'semestreAnoConclusao', label: 'Semestre/ano previsto para conclusão' },
+    { key: 'funcaoPrincipalAluno', label: 'Função principal da/o estudante' },
+    { key: 'aprendizadoNoEstagio', label: 'Aprendizado dentro do estágio', format: 'rating' },
+    { key: 'segurancaExecucao', label: 'Segurança na execução do trabalho', format: 'rating' },
+    { key: 'interessePeloTrabalho', label: 'Interesse pelo trabalho', format: 'rating' },
     { key: 'iniciativaPropria', label: 'Iniciativa própria', format: 'rating' },
-    {
-      key: 'conhecimentosTecnicos',
-      label: 'Conhecimentos técnicos',
-      format: 'rating',
-    },
+    { key: 'conhecimentosTecnicos', label: 'Conhecimentos técnicos', format: 'rating' },
     { key: 'produtividade', label: 'Produtividade', format: 'rating' },
-    {
-      key: 'qualidadeDoTrabalho',
-      label: 'Qualidade do trabalho',
-      format: 'rating',
-    },
+    { key: 'qualidadeDoTrabalho', label: 'Qualidade do trabalho', format: 'rating' },
     { key: 'disciplina', label: 'Disciplina', format: 'rating' },
-    {
-      key: 'relacionamentoSocial',
-      label: 'Relacionamento social',
-      format: 'rating',
-    },
+    { key: 'relacionamentoSocial', label: 'Relacionamento social', format: 'rating' },
     { key: 'cooperacao', label: 'Cooperação', format: 'rating' },
-    {
-      key: 'esforcoSuperarFalhas',
-      label: 'Esforço para superar falhas',
-      format: 'rating',
-    },
+    { key: 'esforcoSuperarFalhas', label: 'Esforço para superar falhas', format: 'rating' },
     { key: 'pontualidade', label: 'Pontualidade', format: 'rating' },
     { key: 'assiduidade', label: 'Assiduidade', format: 'rating' },
-    {
-      key: 'capacidadeDirecaoCoordenacao',
-      label: 'Capacidade de direção e coordenação',
-      format: 'rating',
-    },
+    { key: 'capacidadeDirecaoCoordenacao', label: 'Capacidade de direção e coordenação', format: 'rating' },
     {
       key: 'modoAvaliacao',
-      label: 'De qual modo a concedente avalia o estudante?',
+      label: 'Forma de avaliação',
+      values: EVALUATION_METHOD_LABELS,
+    },
+    {
+      key: 'outrosMeiosAvaliacao',
+      label: 'Outros meios de avaliação',
+      isVisible: (formData) => formData.modoAvaliacao === 'outros',
     },
     {
       key: 'periodicidadeAvaliacao',
-      label: 'Com que periodicidade o estudante é avaliado?',
+      label: 'Periodicidade da avaliação',
+      values: EVALUATION_FREQUENCY_LABELS,
+    },
+    {
+      key: 'outraPeriodicidadeAvaliacao',
+      label: 'Outra periodicidade',
+      isVisible: (formData) => formData.periodicidadeAvaliacao === 'outro',
+    },
+    {
+      key: 'contratacaoAposTce',
+      label: 'Contratação ao final do TCE',
+      values: TCE_HIRING_LABELS,
     },
     { key: 'observacoes', label: 'Observações' },
+    {
+      key: 'registroConselhoSupervisor',
+      label: 'Registro do(a) supervisor(a) no conselho profissional',
+    },
   ],
 }
 

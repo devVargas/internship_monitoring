@@ -2,31 +2,58 @@ import type { DocumentFormData, BackendDocumentResponse } from './documentFormTy
 import INITIAL_FORM from './documentFormConstants.ts'
 import { formatCep } from '../../utils/validation.ts'
 
+function readFormData(data: BackendDocumentResponse) {
+  return (data.form_data ?? {}) as Record<string, string | undefined>
+}
+
+function mapCommonFormData(formData: Record<string, string | undefined>) {
+  return {
+    nomeAluno: formData.nomeAluno ?? '',
+    matriculaAluno: formData.matriculaAluno ?? '',
+    campusAluno: formData.campusAluno ?? '',
+    cursoAluno: formData.cursoAluno ?? '',
+    emailAluno: formData.emailAluno ?? '',
+    telefoneAluno: formData.telefoneAluno ?? '',
+    celularAluno: formData.celularAluno ?? '',
+    cepAluno: formatCep(formData.cepAluno ?? ''),
+    enderecoAluno: formData.enderecoAluno ?? '',
+    numeroEnderecoAluno: formData.numeroEnderecoAluno ?? '',
+    complementoEnderecoAluno: formData.complementoEnderecoAluno ?? '',
+    bairroAluno: formData.bairroAluno ?? '',
+    cidadeAluno: formData.cidadeAluno ?? '',
+    ufAluno: formData.ufAluno ?? '',
+    modalidade: formData.modalidade ?? '',
+    especificarModalidade: formData.especificarModalidade ?? '',
+    semestreAnoConclusao: formData.semestreAnoConclusao ?? '',
+    cnpjCpf: formData.cnpjCpf ?? '',
+    registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
+    cepConcedente: formatCep(formData.cepConcedente ?? ''),
+    enderecoConcedente: formData.enderecoConcedente ?? '',
+    bairroConcedente: formData.bairroConcedente ?? '',
+    cidadeConcedente: formData.cidadeConcedente ?? '',
+    ufConcedente: formData.ufConcedente ?? '',
+    emailConcedente: formData.emailConcedente ?? '',
+    telefoneConcedente: formData.telefoneConcedente ?? '',
+    ramoAtividade: formData.ramoAtividade ?? '',
+    cargoFuncaoSupervisor: formData.cargoFuncaoSupervisor ?? '',
+    emailSupervisor: formData.emailSupervisor ?? '',
+    telefoneSupervisor: formData.telefoneSupervisor ?? '',
+    registroConselhoSupervisor: formData.registroConselhoSupervisor ?? '',
+  }
+}
+
 export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFormData {
-  const formData = (data.form_data ?? {}) as Record<string, string | undefined>
+  const formData = readFormData(data)
+  const common = mapCommonFormData(formData)
 
   switch (data.document_type) {
     case 'mandatory_internship':
       return {
         ...INITIAL_FORM,
+        ...common,
         razaoSocial: data.company ?? '',
         cidadeAssinatura: data.city ?? '',
-        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : '',
-        cep: formData.cep ?? '',
-        endereco: formData.endereco ?? '',
-        bairro: formData.bairro ?? '',
-        cidade: formData.cidade ?? '',
-        uf: formData.uf ?? '',
-        dataEstimadaConclusao: formData.dataEstimadaConclusao ?? '',
-        cnpjCpf: formData.cnpjCpf ?? '',
-        registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
-        cepConcedente: formData.cepConcedente ?? '',
-        bairroConcedente: formData.bairroConcedente ?? '',
-        cidadeConcedente: formData.cidadeConcedente ?? '',
-        ufConcedente: formData.ufConcedente ?? '',
-        enderecoConcedente: formData.enderecoConcedente ?? '',
-        telefone: formData.telefone ?? '',
-        ramoAtividade: formData.ramoAtividade ?? '',
+        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : formData.supervisorIdReferencia ?? '',
         inicioEstagio: formData.inicioEstagio ?? '',
         fimEstagio: formData.fimEstagio ?? '',
         horasSemanais: formData.horasSemanais ?? '',
@@ -38,43 +65,53 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
     case 'non_mandatory_internship_credit':
       return {
         ...INITIAL_FORM,
-        empresa: data.company ?? '',
-        cidade: data.city ?? '',
-        nomeCoordenador: data.coordinator_name ?? '',
-      }
-    case 'professional_practice_credit':
-      return {
-        ...INITIAL_FORM,
+        ...common,
         razaoSocial: data.company ?? '',
         cidadeAssinatura: data.city ?? '',
-        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : '',
-        modalidade: formData.modalidade ?? '',
-        dataPrevisaoConclusao: formData.dataPrevisaoConclusao ?? '',
+        nomeCoordenador: data.coordinator_name ?? '',
+        supervisor_id: formData.supervisorIdReferencia ?? '',
         situacao: formData.situacao ?? '',
         especificarSituacao: formData.especificarSituacao ?? '',
         cargo: formData.cargo ?? '',
         setor: formData.setor ?? '',
-        cnpjCpf: formData.cnpjCpf ?? '',
-        registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
-        cep: formatCep(formData.cep ?? ''),
-        endereco: formData.endereco ?? '',
-        bairro: formData.bairro ?? '',
-        cidade: formData.cidade ?? '',
-        estado: formData.estado ?? '',
-        email: formData.email ?? '',
-        telefone: formData.telefone ?? '',
-        ramoAtividade: formData.ramoAtividade ?? '',
         inicioAtividade: formData.inicioAtividade ?? '',
         fimAtividade: formData.fimAtividade ?? '',
         inicioHorarioAtividade: formData.inicioHorarioAtividade ?? '',
         fimHorarioAtividade: formData.fimHorarioAtividade ?? '',
+        outroHorario: formData.outroHorario ?? '',
         horasSemanais: formData.horasSemanais ?? '',
+        totalHorasTrabalhadas: formData.totalHorasTrabalhadas ?? '',
+        descricaoAtividades: formData.descricaoAtividades ?? '',
+      }
+    case 'professional_practice_credit':
+      return {
+        ...INITIAL_FORM,
+        ...common,
+        razaoSocial: data.company ?? '',
+        cidadeAssinatura: data.city ?? '',
+        supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : formData.supervisorIdReferencia ?? '',
+        situacao: formData.situacao ?? '',
+        especificarSituacao: formData.especificarSituacao ?? '',
+        cargo: formData.cargo ?? '',
+        setor: formData.setor ?? '',
+        inicioAtividade: formData.inicioAtividade ?? '',
+        fimAtividade: formData.fimAtividade ?? '',
+        inicioHorarioAtividade: formData.inicioHorarioAtividade ?? '',
+        fimHorarioAtividade: formData.fimHorarioAtividade ?? '',
+        outroHorario: formData.outroHorario ?? '',
+        horasSemanais: formData.horasSemanais ?? '',
+        totalHorasTrabalhadas: formData.totalHorasTrabalhadas ?? '',
         descricaoAtividades: formData.descricaoAtividades ?? '',
       }
     case 'supervisor_evaluation':
       return {
         ...INITIAL_FORM,
         cidadeAssinatura: data.city ?? '',
+        situacao: formData.situacao ?? '',
+        especificarSituacao: formData.especificarSituacao ?? '',
+        dataFormatura: formData.dataFormatura ?? '',
+        semestreAnoConclusao: formData.semestreAnoConclusao ?? '',
+        funcaoPrincipalAluno: formData.funcaoPrincipalAluno ?? '',
         aprendizadoNoEstagio: formData.aprendizadoNoEstagio ?? '',
         segurancaExecucao: formData.segurancaExecucao ?? '',
         interessePeloTrabalho: formData.interessePeloTrabalho ?? '',
@@ -90,8 +127,12 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
         assiduidade: formData.assiduidade ?? '',
         capacidadeDirecaoCoordenacao: formData.capacidadeDirecaoCoordenacao ?? '',
         modoAvaliacao: formData.modoAvaliacao ?? '',
+        outrosMeiosAvaliacao: formData.outrosMeiosAvaliacao ?? '',
         periodicidadeAvaliacao: formData.periodicidadeAvaliacao ?? '',
+        outraPeriodicidadeAvaliacao: formData.outraPeriodicidadeAvaliacao ?? '',
+        contratacaoAposTce: formData.contratacaoAposTce ?? '',
         observacoes: formData.observacoes ?? '',
+        registroConselhoSupervisor: formData.registroConselhoSupervisor ?? '',
       }
   }
 }

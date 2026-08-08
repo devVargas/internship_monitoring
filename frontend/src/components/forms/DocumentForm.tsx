@@ -7,7 +7,7 @@ import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
 import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
 import { getErrorMessage } from '../../utils/errors.ts'
-import { formatCep, formatPhone } from '../../utils/validation.ts'
+import { formatCep } from '../../utils/validation.ts'
 import { useCepLookup } from '../../hooks/useCepLookup.ts'
 import Button from '../ui/Button.tsx'
 import type { DocumentFormData, DocumentField, DocumentErrors, Supervisor, Coordinator, BackendDocumentResponse } from './documentFormTypes.ts'
@@ -37,7 +37,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
   const { fetchWithAuth } = useAPI()
-  const { isLoading: cepLoading, error: cepError, lookup: lookupCep } = useCepLookup()
+  const { isLoading: cepAlunoLoading, error: cepAlunoError, lookup: lookupCepAluno } = useCepLookup()
   const { isLoading: cepConcedenteLoading, error: cepConcedenteError, lookup: lookupCepConcedente } = useCepLookup()
 
   const canSeeStudentOptions = Boolean(
@@ -283,16 +283,18 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     }
   }
 
-  function handleCepChange(field: 'cep' | 'cepConcedente', event: ChangeEvent<HTMLInputElement>) {
+  function handleCepChange(
+    field: 'cepAluno' | 'cepConcedente',
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
     const formatted = formatCep(event.target.value)
     updateField(field, formatted)
 
-    if (field === 'cep') {
-      updateField('endereco', '')
-      updateField('bairro', '')
-      updateField('cidade', '')
-      updateField('uf', '')
-      updateField('estado', '')
+    if (field === 'cepAluno') {
+      updateField('enderecoAluno', '')
+      updateField('bairroAluno', '')
+      updateField('cidadeAluno', '')
+      updateField('ufAluno', '')
     } else {
       updateField('enderecoConcedente', '')
       updateField('bairroConcedente', '')
@@ -300,17 +302,16 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       updateField('ufConcedente', '')
     }
 
-    const lookup = field === 'cep' ? lookupCep : lookupCepConcedente
+    const lookup = field === 'cepAluno' ? lookupCepAluno : lookupCepConcedente
 
     void lookup(formatted).then((address) => {
       if (!address) return
 
-      if (field === 'cep') {
-        updateField('endereco', address.logradouro)
-        updateField('bairro', address.bairro)
-        updateField('cidade', address.localidade)
-        updateField('uf', address.uf)
-        updateField('estado', address.uf)
+      if (field === 'cepAluno') {
+        updateField('enderecoAluno', address.logradouro)
+        updateField('bairroAluno', address.bairro)
+        updateField('cidadeAluno', address.localidade)
+        updateField('ufAluno', address.uf)
         return
       }
 
@@ -319,10 +320,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       updateField('cidadeConcedente', address.localidade)
       updateField('ufConcedente', address.uf)
     })
-  }
-
-  function handlePhoneChange(event: ChangeEvent<HTMLInputElement>) {
-    updateField('telefone', formatPhone(event.target.value))
   }
 
   async function submitForm(): Promise<void> {
@@ -373,7 +370,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
       {!isLoadingUser && !loadError && (
         <>
-      {totalSections > 1 && currentSection > 0 && documentType !== 'non_mandatory_internship_credit' && (
+      {totalSections > 1 && currentSection > 0 && (
         <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-900 transition-all duration-300"
@@ -414,13 +411,77 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       </div>
       )}
 
-      {documentType === 'mandatory_internship' && <MandatoryInternshipSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepConcedenteLoading={cepConcedenteLoading} cepError={cepError} cepConcedenteError={cepConcedenteError} />}
+      {documentType === 'mandatory_internship' && (
+        <MandatoryInternshipSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          coordinators={coordinators}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
-      {documentType === 'non_mandatory_internship_credit' && <NonMandatoryInternshipCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
+      {documentType === 'non_mandatory_internship_credit' && (
+        <NonMandatoryInternshipCreditSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          coordinators={coordinators}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
-      {documentType === 'professional_practice_credit' && <ProfessionalPracticeCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepError={cepError} />}
+      {documentType === 'professional_practice_credit' && (
+        <ProfessionalPracticeCreditSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          coordinators={coordinators}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
-      {documentType === 'supervisor_evaluation' && <SupervisorEvaluationSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
+      {documentType === 'supervisor_evaluation' && (
+        <SupervisorEvaluationSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          coordinators={coordinators}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
       {successMessage && (
         <div

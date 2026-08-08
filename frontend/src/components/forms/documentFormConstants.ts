@@ -14,49 +14,158 @@ export const BRAZILIAN_UFS = [
   'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ]
 
+export const COURSE_MODALITY_OPTIONS = [
+  { value: 'integrado', label: 'Integrado' },
+  { value: 'modular_subsequente', label: 'Modular ou Subsequente' },
+  { value: 'superior', label: 'Superior' },
+  { value: 'outros', label: 'Outros' },
+] as const
+
+export const PROFESSIONAL_STATUS_OPTIONS = [
+  { value: 'bolsista', label: 'Bolsista' },
+  { value: 'estagiario', label: 'Estagiário(a)' },
+  { value: 'funcionario_servidor', label: 'Funcionário(a) ou Servidor(a)' },
+  { value: 'monitor', label: 'Monitor(a)' },
+  { value: 'proprietario_socio', label: 'Proprietário(a) ou Sócio(a)' },
+  { value: 'outra', label: 'Outra situação' },
+] as const
+
+export const EVALUATION_METHOD_OPTIONS = [
+  { value: 'reunioes', label: 'Através de reuniões' },
+  { value: 'folhas_servico', label: 'Folhas de serviço' },
+  { value: 'relatorios', label: 'Relatórios' },
+  { value: 'observacoes', label: 'Observações' },
+  { value: 'outros', label: 'Outros meios' },
+] as const
+
+export const EVALUATION_FREQUENCY_OPTIONS = [
+  { value: 'diariamente', label: 'Diariamente' },
+  { value: 'semanalmente', label: 'Semanalmente' },
+  { value: 'quinzenalmente', label: 'Quinzenalmente' },
+  { value: 'outro', label: 'Outro' },
+] as const
+
+export const TCE_HIRING_OPTIONS = [
+  { value: 'contratado', label: 'O(A) estudante foi contratado(a)' },
+  { value: 'nao_contratado', label: 'O(A) estudante NÃO foi contratado(a)' },
+] as const
+
 export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
   mandatory_internship: [
-    ['cep', 'uf', 'endereco', 'bairro', 'cidade', 'dataEstimadaConclusao'],
-    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente', 'ufConcedente', 'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente', 'telefone', 'ramoAtividade'],
-    ['supervisor_id', 'inicioEstagio', 'fimEstagio', 'horasSemanais', 'totalHorasTrabalhadas', 'attachment'],
+    [
+      'nomeAluno', 'matriculaAluno', 'cursoAluno', 'semestreAnoConclusao',
+      'emailAluno', 'telefoneAluno', 'celularAluno', 'cepAluno', 'enderecoAluno',
+      'numeroEnderecoAluno', 'complementoEnderecoAluno', 'bairroAluno',
+      'cidadeAluno', 'ufAluno',
+    ],
+    [
+      'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
+      'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
+      'ufConcedente', 'telefoneConcedente', 'ramoAtividade',
+    ],
+    [
+      'supervisor_id', 'cargoFuncaoSupervisor', 'emailSupervisor',
+      'telefoneSupervisor', 'registroConselhoSupervisor', 'inicioEstagio',
+      'fimEstagio', 'horasSemanais', 'totalHorasTrabalhadas', 'attachment',
+    ],
     ['atividadesProfissionais', 'dificuldadesEncontradas', 'conclusao'],
     ['cidadeAssinatura'],
   ],
   professional_practice_credit: [
-    ['modalidade', 'situacao', 'especificarSituacao', 'dataPrevisaoConclusao', 'cargo', 'setor'],
-    ['razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cep', 'endereco', 'bairro', 'cidade', 'estado', 'email', 'telefone', 'ramoAtividade'],
-    ['supervisor_id', 'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade', 'fimHorarioAtividade', 'horasSemanais', 'attachment'],
+    [
+      'nomeAluno', 'matriculaAluno', 'cursoAluno', 'modalidade', 'especificarModalidade', 'emailAluno',
+      'telefoneAluno', 'semestreAnoConclusao', 'situacao',
+      'especificarSituacao', 'cargo', 'setor',
+    ],
+    [
+      'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
+      'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
+      'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
+    ],
+    [
+      'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade',
+      'fimHorarioAtividade', 'outroHorario', 'horasSemanais',
+      'totalHorasTrabalhadas', 'supervisor_id', 'cargoFuncaoSupervisor',
+      'emailSupervisor', 'telefoneSupervisor', 'attachment',
+    ],
+    ['descricaoAtividades'],
+    ['cidadeAssinatura'],
+  ],
+  non_mandatory_internship_credit: [
+    [
+      'nomeCoordenador', 'nomeAluno', 'matriculaAluno', 'campusAluno',
+      'cursoAluno', 'modalidade', 'especificarModalidade', 'emailAluno', 'telefoneAluno',
+      'semestreAnoConclusao', 'situacao', 'especificarSituacao', 'cargo', 'setor',
+    ],
+    [
+      'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
+      'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
+      'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
+    ],
+    [
+      'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade',
+      'fimHorarioAtividade', 'outroHorario', 'horasSemanais',
+      'totalHorasTrabalhadas', 'supervisor_id', 'cargoFuncaoSupervisor',
+      'emailSupervisor', 'telefoneSupervisor', 'attachment',
+    ],
     ['descricaoAtividades'],
     ['cidadeAssinatura'],
   ],
   supervisor_evaluation: [
-    ['aprendizadoNoEstagio', 'segurancaExecucao', 'interessePeloTrabalho', 'iniciativaPropria', 'conhecimentosTecnicos', 'produtividade', 'qualidadeDoTrabalho', 'disciplina', 'relacionamentoSocial', 'cooperacao', 'esforcoSuperarFalhas', 'pontualidade', 'assiduidade', 'capacidadeDirecaoCoordenacao'],
-    ['modoAvaliacao', 'periodicidadeAvaliacao', 'observacoes'],
+    [
+      'situacao', 'especificarSituacao', 'dataFormatura',
+      'semestreAnoConclusao', 'funcaoPrincipalAluno',
+    ],
+    [
+      'aprendizadoNoEstagio', 'segurancaExecucao', 'interessePeloTrabalho',
+      'iniciativaPropria', 'conhecimentosTecnicos', 'produtividade',
+      'qualidadeDoTrabalho', 'disciplina', 'relacionamentoSocial', 'cooperacao',
+      'esforcoSuperarFalhas', 'pontualidade', 'assiduidade',
+      'capacidadeDirecaoCoordenacao',
+    ],
+    [
+      'modoAvaliacao', 'outrosMeiosAvaliacao', 'periodicidadeAvaliacao',
+      'outraPeriodicidadeAvaliacao', 'contratacaoAposTce', 'observacoes',
+      'registroConselhoSupervisor',
+    ],
     ['cidadeAssinatura'],
-  ],
-  non_mandatory_internship_credit: [
-    ['nomeCoordenador', 'empresa', 'attachment', 'cidade'],
   ],
 }
 
 const INITIAL_FORM: DocumentFormData = {
-  cep: '',
-  endereco: '',
-  bairro: '',
-  cidade: '',
-  uf: '',
-  dataEstimadaConclusao: '',
+  nomeAluno: '',
+  matriculaAluno: '',
+  campusAluno: '',
+  cursoAluno: '',
+  emailAluno: '',
+  telefoneAluno: '',
+  celularAluno: '',
+  cepAluno: '',
+  enderecoAluno: '',
+  numeroEnderecoAluno: '',
+  complementoEnderecoAluno: '',
+  bairroAluno: '',
+  cidadeAluno: '',
+  ufAluno: '',
+  modalidade: '',
+  especificarModalidade: '',
+  semestreAnoConclusao: '',
   razaoSocial: '',
   cnpjCpf: '',
   registroConselhoProfissional: '',
   cepConcedente: '',
+  enderecoConcedente: '',
   bairroConcedente: '',
   cidadeConcedente: '',
   ufConcedente: '',
-  enderecoConcedente: '',
-  telefone: '',
+  emailConcedente: '',
+  telefoneConcedente: '',
   ramoAtividade: '',
   supervisor_id: '',
+  cargoFuncaoSupervisor: '',
+  emailSupervisor: '',
+  telefoneSupervisor: '',
+  registroConselhoSupervisor: '',
   inicioEstagio: '',
   fimEstagio: '',
   horasSemanais: '',
@@ -64,23 +173,21 @@ const INITIAL_FORM: DocumentFormData = {
   atividadesProfissionais: '',
   dificuldadesEncontradas: '',
   conclusao: '',
-  cidadeAssinatura: '',
-  attachment: null,
-  nomeCoordenador: '',
-  empresa: '',
-  modalidade: '',
-  dataPrevisaoConclusao: '',
   situacao: '',
   especificarSituacao: '',
   cargo: '',
   setor: '',
-  estado: '',
-  email: '',
   inicioAtividade: '',
   fimAtividade: '',
   inicioHorarioAtividade: '',
   fimHorarioAtividade: '',
+  outroHorario: '',
   descricaoAtividades: '',
+  nomeCoordenador: '',
+  cidadeAssinatura: '',
+  attachment: null,
+  dataFormatura: '',
+  funcaoPrincipalAluno: '',
   aprendizadoNoEstagio: '',
   segurancaExecucao: '',
   interessePeloTrabalho: '',
@@ -96,7 +203,10 @@ const INITIAL_FORM: DocumentFormData = {
   assiduidade: '',
   capacidadeDirecaoCoordenacao: '',
   modoAvaliacao: '',
+  outrosMeiosAvaliacao: '',
   periodicidadeAvaliacao: '',
+  outraPeriodicidadeAvaliacao: '',
+  contratacaoAposTce: '',
   observacoes: '',
 }
 
