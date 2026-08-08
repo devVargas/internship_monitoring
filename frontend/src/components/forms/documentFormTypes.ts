@@ -1,7 +1,29 @@
 import type { ChangeEvent } from 'react'
 import type { DocumentType, DocumentStatus } from '../../api/documents.ts'
 
-export type Supervisor = { id: number; full_name: string }
+export type Supervisor = {
+  id: number
+  full_name: string
+  display_name: string
+  email: string
+  phone_number: string
+  job_title: string
+  professional_registration: string
+  company_name: string
+  company_document: string
+  company_professional_registration: string
+  company_zip_code: string
+  company_address: string
+  company_address_number: string
+  company_address_complement: string
+  company_neighborhood: string
+  company_city: string
+  company_state: string
+  company_email: string
+  company_phone_number: string
+  company_business_activity: string
+  company_business_activity_other: string
+}
 export type Coordinator = { id: number; full_name: string }
 
 export type DocumentFormData = {
@@ -36,6 +58,7 @@ export type DocumentFormData = {
   emailConcedente: string
   telefoneConcedente: string
   ramoAtividade: string
+  outroRamoAtividade: string
 
   // Supervisor/a ou chefia imediata.
   supervisor_id: string
@@ -104,10 +127,16 @@ export type DocumentErrors = Partial<Record<DocumentField, string>>
 
 export type BackendDocumentResponse = {
   document_type: DocumentType
+  student_name?: string
+  student_email?: string
+  student_registration_number?: string
+  student_course?: string
+  student_campus?: string
   status: DocumentStatus
   company?: string
   city?: string
   supervisor_id: number | null
+  supervisor_email?: string | null
   coordinator_name?: string
   attachment?: string | null
   related_document: number | null
@@ -121,6 +150,7 @@ export type SectionProps = {
   sectionOffset: number
   currentSection: number
   supervisors: Supervisor[]
+  handleSupervisorChange: (supervisorId: string) => void
   coordinators: Coordinator[]
   handleCepChange: (
     field: 'cepAluno' | 'cepConcedente',

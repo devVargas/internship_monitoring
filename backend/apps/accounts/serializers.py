@@ -11,6 +11,7 @@ from apps.accounts.constants import (
     GROUP_SUPERVISOR,
 )
 from apps.accounts.models import SupervisorProfile
+from apps.accounts.validators import validate_company_document
 from apps.students.models import StudentProfile
 from apps.students.serializers import (
     BrazilianStateField,
@@ -214,14 +215,50 @@ class SupervisorRegistrationSerializer(serializers.Serializer):
         allow_blank=True,
     )
     password = serializers.CharField(write_only=True, min_length=8)
-    company_name = serializers.CharField(max_length=150)
-    company_cnpj = serializers.CharField(
-        max_length=20,
+
+    phone_number = serializers.CharField(
+        max_length=30,
+        validators=[validate_phone],
+    )
+    job_title = serializers.CharField(max_length=150)
+    professional_registration = serializers.CharField(
+        max_length=100,
         required=False,
         allow_blank=True,
     )
-    phone_number = serializers.CharField(
+
+    company_name = serializers.CharField(max_length=150)
+    company_document = serializers.CharField(
+        max_length=20,
+        validators=[validate_company_document],
+    )
+    company_professional_registration = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+    )
+    company_zip_code = serializers.CharField(
+        max_length=9,
+        validators=[validate_zip_code],
+    )
+    company_address = serializers.CharField(max_length=255)
+    company_address_number = serializers.CharField(max_length=20)
+    company_address_complement = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    company_neighborhood = serializers.CharField(max_length=150)
+    company_city = serializers.CharField(max_length=150)
+    company_state = BrazilianStateField()
+    company_email = serializers.EmailField()
+    company_phone_number = serializers.CharField(
         max_length=30,
+        validators=[validate_phone],
+    )
+    company_business_activity = serializers.CharField(max_length=150)
+    company_business_activity_other = serializers.CharField(
+        max_length=150,
         required=False,
         allow_blank=True,
     )
@@ -236,11 +273,46 @@ class SupervisorRegistrationSerializer(serializers.Serializer):
 
         return normalized_email
 
+    def validate(self, attrs):
+        if (
+            attrs.get("company_business_activity") == "Outro"
+            and not attrs.get("company_business_activity_other", "").strip()
+        ):
+            raise serializers.ValidationError(
+                {
+                    "company_business_activity_other": (
+                        "Informe o ramo de atividade da empresa."
+                    )
+                }
+            )
+
+        return attrs
+
     @transaction.atomic
     def create(self, validated_data):
-        company_name = validated_data.pop("company_name")
-        company_cnpj = validated_data.pop("company_cnpj", "")
-        phone_number = validated_data.pop("phone_number", "")
+        profile_fields = {
+            "phone_number",
+            "job_title",
+            "professional_registration",
+            "company_name",
+            "company_document",
+            "company_professional_registration",
+            "company_zip_code",
+            "company_address",
+            "company_address_number",
+            "company_address_complement",
+            "company_neighborhood",
+            "company_city",
+            "company_state",
+            "company_email",
+            "company_phone_number",
+            "company_business_activity",
+            "company_business_activity_other",
+        }
+        profile_data = {
+            field: validated_data.pop(field, "")
+            for field in profile_fields
+        }
         password = validated_data.pop("password")
         email = validated_data["email"]
 
@@ -257,9 +329,7 @@ class SupervisorRegistrationSerializer(serializers.Serializer):
 
         SupervisorProfile.objects.create(
             user=user,
-            company_name=company_name,
-            company_cnpj=company_cnpj,
-            phone_number=phone_number,
+            **profile_data,
         )
 
         return user

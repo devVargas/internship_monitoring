@@ -8,7 +8,7 @@ import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
 import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
 import { getErrorMessage } from '../../utils/errors.ts'
-import { formatCep } from '../../utils/validation.ts'
+import { formatCep, formatCpfCnpj, formatPhone } from '../../utils/validation.ts'
 import { useCepLookup } from '../../hooks/useCepLookup.ts'
 import Button from '../ui/Button.tsx'
 import type { DocumentFormData, DocumentField, DocumentErrors, Supervisor, Coordinator, BackendDocumentResponse } from './documentFormTypes.ts'
@@ -17,7 +17,9 @@ import { validateForm } from './documentFormValidation.ts'
 import { buildPayload } from './documentFormPayload.ts'
 import { mapBackendDataToForm } from './documentFormDataMapping.ts'
 import {
+  mapMandatoryDocumentToSupervisorEvaluationDefaults,
   mapStudentProfileToDocumentDefaults,
+  mapSupervisorProfileToDocumentDefaults,
   mergeStudentProfileDefaults,
   type StudentProfileFormDefaults,
 } from './documentFormAutofill.ts'
@@ -90,14 +92,16 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   useEffect(() => {
     if (
       documentId ||
-      !currentUser?.groups.includes('Student')
+      !currentUser ||
+      (!currentUser.groups.includes('Student') &&
+        !currentUser.groups.includes('Supervisor'))
     ) {
       return
     }
 
     let cancelled = false
 
-    async function loadStudentProfile() {
+    async function loadProfileDefaults() {
       setIsLoadingStudentProfile(true)
       setStudentProfileError(null)
 
@@ -106,8 +110,16 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
         if (cancelled) return
 
-        const defaults = mapStudentProfileToDocumentDefaults(profile)
-        setStudentProfileDefaults(defaults)
+        if (currentUser.groups.includes('Student')) {
+          const defaults = mapStudentProfileToDocumentDefaults(profile)
+          setStudentProfileDefaults(defaults)
+          setForm((current) =>
+            mergeStudentProfileDefaults(current, defaults),
+          )
+          return
+        }
+
+        const defaults = mapSupervisorProfileToDocumentDefaults(profile)
         setForm((current) =>
           mergeStudentProfileDefaults(current, defaults),
         )
@@ -127,12 +139,74 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       }
     }
 
-    void loadStudentProfile()
+    void loadProfileDefaults()
 
     return () => {
       cancelled = true
     }
   }, [currentUser, documentId, fetchWithAuth])
+
+  useEffect(() => {
+    if (
+      documentId ||
+      !relatedDocumentIdProp ||
+      !(currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'))
+    ) {
+      return
+    }
+
+    let cancelled = false
+
+    async function loadRelatedMandatoryDocument() {
+      try {
+        const response = await fetchWithAuth(
+          `/api/documents/${String(relatedDocumentIdProp)}/`,
+        )
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar o estágio relacionado')
+        }
+
+        const data = (await response.json()) as BackendDocumentResponse
+
+        if (cancelled) return
+
+        if (data.document_type !== 'mandatory_internship') {
+          throw new Error('Documento relacionado inválido')
+        }
+
+        const defaults =
+          mapMandatoryDocumentToSupervisorEvaluationDefaults(data)
+
+        setForm((current) =>
+          mergeStudentProfileDefaults(current, defaults),
+        )
+        setRelatedDocumentId(relatedDocumentIdProp)
+        onTitleChange?.(DOCUMENT_TYPE_LABELS.supervisor_evaluation)
+      } catch (requestError) {
+        if (!cancelled) {
+          setLoadError(
+            getErrorMessage(
+              requestError,
+              'Não foi possível carregar os dados do estágio para avaliação',
+            ),
+          )
+        }
+      }
+    }
+
+    void loadRelatedMandatoryDocument()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    currentUser,
+    documentId,
+    fetchWithAuth,
+    onTitleChange,
+    relatedDocumentIdProp,
+  ])
 
   useEffect(() => {
     if (!documentId || !currentUser) {
@@ -284,6 +358,16 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const formSectionCount = SECTION_FIELDS[documentType].length
   const sectionOffset = showTypeSelector ? 1 : 0
   const totalSections = formSectionCount + sectionOffset
+  const formProgress =
+    formSectionCount <= 1
+      ? 100
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            ((currentSection - sectionOffset) / (formSectionCount - 1)) * 100,
+          ),
+        )
 
   function validateCurrentSection(): DocumentErrors {
     if (currentSection < sectionOffset) return {}
@@ -321,6 +405,88 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   function updateField(field: DocumentField, value: string | File | null) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
+  }
+
+  function handleSupervisorChange(supervisorId: string) {
+    const supervisor = supervisors.find(
+      (item) => String(item.id) === supervisorId,
+    )
+
+    if (!supervisor) {
+      setForm((current) => ({
+        ...current,
+        supervisor_id: '',
+        razaoSocial: '',
+        cnpjCpf: '',
+        registroConselhoProfissional: '',
+        cepConcedente: '',
+        enderecoConcedente: '',
+        bairroConcedente: '',
+        cidadeConcedente: '',
+        ufConcedente: '',
+        emailConcedente: '',
+        telefoneConcedente: '',
+        ramoAtividade: '',
+        outroRamoAtividade: '',
+        cargoFuncaoSupervisor: '',
+        emailSupervisor: '',
+        telefoneSupervisor: '',
+        registroConselhoSupervisor: '',
+      }))
+      return
+    }
+
+    const companyAddress = [
+      supervisor.company_address,
+      supervisor.company_address_number,
+      supervisor.company_address_complement,
+    ]
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join(', ')
+
+    setForm((current) => ({
+      ...current,
+      supervisor_id: supervisorId,
+      razaoSocial: supervisor.company_name,
+      cnpjCpf: formatCpfCnpj(supervisor.company_document),
+      registroConselhoProfissional:
+        supervisor.company_professional_registration,
+      cepConcedente: formatCep(supervisor.company_zip_code),
+      enderecoConcedente: companyAddress,
+      bairroConcedente: supervisor.company_neighborhood,
+      cidadeConcedente: supervisor.company_city,
+      ufConcedente: supervisor.company_state,
+      emailConcedente: supervisor.company_email,
+      telefoneConcedente: formatPhone(supervisor.company_phone_number),
+      ramoAtividade: supervisor.company_business_activity,
+      outroRamoAtividade: supervisor.company_business_activity_other,
+      cargoFuncaoSupervisor: supervisor.job_title,
+      emailSupervisor: supervisor.email,
+      telefoneSupervisor: formatPhone(supervisor.phone_number),
+      registroConselhoSupervisor: supervisor.professional_registration,
+    }))
+
+    setFieldErrors((current) => ({
+      ...current,
+      supervisor_id: undefined,
+      razaoSocial: undefined,
+      cnpjCpf: undefined,
+      registroConselhoProfissional: undefined,
+      cepConcedente: undefined,
+      enderecoConcedente: undefined,
+      bairroConcedente: undefined,
+      cidadeConcedente: undefined,
+      ufConcedente: undefined,
+      emailConcedente: undefined,
+      telefoneConcedente: undefined,
+      ramoAtividade: undefined,
+      outroRamoAtividade: undefined,
+      cargoFuncaoSupervisor: undefined,
+      emailSupervisor: undefined,
+      telefoneSupervisor: undefined,
+      registroConselhoSupervisor: undefined,
+    }))
   }
 
   function handleDocumentTypeChange(event: ChangeEvent<HTMLSelectElement>) {
@@ -446,7 +612,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-900 transition-all duration-300"
-            style={{ width: `${String(((currentSection - 1) / (totalSections - 2)) * 100)}%` }}
+            style={{ width: `${String(formProgress)}%` }}
           />
         </div>
       )}
@@ -491,6 +657,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           sectionOffset={sectionOffset}
           currentSection={currentSection}
           supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
           handleCepChange={handleCepChange}
           documentId={documentId}
@@ -509,6 +676,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           sectionOffset={sectionOffset}
           currentSection={currentSection}
           supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
           handleCepChange={handleCepChange}
           documentId={documentId}
@@ -527,6 +695,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           sectionOffset={sectionOffset}
           currentSection={currentSection}
           supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
           handleCepChange={handleCepChange}
           documentId={documentId}
@@ -545,6 +714,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           sectionOffset={sectionOffset}
           currentSection={currentSection}
           supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
           handleCepChange={handleCepChange}
           documentId={documentId}

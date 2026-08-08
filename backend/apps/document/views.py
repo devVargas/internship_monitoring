@@ -155,6 +155,11 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 }
             )
 
+        form_data = dict(serializer.validated_data.get("form_data", {}))
+        form_data["registroConselhoSupervisor"] = (
+            supervisor.professional_registration
+        )
+
         document = serializer.save(
             student=related_document.student,
             supervisor=supervisor,
@@ -168,6 +173,8 @@ class DocumentViewSet(viewsets.ModelViewSet):
             student_course=related_document.student_course,
             student_campus=related_document.student_campus,
             company=related_document.company,
+            city=supervisor.company_city,
+            form_data=form_data,
             document_date=timezone.localdate(),
         )
 
@@ -216,6 +223,15 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 ),
                 student_course=form_data.get("cursoAluno") or student.course,
                 student_campus=form_data.get("campusAluno") or student.campus,
+            )
+        elif supervisor is not None:
+            form_data = dict(serializer.validated_data.get("form_data", {}))
+            form_data["registroConselhoSupervisor"] = (
+                supervisor.professional_registration
+            )
+            save_kwargs.update(
+                city=supervisor.company_city,
+                form_data=form_data,
             )
 
         document = serializer.save(**save_kwargs)

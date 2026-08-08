@@ -1,5 +1,6 @@
 import type { DocumentFormData, DocumentField, DocumentErrors } from './documentFormTypes.ts'
 import type { DocumentType } from '../../api/documents.ts'
+import { OTHER_BUSINESS_ACTIVITY } from '../../utils/businessActivityOptions.ts'
 import {
   validateRequired,
   validateCep,
@@ -86,7 +87,10 @@ function validateCompany(form: DocumentFormData, requireEmail: boolean): Documen
   addError(errors, 'cidadeConcedente', validateRequired(form.cidadeConcedente) ?? validateLettersPunct(form.cidadeConcedente))
   addError(errors, 'ufConcedente', validateRequired(form.ufConcedente) ?? validateUf(form.ufConcedente))
   addError(errors, 'telefoneConcedente', validateRequired(form.telefoneConcedente) ?? validatePhone(form.telefoneConcedente))
-  addError(errors, 'ramoAtividade', validateRequired(form.ramoAtividade) ?? validateLettersPunct(form.ramoAtividade))
+  addError(errors, 'ramoAtividade', validateRequired(form.ramoAtividade))
+  if (form.ramoAtividade === OTHER_BUSINESS_ACTIVITY) {
+    addError(errors, 'outroRamoAtividade', validateRequired(form.outroRamoAtividade))
+  }
 
   if (requireEmail) {
     addError(errors, 'emailConcedente', validateRequired(form.emailConcedente) ?? validateEmail(form.emailConcedente))
@@ -110,13 +114,23 @@ export function validateMandatoryInternship(form: DocumentFormData): DocumentErr
   const errors: DocumentErrors = {
     ...validateStudentIdentification(form, {
       address: true,
-      campus: false,
+      campus: true,
       modality: false,
       phoneRequired: false,
     }),
-    ...validateCompany(form, false),
+    ...validateCompany(form, true),
     ...validateSupervisor(form),
   }
+
+  addError(errors, 'situacao', validateRequired(form.situacao))
+  if (form.situacao === 'outra') {
+    addError(errors, 'especificarSituacao', validateRequired(form.especificarSituacao))
+  }
+  addError(
+    errors,
+    'funcaoPrincipalAluno',
+    validateRequired(form.funcaoPrincipalAluno) ?? validateLettersPunct(form.funcaoPrincipalAluno),
+  )
 
   addError(errors, 'inicioEstagio', validateRequired(form.inicioEstagio))
   addError(errors, 'fimEstagio', validateRequired(form.fimEstagio))
@@ -184,17 +198,6 @@ export function validateProfessionalPracticeCredit(form: DocumentFormData): Docu
 export function validateSupervisorEvaluation(form: DocumentFormData): DocumentErrors {
   const errors: DocumentErrors = {}
 
-  addError(errors, 'situacao', validateRequired(form.situacao))
-  if (form.situacao === 'outra') {
-    addError(errors, 'especificarSituacao', validateRequired(form.especificarSituacao))
-  }
-  addError(
-    errors,
-    'semestreAnoConclusao',
-    validateRequired(form.semestreAnoConclusao) ?? validateSemesterYear(form.semestreAnoConclusao),
-  )
-  addError(errors, 'funcaoPrincipalAluno', validateRequired(form.funcaoPrincipalAluno) ?? validateLettersPunct(form.funcaoPrincipalAluno))
-
   const ratingFields: DocumentField[] = [
     'aprendizadoNoEstagio',
     'segurancaExecucao',
@@ -227,7 +230,6 @@ export function validateSupervisorEvaluation(form: DocumentFormData): DocumentEr
   }
 
   addError(errors, 'contratacaoAposTce', validateRequired(form.contratacaoAposTce))
-  addError(errors, 'cidadeAssinatura', validateRequired(form.cidadeAssinatura) ?? validateLettersPunct(form.cidadeAssinatura))
 
   return errors
 }

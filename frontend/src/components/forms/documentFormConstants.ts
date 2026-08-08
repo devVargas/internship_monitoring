@@ -53,7 +53,8 @@ export const TCE_HIRING_OPTIONS = [
 export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
   mandatory_internship: [
     [
-      'nomeAluno', 'matriculaAluno', 'cursoAluno', 'semestreAnoConclusao',
+      'nomeAluno', 'matriculaAluno', 'campusAluno', 'cursoAluno',
+      'semestreAnoConclusao', 'situacao', 'especificarSituacao', 'dataFormatura',
       'emailAluno', 'telefoneAluno', 'celularAluno', 'cepAluno', 'enderecoAluno',
       'numeroEnderecoAluno', 'complementoEnderecoAluno', 'bairroAluno',
       'cidadeAluno', 'ufAluno',
@@ -61,12 +62,14 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
     [
       'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
       'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
-      'ufConcedente', 'telefoneConcedente', 'ramoAtividade',
+      'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
+      'outroRamoAtividade', 'supervisor_id',
     ],
     [
-      'supervisor_id', 'cargoFuncaoSupervisor', 'emailSupervisor',
-      'telefoneSupervisor', 'registroConselhoSupervisor', 'inicioEstagio',
-      'fimEstagio', 'horasSemanais', 'totalHorasTrabalhadas', 'attachment',
+      'cargoFuncaoSupervisor', 'emailSupervisor',
+      'telefoneSupervisor', 'registroConselhoSupervisor', 'funcaoPrincipalAluno',
+      'inicioEstagio', 'fimEstagio', 'horasSemanais', 'totalHorasTrabalhadas',
+      'attachment',
     ],
     ['atividadesProfissionais', 'dificuldadesEncontradas', 'conclusao'],
     ['cidadeAssinatura'],
@@ -81,11 +84,12 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
       'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
       'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
       'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
+      'outroRamoAtividade', 'supervisor_id',
     ],
     [
       'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade',
       'fimHorarioAtividade', 'outroHorario', 'horasSemanais',
-      'totalHorasTrabalhadas', 'supervisor_id', 'cargoFuncaoSupervisor',
+      'totalHorasTrabalhadas', 'cargoFuncaoSupervisor',
       'emailSupervisor', 'telefoneSupervisor', 'attachment',
     ],
     ['descricaoAtividades'],
@@ -101,21 +105,18 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
       'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
       'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
       'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
+      'outroRamoAtividade', 'supervisor_id',
     ],
     [
       'inicioAtividade', 'fimAtividade', 'inicioHorarioAtividade',
       'fimHorarioAtividade', 'outroHorario', 'horasSemanais',
-      'totalHorasTrabalhadas', 'supervisor_id', 'cargoFuncaoSupervisor',
+      'totalHorasTrabalhadas', 'cargoFuncaoSupervisor',
       'emailSupervisor', 'telefoneSupervisor', 'attachment',
     ],
     ['descricaoAtividades'],
     ['cidadeAssinatura'],
   ],
   supervisor_evaluation: [
-    [
-      'situacao', 'especificarSituacao', 'dataFormatura',
-      'semestreAnoConclusao', 'funcaoPrincipalAluno',
-    ],
     [
       'aprendizadoNoEstagio', 'segurancaExecucao', 'interessePeloTrabalho',
       'iniciativaPropria', 'conhecimentosTecnicos', 'produtividade',
@@ -126,9 +127,7 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
     [
       'modoAvaliacao', 'outrosMeiosAvaliacao', 'periodicidadeAvaliacao',
       'outraPeriodicidadeAvaliacao', 'contratacaoAposTce', 'observacoes',
-      'registroConselhoSupervisor',
     ],
-    ['cidadeAssinatura'],
   ],
 }
 
@@ -161,6 +160,7 @@ const INITIAL_FORM: DocumentFormData = {
   emailConcedente: '',
   telefoneConcedente: '',
   ramoAtividade: '',
+  outroRamoAtividade: '',
   supervisor_id: '',
   cargoFuncaoSupervisor: '',
   emailSupervisor: '',

@@ -101,7 +101,7 @@ const COMPANY_FIELDS: readonly DocumentFormField[] = [
   { key: 'cnpjCpf', label: 'CNPJ/CPF da concedente' },
   {
     key: 'registroConselhoProfissional',
-    label: 'Registro ativo no conselho profissional da concedente',
+    label: 'Registro no conselho profissional da concedente',
   },
   { key: 'cepConcedente', label: 'CEP da concedente' },
   { key: 'enderecoConcedente', label: 'Endereço da concedente' },
@@ -111,15 +111,20 @@ const COMPANY_FIELDS: readonly DocumentFormField[] = [
   { key: 'emailConcedente', label: 'E-mail da concedente' },
   { key: 'telefoneConcedente', label: 'Telefone da concedente' },
   { key: 'ramoAtividade', label: 'Ramo de atividade' },
+  {
+    key: 'outroRamoAtividade',
+    label: 'Outro ramo de atividade',
+    isVisible: (formData) => formData.ramoAtividade === 'Outro',
+  },
 ]
 
 const SUPERVISOR_FIELDS: readonly DocumentFormField[] = [
-  { key: 'cargoFuncaoSupervisor', label: 'Cargo ou função do(a) supervisor(a)' },
-  { key: 'emailSupervisor', label: 'E-mail do(a) supervisor(a)' },
-  { key: 'telefoneSupervisor', label: 'Telefone do(a) supervisor(a)' },
+  { key: 'cargoFuncaoSupervisor', label: 'Cargo ou função' },
+  { key: 'emailSupervisor', label: 'E-mail' },
+  { key: 'telefoneSupervisor', label: 'Telefone' },
   {
     key: 'registroConselhoSupervisor',
-    label: 'Registro do(a) supervisor(a) no conselho profissional',
+    label: 'Registro no conselho profissional',
   },
 ]
 
@@ -231,7 +236,7 @@ const DOCUMENT_FORM_FIELDS: Record<DocumentType, readonly DocumentFormField[]> =
     { key: 'observacoes', label: 'Observações' },
     {
       key: 'registroConselhoSupervisor',
-      label: 'Registro do(a) supervisor(a) no conselho profissional',
+      label: 'Registro no conselho profissional',
     },
   ],
 }

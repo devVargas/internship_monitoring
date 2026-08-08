@@ -28,6 +28,7 @@ export default function ActivityValidationSections({
   sectionOffset,
   currentSection,
   supervisors,
+  handleSupervisorChange,
   coordinators,
   handleCepChange,
   documentId,
@@ -155,7 +156,7 @@ export default function ActivityValidationSections({
 
             <FormField
               id="telefoneAlunoAV"
-              label="Telefone com DDD"
+              label="Telefone"
               value={form.telefoneAluno}
               onChange={(event) => {
                 updateField('telefoneAluno', formatPhone(event.target.value))
@@ -240,6 +241,35 @@ export default function ActivityValidationSections({
             Identificação da concedente
           </h3>
 
+          <div>
+            <label
+              htmlFor="supervisor_id_av"
+              className="mb-1.5 block text-sm font-medium text-neutral-800"
+            >
+              Supervisor(a) de estágio ou chefia imediata <span className="text-red-600">*</span>
+            </label>
+
+            <select
+              id="supervisor_id_av"
+              value={form.supervisor_id}
+              onChange={(event) => {
+                handleSupervisorChange(event.target.value)
+              }}
+              className={selectClass(fieldErrors.supervisor_id)}
+            >
+              <option value="">Selecione...</option>
+              {supervisors.map((supervisor) => (
+                <option key={supervisor.id} value={String(supervisor.id)}>
+                  {supervisor.display_name}
+                </option>
+              ))}
+            </select>
+
+            {fieldErrors.supervisor_id && (
+              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
+            )}
+          </div>
+
           <FormField
             id="razaoSocialAV"
             label="Razão social da empresa"
@@ -254,7 +284,7 @@ export default function ActivityValidationSections({
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               id="cnpjCpfAV"
-              label="CNPJ ou CPF (profissional liberal)"
+              label="CNPJ ou CPF"
               value={form.cnpjCpf}
               onChange={(event) => {
                 updateField('cnpjCpf', formatCpfCnpj(event.target.value))
@@ -265,7 +295,7 @@ export default function ActivityValidationSections({
 
             <FormField
               id="registroConselhoProfissionalAV"
-              label="Registro ativo no conselho profissional (profissional liberal)"
+              label="Registro no conselho profissional"
               value={form.registroConselhoProfissional}
               onChange={(event) => {
                 updateField('registroConselhoProfissional', event.target.value)
@@ -359,7 +389,7 @@ export default function ActivityValidationSections({
 
             <FormField
               id="telefoneConcedenteAV"
-              label="Telefone com DDD"
+              label="Telefone"
               value={form.telefoneConcedente}
               onChange={(event) => {
                 updateField('telefoneConcedente', formatPhone(event.target.value))
@@ -370,16 +400,34 @@ export default function ActivityValidationSections({
             />
           </div>
 
-          <FormField
+          <SelectField
             id="ramoAtividadeAV"
             label="Ramo de atividade"
             value={form.ramoAtividade}
             onChange={(event) => {
               updateField('ramoAtividade', event.target.value)
+              if (event.target.value !== OTHER_BUSINESS_ACTIVITY) {
+                updateField('outroRamoAtividade', '')
+              }
             }}
+            options={BUSINESS_ACTIVITY_OPTIONS}
+            placeholder="Selecione o ramo de atividade"
             required
             error={fieldErrors.ramoAtividade}
           />
+
+          {form.ramoAtividade === OTHER_BUSINESS_ACTIVITY && (
+            <FormField
+              id="outroRamoAtividadeAV"
+              label="Outro ramo de atividade"
+              value={form.outroRamoAtividade}
+              onChange={(event) => {
+                updateField('outroRamoAtividade', event.target.value)
+              }}
+              required
+              error={fieldErrors.outroRamoAtividade}
+            />
+          )}
         </>
       )}
 
@@ -478,38 +526,9 @@ export default function ActivityValidationSections({
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="supervisor_id_av"
-              className="mb-1.5 block text-sm font-medium text-neutral-800"
-            >
-              Supervisor(a) de estágio ou chefia imediata <span className="text-red-600">*</span>
-            </label>
-
-            <select
-              id="supervisor_id_av"
-              value={form.supervisor_id}
-              onChange={(event) => {
-                updateField('supervisor_id', event.target.value)
-              }}
-              className={selectClass(fieldErrors.supervisor_id)}
-            >
-              <option value="">Selecione...</option>
-              {supervisors.map((supervisor) => (
-                <option key={supervisor.id} value={String(supervisor.id)}>
-                  {supervisor.full_name}
-                </option>
-              ))}
-            </select>
-
-            {fieldErrors.supervisor_id && (
-              <p className="mt-1.5 text-sm text-red-600">{fieldErrors.supervisor_id}</p>
-            )}
-          </div>
-
           <FormField
             id="cargoFuncaoSupervisorAV"
-            label="Cargo ou função do(a) supervisor(a)"
+            label="Cargo ou função"
             value={form.cargoFuncaoSupervisor}
             onChange={(event) => {
               updateField('cargoFuncaoSupervisor', event.target.value)
@@ -521,7 +540,7 @@ export default function ActivityValidationSections({
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               id="emailSupervisorAV"
-              label="E-mail do(a) supervisor(a)"
+              label="E-mail"
               type="email"
               value={form.emailSupervisor}
               onChange={(event) => {
@@ -533,7 +552,7 @@ export default function ActivityValidationSections({
 
             <FormField
               id="telefoneSupervisorAV"
-              label="Telefone do(a) supervisor(a)"
+              label="Telefone"
               value={form.telefoneSupervisor}
               onChange={(event) => {
                 updateField('telefoneSupervisor', formatPhone(event.target.value))

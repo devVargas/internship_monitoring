@@ -24,8 +24,22 @@ export type UserProfile = {
   neighborhood: string
   city: string
   state: string
+  job_title: string
+  professional_registration: string
   company_name: string
-  company_cnpj: string
+  company_document: string
+  company_professional_registration: string
+  company_zip_code: string
+  company_address: string
+  company_address_number: string
+  company_address_complement: string
+  company_neighborhood: string
+  company_city: string
+  company_state: string
+  company_email: string
+  company_phone_number: string
+  company_business_activity: string
+  company_business_activity_other: string
 }
 
 export type UpdateUserProfileData = Omit<
@@ -61,8 +75,22 @@ function isUserProfile(value: unknown): value is UserProfile {
     typeof value.neighborhood === 'string' &&
     typeof value.city === 'string' &&
     typeof value.state === 'string' &&
+    typeof value.job_title === 'string' &&
+    typeof value.professional_registration === 'string' &&
     typeof value.company_name === 'string' &&
-    typeof value.company_cnpj === 'string'
+    typeof value.company_document === 'string' &&
+    typeof value.company_professional_registration === 'string' &&
+    typeof value.company_zip_code === 'string' &&
+    typeof value.company_address === 'string' &&
+    typeof value.company_address_number === 'string' &&
+    typeof value.company_address_complement === 'string' &&
+    typeof value.company_neighborhood === 'string' &&
+    typeof value.company_city === 'string' &&
+    typeof value.company_state === 'string' &&
+    typeof value.company_email === 'string' &&
+    typeof value.company_phone_number === 'string' &&
+    typeof value.company_business_activity === 'string' &&
+    typeof value.company_business_activity_other === 'string'
   )
 }
 
