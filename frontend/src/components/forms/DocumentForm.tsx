@@ -29,6 +29,7 @@ import MandatoryInternshipSections from './sections/MandatoryInternshipSections.
 import NonMandatoryInternshipCreditSections from './sections/NonMandatoryInternshipCreditSections.tsx'
 import ProfessionalPracticeCreditSections from './sections/ProfessionalPracticeCreditSections.tsx'
 import SupervisorEvaluationSections from './sections/SupervisorEvaluationSections.tsx'
+import DocumentPreview from '../documents/DocumentPreview.tsx'
 
 export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdProp, documentId, onTitleChange }: { relatedDocumentIdProp?: number, documentId?: number, onTitleChange?: (title: string) => void } = {}) {
   const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
@@ -49,6 +50,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [hasExistingAttachment, setHasExistingAttachment] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [currentSection, setCurrentSection] = useState(0)
+  const [isPreviewing, setIsPreviewing] = useState(false)
+  const [relatedSupervisorName, setRelatedSupervisorName] = useState('')
   const { register, isLoading, error } = useRegisterDocument()
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
@@ -182,6 +185,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         const defaults =
           mapMandatoryDocumentToSupervisorEvaluationDefaults(data)
 
+        setRelatedSupervisorName(data.supervisor_name ?? '')
         setForm((current) =>
           mergeStudentProfileDefaults(current, defaults),
         )
@@ -262,6 +266,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         setLoadedDocumentStatus(data.status)
         setHasExistingAttachment(Boolean(data.attachment))
         setRelatedDocumentId(data.related_document ?? undefined)
+        setRelatedSupervisorName(data.supervisor_name ?? '')
         setForm(mapBackendDataToForm(data))
 
         onTitleChange?.(
@@ -535,6 +540,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       setFieldErrors({})
       setSuccessMessage('')
       setCurrentSection(0)
+      setIsPreviewing(false)
     }
   }
 
@@ -575,6 +581,52 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       updateField('cidadeConcedente', address.localidade)
       updateField('ufConcedente', address.uf)
     })
+  }
+
+  const selectedSupervisorName = useMemo(() => {
+    const supervisor = supervisors.find(
+      (item) => String(item.id) === form.supervisor_id,
+    )
+
+    return supervisor?.full_name || relatedSupervisorName || form.emailSupervisor
+  }, [form.emailSupervisor, form.supervisor_id, relatedSupervisorName, supervisors])
+
+  const selectedAdvisorName = useMemo(() => {
+    const advisor = advisors.find(
+      (item) => String(item.id) === form.advisor_id,
+    )
+
+    return advisor?.displayName ?? ''
+  }, [advisors, form.advisor_id])
+
+  function openPreview() {
+    const errors = validateForm(documentType, form)
+
+    if (documentId && hasExistingAttachment) {
+      delete errors.attachment
+    }
+
+    setFieldErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      const firstSectionWithError = SECTION_FIELDS[documentType].findIndex(
+        (sectionFields) => sectionFields.some((field) => Boolean(errors[field])),
+      )
+
+      if (firstSectionWithError >= 0) {
+        setCurrentSection(firstSectionWithError + sectionOffset)
+      }
+      return
+    }
+
+    setFieldErrors({})
+    setIsPreviewing(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function closePreview() {
+    setIsPreviewing(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function submitForm(): Promise<void> {
@@ -670,6 +722,64 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       )}
 
       {!isLoadingUser && !loadError && (
+        <>
+      {isPreviewing ? (
+        <>
+          <div className="mb-5">
+            <p className="text-sm font-semibold text-green-800">Pré-visualização</p>
+            <h3 className="mt-1 text-xl font-semibold text-neutral-950">
+              Confira o documento antes de continuar
+            </h3>
+          </div>
+
+          <div className="-mx-2 overflow-x-auto bg-neutral-100 px-2 py-5 sm:-mx-4 sm:px-4">
+            <DocumentPreview
+              documentType={documentType}
+              form={form}
+              advisorName={selectedAdvisorName}
+              supervisorName={selectedSupervisorName}
+            />
+          </div>
+
+          {successMessage && (
+            <div
+              role="status"
+              className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+            >
+              {successMessage}
+            </div>
+          )}
+
+          {(error || updateError) && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {error || updateError}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-5">
+            <Button type="button" variant="secondary" onClick={closePreview}>
+              Voltar e editar
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={isLoading || isUpdating}
+              className="ml-auto"
+            >
+              {isLoading || isUpdating
+                ? 'Salvando...'
+                : loadedDocumentStatus === 'adjustment_requested'
+                  ? 'Salvar alterações'
+                  : documentType === 'supervisor_evaluation'
+                    ? 'Enviar avaliação'
+                    : 'Enviar documento'}
+            </Button>
+          </div>
+        </>
+      ) : (
         <>
       {totalSections > 1 && currentSection > 0 && (
         <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
@@ -840,18 +950,17 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         )}
         {currentSection === totalSections - 1 && (
           <Button
-            type="submit"
+            type="button"
+            onClick={openPreview}
             disabled={isLoading || isUpdating}
             className="ml-auto"
           >
-            {isLoading || isUpdating
-              ? 'Salvando...'
-              : loadedDocumentStatus === 'adjustment_requested'
-                ? 'Salvar alterações'
-                : 'Enviar'}
+            Visualizar documento
           </Button>
         )}
       </div>
+        </>
+      )}
         </>
       )}
     </form>
