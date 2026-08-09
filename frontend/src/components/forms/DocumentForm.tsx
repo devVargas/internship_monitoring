@@ -648,9 +648,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       if (pdfViewerWindow) {
         pdfViewerWindow.opener = null
         pdfViewerWindow.location.href = viewerPath
+        navigate(`/historico-documentos?document=${String(savedDocumentId)}`)
       } else {
-        // Fallback caso o navegador esteja bloqueando novas abas.
-        navigate(viewerPath)
+        // Se o navegador bloquear a nova aba, mantemos o usuário na aplicação.
+        // O PDF continua disponível pelo histórico.
+        navigate(`/historico-documentos?document=${String(savedDocumentId)}`)
       }
       return
     }
@@ -702,6 +704,9 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             <h3 className="mt-1 text-xl font-semibold text-neutral-950">
               Confira o documento antes de continuar
             </h3>
+            <p className="mt-1 text-sm text-neutral-600">
+              Esta visualização usa os dados preenchidos no formulário. Volte para corrigir qualquer informação antes de gerar o PDF.
+            </p>
           </div>
 
           <div className="-mx-2 overflow-x-auto bg-neutral-100 px-2 py-5 sm:-mx-4 sm:px-4">

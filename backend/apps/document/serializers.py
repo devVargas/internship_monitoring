@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.doc_activity.serializers import DocumentActivitySerializer
-from apps.document.models import Document, DocumentType
+from apps.document.models import Document, DocumentType, SignatureMethod
 
 
 class DocumentWriteSerializer(serializers.ModelSerializer):
@@ -118,6 +118,25 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class SignedDocumentUploadSerializer(serializers.Serializer):
+    signature_method = serializers.ChoiceField(choices=SignatureMethod.choices)
+    signed_pdf = serializers.FileField()
+
+    def validate_signed_pdf(self, value):
+        if value.size > 25 * 1024 * 1024:
+            raise serializers.ValidationError("O PDF assinado deve ter no máximo 25 MB.")
+
+        if not value.name.lower().endswith(".pdf"):
+            raise serializers.ValidationError("Envie o documento assinado em formato PDF.")
+
+        header = value.read(5)
+        value.seek(0)
+        if header != b"%PDF-":
+            raise serializers.ValidationError("O arquivo enviado não é um PDF válido.")
+
+        return value
+
+
 class DocumentAdvisorAssignmentSerializer(serializers.Serializer):
     advisor_id = serializers.IntegerField(required=True)
 
@@ -195,6 +214,9 @@ class DocumentSerializer(serializers.ModelSerializer):
     document_type_display = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
     activities = DocumentActivitySerializer(many=True, read_only=True)
+    signed_pdf_available = serializers.SerializerMethodField()
+    supervisor_evaluation_id = serializers.SerializerMethodField()
+    supervisor_evaluation_signed = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -222,7 +244,11 @@ class DocumentSerializer(serializers.ModelSerializer):
             "company",
             "city",
             "document_date",
-            "attachment",
+            "signed_pdf_available",
+            "signature_method",
+            "signed_at",
+            "supervisor_evaluation_id",
+            "supervisor_evaluation_signed",
             "generated_pdf",
             "pdf_generation_status",
             "pdf_generation_error",
@@ -277,6 +303,31 @@ class DocumentSerializer(serializers.ModelSerializer):
             return None
 
         return obj.reviewed_by.email
+
+    def get_signed_pdf_available(self, obj):
+        return bool(obj.attachment)
+
+    def _get_supervisor_evaluation(self, obj):
+        if obj.document_type != DocumentType.MANDATORY_INTERNSHIP:
+            return None
+
+        evaluations = [
+            related
+            for related in obj.related_documents.all()
+            if related.document_type == DocumentType.SUPERVISOR_EVALUATION
+        ]
+        if not evaluations:
+            return None
+
+        return max(evaluations, key=lambda item: item.id)
+
+    def get_supervisor_evaluation_id(self, obj):
+        evaluation = self._get_supervisor_evaluation(obj)
+        return evaluation.id if evaluation else None
+
+    def get_supervisor_evaluation_signed(self, obj):
+        evaluation = self._get_supervisor_evaluation(obj)
+        return bool(evaluation and evaluation.attachment and evaluation.signed_at)
 
     def get_document_type_display(self, obj):
         return obj.get_document_type_display()

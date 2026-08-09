@@ -1,7 +1,4 @@
-import {
-  faArrowLeft,
-  faDownload,
-} from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -11,7 +8,7 @@ import {
   type AcademicAdvisor,
 } from '../api/students.ts'
 import DocumentStatusBadge from '../components/documents/DocumentStatusBadge.tsx'
-import GeneratedDocumentButton from '../components/documents/GeneratedDocumentButton.tsx'
+import SignedDocumentButton from '../components/documents/SignedDocumentButton.tsx'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
 import Button from '../components/ui/Button.tsx'
 import { useAPI } from '../context/api-context.ts'
@@ -113,7 +110,9 @@ export default function DocumentReviewDetailPage() {
       (document.documentType === 'mandatory_internship' ||
         document.documentType === 'non_mandatory_internship_credit') &&
       [
+        'awaiting_signature',
         'waiting_supervisor',
+        'waiting_student_confirmation',
         'submitted',
         'in_review',
         'adjustment_requested',
@@ -283,25 +282,27 @@ export default function DocumentReviewDetailPage() {
                     </div>
                   </dl>
 
-                  <div className="mt-6">
-                    <GeneratedDocumentButton
-                      documentId={document.id}
-                      initialStatus={document.pdfGenerationStatus}
-                      initialError={document.pdfGenerationError}
-                    />
-                  </div>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {document.signedPdfAvailable ? (
+                      <SignedDocumentButton
+                        documentId={document.id}
+                        label="Abrir documento assinado"
+                      />
+                    ) : (
+                      <p className="text-sm text-amber-700">
+                        O PDF assinado ainda não está disponível.
+                      </p>
+                    )}
 
-                  {document.attachment && (
-                    <a
-                      href={document.attachment}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-6 inline-flex items-center gap-2 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-green-900 transition hover:bg-green-50"
-                    >
-                      <FontAwesomeIcon icon={faDownload} />
-                      Abrir anexo assinado
-                    </a>
-                  )}
+                    {isMandatoryInternship &&
+                      document.supervisorEvaluationId !== null &&
+                      document.supervisorEvaluationSigned && (
+                        <SignedDocumentButton
+                          documentId={document.supervisorEvaluationId}
+                          label="Abrir avaliação assinada"
+                        />
+                      )}
+                  </div>
                 </section>
 
                 <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">

@@ -1,8 +1,11 @@
 import type { DocumentStatus, DocumentType } from '../api/documents.ts'
 
 export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
-  submitted: 'Enviado',
+  awaiting_signature: 'Aguardando assinatura',
+  signed: 'Assinado',
   waiting_supervisor: 'Aguardando supervisor',
+  waiting_student_confirmation: 'Aguardando confirmação do aluno',
+  submitted: 'Enviado para revisão',
   in_review: 'Em revisão',
   adjustment_requested: 'Ajustes solicitados',
   approved: 'Aprovado',

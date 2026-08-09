@@ -13,12 +13,14 @@ type GeneratedDocumentButtonProps = {
   documentId: number
   initialStatus: PdfGenerationStatus
   initialError?: string
+  label?: string
 }
 
 export default function GeneratedDocumentButton({
   documentId,
   initialStatus,
   initialError = '',
+  label = 'Abrir PDF',
 }: GeneratedDocumentButtonProps) {
   const { fetchWithAuth } = useAPI()
   const [status, setStatus] = useState<PdfGenerationStatus>(initialStatus)
@@ -100,7 +102,7 @@ export default function GeneratedDocumentButton({
     <div className="flex flex-col items-start gap-1.5">
       {status === 'ready' ? (
         <Button type="button" variant="secondary" onClick={() => { void openPdf() }} disabled={isOpening}>
-          {isOpening ? 'Abrindo PDF...' : 'Abrir PDF'}
+          {isOpening ? 'Abrindo...' : label}
         </Button>
       ) : status === 'pending' || status === 'processing' ? (
         <Button type="button" variant="secondary" disabled>

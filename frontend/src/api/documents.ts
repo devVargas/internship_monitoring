@@ -6,8 +6,11 @@ import {
 } from './http.ts'
 
 export const DOCUMENT_STATUSES = [
-  'submitted',
+  'awaiting_signature',
+  'signed',
   'waiting_supervisor',
+  'waiting_student_confirmation',
+  'submitted',
   'in_review',
   'adjustment_requested',
   'approved',
@@ -27,6 +30,11 @@ export type DocumentStatus =
 
 export type DocumentType =
   (typeof DOCUMENT_TYPES)[number]
+
+export const SIGNATURE_METHODS = ['govbr', 'manual'] as const
+
+export type SignatureMethod =
+  (typeof SIGNATURE_METHODS)[number]
 
 export const PDF_GENERATION_STATUSES = [
   'not_generated',
@@ -227,7 +235,11 @@ export type DocumentDetail =
     relatedDocument: number | null
     coordinatorName: string
     city: string
-    attachment: string | null
+    signedPdfAvailable: boolean
+    signatureMethod: SignatureMethod | ''
+    signedAt: string | null
+    supervisorEvaluationId: number | null
+    supervisorEvaluationSigned: boolean
     generatedPdf: string | null
     pdfGenerationStatus: PdfGenerationStatus
     pdfGenerationError: string
@@ -279,7 +291,11 @@ type DocumentDetailResponse =
     related_document: number | null
     coordinator_name: string
     city: string
-    attachment: string | null
+    signed_pdf_available: boolean
+    signature_method: SignatureMethod | ''
+    signed_at: string | null
+    supervisor_evaluation_id: number | null
+    supervisor_evaluation_signed: boolean
     generated_pdf: string | null
     pdf_generation_status: PdfGenerationStatus
     pdf_generation_error: string
@@ -318,6 +334,15 @@ function isPdfGenerationStatus(
   return (
     typeof value === 'string' &&
     PDF_GENERATION_STATUSES.some((status) => status === value)
+  )
+}
+
+function isSignatureMethodOrEmpty(
+  value: unknown,
+): value is SignatureMethod | '' {
+  return (
+    value === '' ||
+    (typeof value === 'string' && SIGNATURE_METHODS.some((method) => method === value))
   )
 }
 
@@ -405,7 +430,11 @@ function isDocumentDetail(
     isNullableNumber(value.related_document) &&
     typeof value.coordinator_name === 'string' &&
     typeof value.city === 'string' &&
-    isNullableString(value.attachment) &&
+    typeof value.signed_pdf_available === 'boolean' &&
+    isSignatureMethodOrEmpty(value.signature_method) &&
+    isNullableString(value.signed_at) &&
+    isNullableNumber(value.supervisor_evaluation_id) &&
+    typeof value.supervisor_evaluation_signed === 'boolean' &&
     isNullableString(value.generated_pdf) &&
     isPdfGenerationStatus(value.pdf_generation_status) &&
     typeof value.pdf_generation_error === 'string' &&
@@ -452,7 +481,11 @@ function mapDocumentDetail(
     relatedDocument: document.related_document,
     coordinatorName: document.coordinator_name,
     city: document.city,
-    attachment: document.attachment,
+    signedPdfAvailable: document.signed_pdf_available,
+    signatureMethod: document.signature_method,
+    signedAt: document.signed_at,
+    supervisorEvaluationId: document.supervisor_evaluation_id,
+    supervisorEvaluationSigned: document.supervisor_evaluation_signed,
     generatedPdf: document.generated_pdf,
     pdfGenerationStatus: document.pdf_generation_status,
     pdfGenerationError: document.pdf_generation_error,
@@ -784,6 +817,63 @@ export async function getGeneratedDocumentPdfRequest(
   }
 
   return response.blob()
+}
+
+export async function uploadSignedDocumentRequest(
+  documentId: number,
+  file: File,
+  signatureMethod: SignatureMethod,
+  httpClient: HttpClient,
+): Promise<DocumentDetail> {
+  const formData = new FormData()
+  formData.append('signed_pdf', file)
+  formData.append('signature_method', signatureMethod)
+
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/upload-signed-pdf/`,
+    {
+      method: 'POST',
+      body: formData,
+    },
+  )
+
+  return readDocumentDetail(
+    response,
+    'Não foi possível enviar o PDF assinado',
+  )
+}
+
+export async function getSignedDocumentPdfRequest(
+  documentId: number,
+  httpClient: HttpClient,
+): Promise<Blob> {
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/signed-pdf/`,
+  )
+
+  if (!response.ok) {
+    const payload = await readJson(response)
+    throw new Error(
+      getApiErrorMessage(payload, 'Não foi possível abrir o PDF assinado'),
+    )
+  }
+
+  return response.blob()
+}
+
+export async function finalSubmitDocumentRequest(
+  documentId: number,
+  httpClient: HttpClient,
+): Promise<DocumentDetail> {
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/final-submit/`,
+    { method: 'POST' },
+  )
+
+  return readDocumentDetail(
+    response,
+    'Não foi possível enviar o documento para revisão',
+  )
 }
 
 async function sendReviewAction(

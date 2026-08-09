@@ -10,13 +10,21 @@ class DocumentType(models.TextChoices):
 
 
 class DocumentStatus(models.TextChoices):
-    SUBMITTED = ("submitted",)
+    AWAITING_SIGNATURE = ("awaiting_signature",)
+    SIGNED = ("signed",)
     WAITING_SUPERVISOR = ("waiting_supervisor",)
+    WAITING_STUDENT_CONFIRMATION = ("waiting_student_confirmation",)
+    SUBMITTED = ("submitted",)
     IN_REVIEW = ("in_review",)
     ADJUSTMENT_REQUESTED = ("adjustment_requested",)
     APPROVED = ("approved",)
     REJECTED = ("rejected",)
     CANCELLED = ("cancelled",)
+
+
+class SignatureMethod(models.TextChoices):
+    GOVBR = ("govbr", "GOV.BR")
+    MANUAL = ("manual", "Assinatura à mão")
 
 
 class PdfGenerationStatus(models.TextChoices):
@@ -76,10 +84,17 @@ class Document(models.Model):
     city = models.CharField(max_length=150)
     document_date = models.DateField()
     attachment = models.FileField(
-        upload_to="documents/attachments/",
+        upload_to="documents/signed/",
         null=True,
         blank=True,
     )
+    signature_method = models.CharField(
+        max_length=20,
+        choices=SignatureMethod.choices,
+        blank=True,
+        default="",
+    )
+    signed_at = models.DateTimeField(null=True, blank=True)
     generated_pdf = models.FileField(
         upload_to="documents/generated/",
         null=True,
@@ -96,7 +111,7 @@ class Document(models.Model):
     status = models.CharField(
         max_length=40,
         choices=DocumentStatus.choices,
-        default=DocumentStatus.SUBMITTED,
+        default=DocumentStatus.AWAITING_SIGNATURE,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
