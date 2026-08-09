@@ -165,11 +165,11 @@ export default function DashboardPage() {
               </div>
 
               <h3 className="mt-4 font-semibold text-neutral-950">
-                Histórico de documentos
+                Meus documentos
               </h3>
 
               <p className="mt-1 text-sm leading-6 text-neutral-600">
-                Acompanhe as movimentações de todos os seus documentos.
+                Assine, acompanhe pendências e consulte o histórico dos seus documentos.
               </p>
 
               <p className="mt-4 text-sm font-semibold text-green-800">

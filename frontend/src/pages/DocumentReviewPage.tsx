@@ -34,6 +34,14 @@ const INITIAL_FILTERS: FilterForm = {
   documentType: '',
 }
 
+const REVIEW_STATUS_OPTIONS: DocumentStatus[] = [
+  'submitted',
+  'in_review',
+  'adjustment_requested',
+  'approved',
+  'rejected',
+]
+
 export default function DocumentReviewPage() {
   const { user } = useCurrentUser()
   const isProfessorOnly = Boolean(
@@ -134,12 +142,11 @@ export default function DocumentReviewPage() {
               className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
             >
               <option value="">Todos</option>
-              {Object.entries(DOCUMENT_STATUS_LABELS)
-                .map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
+              {REVIEW_STATUS_OPTIONS.map((value) => (
+                <option key={value} value={value}>
+                  {DOCUMENT_STATUS_LABELS[value]}
+                </option>
+              ))}
             </select>
           </label>
 

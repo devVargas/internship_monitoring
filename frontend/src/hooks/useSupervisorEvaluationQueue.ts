@@ -9,7 +9,6 @@ import { getErrorMessage } from '../utils/errors.ts'
 export function useSupervisorEvaluationQueue() {
   const { fetchWithAuth } = useAPI()
   const [documents, setDocuments] = useState<DocumentDetail[]>([])
-  const [documentsToChange, setDocumentsToChange] = useState<DocumentDetail[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,21 +21,25 @@ export function useSupervisorEvaluationQueue() {
 
       try {
         const result = await listMyDocumentsRequest(fetchWithAuth)
+        const evaluationRelatedIds = new Set(
+          result
+            .filter(
+              (document) =>
+                document.documentType === 'supervisor_evaluation' &&
+                document.relatedDocument !== null,
+            )
+            .map((document) => document.relatedDocument as number),
+        )
 
         const pendingDocuments = result.filter(
           (document) =>
             document.documentType === 'mandatory_internship' &&
-            document.status === 'waiting_supervisor',
-        )
-
-        const documentsToChange = result.filter(
-          (document) =>
-            document.status === 'adjustment_requested' && document.documentType === 'supervisor_evaluation',
+            document.status === 'waiting_supervisor' &&
+            !evaluationRelatedIds.has(document.id),
         )
 
         if (!cancelled) {
           setDocuments(pendingDocuments)
-          setDocumentsToChange(documentsToChange)
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -63,7 +66,6 @@ export function useSupervisorEvaluationQueue() {
 
   return {
     documents,
-    documentsToChange,
     isLoading,
     error,
   }

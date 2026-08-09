@@ -1,16 +1,21 @@
 from django.conf import settings
 from django.db import models
 
+
 class DocumentActivityAction(models.TextChoices):
     CREATED = "created",
     UPDATED = "updated",
-    SUBMITTED = "submitted",
+    AWAITING_SIGNATURE = "awaiting_signature",
+    SIGNED = "signed",
     WAITING_SUPERVISOR = "waiting_supervisor",
+    WAITING_STUDENT_CONFIRMATION = "waiting_student_confirmation",
+    SUBMITTED = "submitted",
     IN_REVIEW = "in_review",
     ADJUSTMENT_REQUESTED = "adjustment_requested",
     APPROVED = "approved",
     REJECTED = "rejected",
     CANCELLED = "cancelled",
+
 
 class DocumentActivity(models.Model):
     document = models.ForeignKey(

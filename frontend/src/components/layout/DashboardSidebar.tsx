@@ -78,7 +78,7 @@ const NEW_DOCUMENT_ITEM: NavigationItem = {
 
 const DOCUMENT_HISTORY_ITEM: NavigationItem = {
   to: '/historico-documentos',
-  label: 'Histórico de documentos',
+  label: 'Meus documentos',
   icon: faClockRotateLeft,
   end: false,
 }

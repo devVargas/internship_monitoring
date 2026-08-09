@@ -4,7 +4,7 @@ from django.http import FileResponse
 from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework import permissions, status, viewsets
+from rest_framework import parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -21,6 +21,7 @@ from apps.document.serializers import (
     DocumentReviewListSerializer,
     DocumentSerializer,
     DocumentWriteSerializer,
+    SignedDocumentUploadSerializer,
 )
 from apps.document.pdf_generation import queue_document_pdf
 from apps.document.services import set_document_status
@@ -57,6 +58,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         ).prefetch_related(
             "activities",
             "activities__performed_by",
+            "related_documents",
         )
 
         if user.is_superuser:
@@ -67,18 +69,29 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if user.groups.filter(name=GROUP_COORDINATOR).exists():
             return queryset.all()
 
-        # Professor só recebe estágio obrigatório quando foi designado como
-        # orientador e o documento já chegou à revisão acadêmica.
+        # Professor acessa apenas o estágio obrigatório atribuído a ele e a
+        # respectiva ficha de avaliação assinada. Os estados anteriores ao
+        # envio final do aluno continuam invisíveis para o orientador.
         if user.groups.filter(name=GROUP_PROFESSOR).exists():
+            reviewable_statuses = [
+                DocumentStatus.SUBMITTED,
+                DocumentStatus.IN_REVIEW,
+                DocumentStatus.ADJUSTMENT_REQUESTED,
+                DocumentStatus.APPROVED,
+                DocumentStatus.REJECTED,
+            ]
             return queryset.filter(
-                document_type=DocumentType.MANDATORY_INTERNSHIP,
-                advisor=user,
-            ).exclude(
-                status__in=[
-                    DocumentStatus.WAITING_SUPERVISOR,
-                    DocumentStatus.CANCELLED,
-                ]
-            )
+                Q(
+                    document_type=DocumentType.MANDATORY_INTERNSHIP,
+                    advisor=user,
+                    status__in=reviewable_statuses,
+                )
+                | Q(
+                    document_type=DocumentType.SUPERVISOR_EVALUATION,
+                    related_document__advisor=user,
+                    related_document__status__in=reviewable_statuses,
+                )
+            ).distinct()
 
         if user.groups.filter(name=GROUP_SUPERVISOR).exists():
             return queryset.filter(supervisor__user=user)
@@ -132,7 +145,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
         advisor = self.get_advisor(advisor_id)
         form_data = dict(serializer.validated_data.get("form_data", {}))
         document_type = serializer.validated_data.get("document_type")
-        status_value = self.get_submission_status(document_type, supervisor)
 
         student_snapshot = self.build_student_snapshot(
             student=student,
@@ -144,7 +156,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
             supervisor=supervisor,
             advisor=advisor,
             related_document=related_document,
-            status=status_value,
+            status=DocumentStatus.AWAITING_SIGNATURE,
             student_name=student_snapshot["name"],
             student_email=student_snapshot["email"],
             student_registration_number=student_snapshot["registration_number"],
@@ -218,7 +230,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
             supervisor=supervisor,
             advisor=related_document.advisor,
             related_document=related_document,
-            status=DocumentStatus.SUBMITTED,
+            status=DocumentStatus.AWAITING_SIGNATURE,
             student_name=related_document.student_name,
             student_email=related_document.student_email,
             student_registration_number=(
@@ -231,10 +243,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
             city=supervisor.company_city,
             form_data=form_data,
             document_date=timezone.localdate(),
-        )
-
-        self.release_related_document_after_supervisor_evaluation(
-            related_document,
         )
 
         return document
@@ -319,13 +327,17 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
 
         if previous_status == DocumentStatus.ADJUSTMENT_REQUESTED:
+            self.clear_document_signature(document)
             document.reviewed_by = None
-            document.save(update_fields=["reviewed_by"])
+            document.save(update_fields=["reviewed_by", "updated_at"])
             set_document_status(
                 document=document,
-                status=DocumentStatus.SUBMITTED,
+                status=DocumentStatus.AWAITING_SIGNATURE,
                 user=user,
-                description="Documento reenviado após os ajustes.",
+                description=(
+                    "Ajustes salvos. Gere e assine novamente o PDF antes de "
+                    "reenviar o documento."
+                ),
             )
 
         queue_document_pdf(document)
@@ -383,8 +395,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
         self.check_document_permission("document.review_document")
 
         queryset = self.get_queryset().exclude(
+            document_type=DocumentType.SUPERVISOR_EVALUATION,
+        ).exclude(
             status__in=[
+                DocumentStatus.AWAITING_SIGNATURE,
                 DocumentStatus.WAITING_SUPERVISOR,
+                DocumentStatus.WAITING_STUDENT_CONFIRMATION,
                 DocumentStatus.CANCELLED,
             ]
         )
@@ -474,7 +490,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
         advisor = self.get_advisor(serializer.validated_data["advisor_id"])
 
         if document.advisor_id == advisor.id:
-            return Response(DocumentSerializer(document, context={"request": request}).data)
+            return Response(
+                DocumentSerializer(document, context={"request": request}).data
+            )
 
         old_advisor = document.advisor
         old_name = (
@@ -483,14 +501,34 @@ class DocumentViewSet(viewsets.ModelViewSet):
             else "não definido"
         )
         new_name = advisor.get_full_name() or advisor.email
+        had_signature = bool(document.attachment and document.signed_at)
 
         document.advisor = advisor
         document.reviewed_by = None
 
-        # Se a troca acontece com uma revisão em andamento, o documento volta
-        # para a fila do novo orientador. Nos demais estados apenas limpamos um
-        # revisor antigo, preservando o estágio atual do fluxo.
-        if document.status == DocumentStatus.IN_REVIEW:
+        # Trocar o orientador altera conteúdo do PDF. Se o aluno já tinha
+        # assinado, aquela assinatura não pode representar o novo arquivo.
+        if had_signature:
+            self.clear_document_signature(document)
+            document.status = DocumentStatus.AWAITING_SIGNATURE
+            document.save(
+                update_fields=[
+                    "advisor",
+                    "reviewed_by",
+                    "status",
+                    "updated_at",
+                ]
+            )
+            register_activity(
+                document=document,
+                action=DocumentActivityAction.AWAITING_SIGNATURE,
+                user=request.user,
+                description=(
+                    f"Orientador alterado de {old_name} para {new_name}. "
+                    "O PDF foi atualizado e precisa ser assinado novamente pelo aluno."
+                ),
+            )
+        elif document.status == DocumentStatus.IN_REVIEW:
             document.status = DocumentStatus.SUBMITTED
             document.save(
                 update_fields=[
@@ -521,7 +559,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
             )
 
         queue_document_pdf(document)
-        return Response(DocumentSerializer(document, context={"request": request}).data)
+        return Response(
+            DocumentSerializer(document, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["get"], url_path="pdf-status")
     def pdf_status(self, request, pk=None):
@@ -564,6 +604,123 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
+        request=SignedDocumentUploadSerializer,
+        responses=DocumentSerializer,
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="upload-signed-pdf",
+        parser_classes=[parsers.MultiPartParser, parsers.FormParser],
+    )
+    @transaction.atomic
+    def upload_signed_pdf(self, request, pk=None):
+        document = self.get_object()
+        self.validate_can_sign_document(document, request.user)
+
+        if document.status != DocumentStatus.AWAITING_SIGNATURE:
+            raise ValidationError(
+                "Este documento não está aguardando assinatura."
+            )
+
+        if (
+            document.pdf_generation_status != PdfGenerationStatus.READY
+            or not document.generated_pdf
+        ):
+            raise ValidationError(
+                "Aguarde a geração do PDF antes de enviar a versão assinada."
+            )
+
+        serializer = SignedDocumentUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if document.attachment:
+            document.attachment.delete(save=False)
+
+        document.attachment = serializer.validated_data["signed_pdf"]
+        document.signature_method = serializer.validated_data["signature_method"]
+        document.signed_at = timezone.now()
+        document.save(
+            update_fields=[
+                "attachment",
+                "signature_method",
+                "signed_at",
+                "updated_at",
+            ]
+        )
+
+        register_activity(
+            document=document,
+            action=DocumentActivityAction.SIGNED,
+            user=request.user,
+            description="PDF assinado enviado ao sistema.",
+        )
+
+        self.advance_after_signature(document, request.user)
+        document.refresh_from_db()
+        return Response(
+            DocumentSerializer(document, context={"request": request}).data
+        )
+
+    @action(detail=True, methods=["get"], url_path="signed-pdf")
+    def signed_pdf(self, request, pk=None):
+        document = self.get_object()
+        if not document.attachment or not document.signed_at:
+            raise ValidationError("O PDF assinado ainda não está disponível.")
+
+        document.attachment.open("rb")
+        return FileResponse(
+            document.attachment.file,
+            content_type="application/pdf",
+            as_attachment=False,
+            filename=document.attachment.name.rsplit("/", 1)[-1],
+        )
+
+    @action(detail=True, methods=["post"], url_path="final-submit")
+    @transaction.atomic
+    def final_submit(self, request, pk=None):
+        document = self.get_object()
+
+        if document.document_type != DocumentType.MANDATORY_INTERNSHIP:
+            raise ValidationError(
+                "A confirmação final do aluno é usada apenas no estágio obrigatório."
+            )
+
+        if not request.user.is_superuser and document.student.user_id != request.user.id:
+            raise PermissionDenied(
+                "Somente o aluno responsável pode enviar o documento para revisão."
+            )
+
+        if document.status != DocumentStatus.WAITING_STUDENT_CONFIRMATION:
+            raise ValidationError(
+                "O documento ainda não está aguardando a confirmação final do aluno."
+            )
+
+        if not document.attachment or not document.signed_at:
+            raise ValidationError("O relatório do aluno precisa estar assinado.")
+
+        evaluation = self.get_signed_supervisor_evaluation(document)
+        if evaluation is None:
+            raise ValidationError(
+                "A ficha de avaliação assinada pelo supervisor ainda não está disponível."
+            )
+
+        document.reviewed_by = None
+        document.save(update_fields=["reviewed_by", "updated_at"])
+        set_document_status(
+            document=document,
+            status=DocumentStatus.SUBMITTED,
+            user=request.user,
+            description=(
+                "Aluno conferiu o relatório e a avaliação do supervisor e "
+                "enviou o processo para revisão acadêmica."
+            ),
+        )
+        return Response(
+            DocumentSerializer(document, context={"request": request}).data
+        )
+
+    @extend_schema(
         request=DocumentReviewActionSerializer,
         responses=DocumentSerializer,
     )
@@ -581,14 +738,15 @@ class DocumentViewSet(viewsets.ModelViewSet):
             document.document_type == DocumentType.MANDATORY_INTERNSHIP
             and document.supervisor_id
         ):
-            has_approved_supervisor_document = document.related_documents.filter(
+            has_signed_supervisor_document = document.related_documents.filter(
                 document_type=DocumentType.SUPERVISOR_EVALUATION,
-                status=DocumentStatus.APPROVED,
-            ).exists()
+                signed_at__isnull=False,
+                attachment__isnull=False,
+            ).exclude(attachment="").exists()
 
-            if not has_approved_supervisor_document:
+            if not has_signed_supervisor_document:
                 raise ValidationError(
-                    "Supervisor evaluation must be approved before approving this document."
+                    "A ficha de avaliação assinada pelo supervisor é obrigatória."
                 )
 
         description = "Documento aprovado."
@@ -715,16 +873,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
             raise ValidationError({"related_document_id": "Related document not found."}) from exc
 
     @staticmethod
-    def get_submission_status(document_type, supervisor):
-        if (
-            document_type == DocumentType.MANDATORY_INTERNSHIP
-            and supervisor is not None
-        ):
-            return DocumentStatus.WAITING_SUPERVISOR
-
-        return DocumentStatus.SUBMITTED
-
-    @staticmethod
     def build_student_snapshot(student, form_data, previous_snapshot=None):
         user = student.user
         previous = previous_snapshot or {}
@@ -779,12 +927,102 @@ class DocumentViewSet(viewsets.ModelViewSet):
             "state": value("ufAluno", "state", student.state),
         }
 
-    def release_related_document_after_supervisor_evaluation(self, related_document):
+    def validate_can_sign_document(self, document, user):
+        if user.is_superuser:
+            return
+
+        if document.document_type == DocumentType.SUPERVISOR_EVALUATION:
+            if not document.supervisor or document.supervisor.user_id != user.id:
+                raise PermissionDenied(
+                    "Somente o supervisor responsável pode assinar esta avaliação."
+                )
+            return
+
+        if document.student.user_id != user.id:
+            raise PermissionDenied(
+                "Somente o aluno responsável pode assinar este documento."
+            )
+
+    @staticmethod
+    def get_signed_supervisor_evaluation(document):
+        return (
+            document.related_documents.filter(
+                document_type=DocumentType.SUPERVISOR_EVALUATION,
+                signed_at__isnull=False,
+                attachment__isnull=False,
+            )
+            .exclude(attachment="")
+            .order_by("-id")
+            .first()
+        )
+
+    def advance_after_signature(self, document, user):
+        if document.document_type == DocumentType.SUPERVISOR_EVALUATION:
+            set_document_status(
+                document=document,
+                status=DocumentStatus.SIGNED,
+                user=user,
+                description="Ficha de avaliação assinada pelo supervisor.",
+            )
+
+            related_document = Document.objects.select_for_update().get(
+                pk=document.related_document_id
+            )
+            set_document_status(
+                document=related_document,
+                status=DocumentStatus.WAITING_STUDENT_CONFIRMATION,
+                user=user,
+                description=(
+                    "Avaliação do supervisor recebida. Aguardando o aluno "
+                    "conferir os documentos e enviar para revisão acadêmica."
+                ),
+            )
+            return
+
+        if document.document_type == DocumentType.MANDATORY_INTERNSHIP:
+            if self.get_signed_supervisor_evaluation(document):
+                next_status = DocumentStatus.WAITING_STUDENT_CONFIRMATION
+                description = (
+                    "Relatório assinado. A avaliação do supervisor já está disponível; "
+                    "aguardando confirmação final do aluno."
+                )
+            else:
+                next_status = DocumentStatus.WAITING_SUPERVISOR
+                description = (
+                    "Relatório assinado pelo aluno e encaminhado ao supervisor "
+                    "para avaliação."
+                )
+
+            set_document_status(
+                document=document,
+                status=next_status,
+                user=user,
+                description=description,
+            )
+            return
+
         set_document_status(
-            document=related_document,
+            document=document,
             status=DocumentStatus.SUBMITTED,
-            user=self.request.user,
-            description="Ficha de avaliação enviada pelo supervisor.",
+            user=user,
+            description="Documento assinado e enviado para revisão da coordenação.",
+        )
+
+    @staticmethod
+    def clear_document_signature(document):
+        if document.attachment:
+            document.attachment.delete(save=False)
+
+        document.attachment = None
+        document.signature_method = ""
+        document.signed_at = None
+        document.save(
+            update_fields=[
+                "attachment",
+                "signature_method",
+                "signed_at",
+                "updated_at",
+            ]
         )
 
     @staticmethod
