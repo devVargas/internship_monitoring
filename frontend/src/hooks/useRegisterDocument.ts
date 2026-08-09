@@ -8,16 +8,15 @@ export function useRegisterDocument() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function register(payload: RegisterDocumentPayload): Promise<boolean> {
+  async function register(payload: RegisterDocumentPayload): Promise<number | null> {
     setIsLoading(true)
     setError(null)
 
     try {
-      await registerDocumentRequest(payload, fetchWithAuth)
-      return true
+      return await registerDocumentRequest(payload, fetchWithAuth)
     } catch (requestError) {
       setError(getErrorMessage(requestError, 'Erro ao enviar documento'))
-      return false
+      return null
     } finally {
       setIsLoading(false)
     }

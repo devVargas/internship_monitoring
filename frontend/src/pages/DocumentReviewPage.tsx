@@ -13,6 +13,7 @@ import type {
 import DocumentStatusBadge from '../components/documents/DocumentStatusBadge.tsx'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
 import Button from '../components/ui/Button.tsx'
+import { useCurrentUser } from '../hooks/useCurrentUser.ts'
 import { useDocumentReviewQueue } from '../hooks/useDocumentReviewQueue.ts'
 import {
   DOCUMENT_STATUS_LABELS,
@@ -34,6 +35,10 @@ const INITIAL_FILTERS: FilterForm = {
 }
 
 export default function DocumentReviewPage() {
+  const { user } = useCurrentUser()
+  const isProfessorOnly = Boolean(
+    user?.groups.includes('Teacher') && !user?.groups.includes('Coordinator'),
+  )
   const [form, setForm] = useState<FilterForm>(INITIAL_FILTERS)
   const [appliedFilters, setAppliedFilters] =
     useState<FilterForm>(INITIAL_FILTERS)
@@ -129,11 +134,13 @@ export default function DocumentReviewPage() {
               className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
             >
               <option value="">Todos</option>
-              {Object.entries(DOCUMENT_STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {Object.entries(DOCUMENT_STATUS_LABELS)
+                .filter(([value]) => value !== 'draft')
+                .map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
             </select>
           </label>
 
@@ -152,11 +159,15 @@ export default function DocumentReviewPage() {
               className="w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-3 text-neutral-900 outline-none transition hover:border-neutral-400 focus:border-green-800 focus:ring-4 focus:ring-green-100"
             >
               <option value="">Todos</option>
-              {Object.entries(DOCUMENT_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {Object.entries(DOCUMENT_TYPE_LABELS)
+                .filter(([value]) =>
+                  !isProfessorOnly || value === 'mandatory_internship',
+                )
+                .map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
             </select>
           </label>
 
@@ -214,6 +225,9 @@ export default function DocumentReviewPage() {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                      Orientador
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
                       Revisor
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -246,6 +260,9 @@ export default function DocumentReviewPage() {
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
                         <DocumentStatusBadge status={document.status} />
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
+                        {document.advisorName ?? 'Não definido'}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                         {document.reviewerName ?? 'Não atribuído'}

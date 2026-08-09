@@ -8,16 +8,18 @@ export function useUpdateDocument() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function update(documentId: number, payload: RegisterDocumentPayload): Promise<boolean> {
+  async function update(
+    documentId: number,
+    payload: RegisterDocumentPayload,
+  ): Promise<number | null> {
     setIsLoading(true)
     setError(null)
 
     try {
-      await updateDocumentRequest(documentId, payload, fetchWithAuth)
-      return true
+      return await updateDocumentRequest(documentId, payload, fetchWithAuth)
     } catch (requestError) {
       setError(getErrorMessage(requestError, 'Erro ao atualizar documento'))
-      return false
+      return null
     } finally {
       setIsLoading(false)
     }

@@ -107,7 +107,8 @@ export default function DocumentHistoryPage() {
                         <h2 className="mt-1 text-xl font-semibold text-neutral-950">
                           {DOCUMENT_TYPE_LABELS[document.documentType]}
                         </h2>
-                        {document.status === 'adjustment_requested' &&
+                        {(document.status === 'draft' ||
+                          document.status === 'adjustment_requested') &&
                           (
                             user?.is_superuser ||
                             (

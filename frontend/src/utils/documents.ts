@@ -1,6 +1,7 @@
 import type { DocumentStatus, DocumentType } from '../api/documents.ts'
 
 export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
+  draft: 'Rascunho',
   submitted: 'Enviado',
   waiting_supervisor: 'Aguardando supervisor',
   in_review: 'Em revisão',
@@ -141,7 +142,7 @@ const ACTIVITY_VALIDATION_FIELDS: readonly DocumentFormField[] = [
   ].includes(field.key)),
   {
     key: 'situacao',
-    label: 'Situação',
+    label: 'Situação profissional na concedente',
     values: PROFESSIONAL_STATUS_LABELS,
   },
   {
@@ -181,19 +182,6 @@ const DOCUMENT_FORM_FIELDS: Record<DocumentType, readonly DocumentFormField[]> =
     (field) => field.key !== 'campusAluno',
   ),
   supervisor_evaluation: [
-    {
-      key: 'situacao',
-      label: 'Situação da/o estudante',
-      values: PROFESSIONAL_STATUS_LABELS,
-    },
-    {
-      key: 'especificarSituacao',
-      label: 'Outra situação — especificação',
-      isVisible: (formData) => formData.situacao === 'outra',
-    },
-    { key: 'dataFormatura', label: 'Data da formatura', format: 'date' },
-    { key: 'semestreAnoConclusao', label: 'Semestre/ano previsto para conclusão' },
-    { key: 'funcaoPrincipalAluno', label: 'Função principal da/o estudante' },
     { key: 'aprendizadoNoEstagio', label: 'Aprendizado dentro do estágio', format: 'rating' },
     { key: 'segurancaExecucao', label: 'Segurança na execução do trabalho', format: 'rating' },
     { key: 'interessePeloTrabalho', label: 'Interesse pelo trabalho', format: 'rating' },

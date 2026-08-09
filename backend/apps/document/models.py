@@ -10,6 +10,7 @@ class DocumentType(models.TextChoices):
 
 
 class DocumentStatus(models.TextChoices):
+    DRAFT = ("draft",)
     SUBMITTED = ("submitted",)
     WAITING_SUPERVISOR = ("waiting_supervisor",)
     IN_REVIEW = ("in_review",)
@@ -29,6 +30,13 @@ class Document(models.Model):
         "accounts.SupervisorProfile",
         on_delete=models.PROTECT,
         related_name="documents",
+        null=True,
+        blank=True,
+    )
+    advisor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="advised_documents",
         null=True,
         blank=True,
     )
@@ -55,6 +63,7 @@ class Document(models.Model):
     student_registration_number = models.CharField(max_length=50)
     student_course = models.CharField(max_length=150)
     student_campus = models.CharField(max_length=150)
+    student_snapshot = models.JSONField(default=dict, blank=True)
     coordinator_name = models.CharField(max_length=150, blank=True)
     company = models.CharField(max_length=150)
     city = models.CharField(max_length=150)
@@ -68,7 +77,7 @@ class Document(models.Model):
     status = models.CharField(
         max_length=40,
         choices=DocumentStatus.choices,
-        default=DocumentStatus.SUBMITTED,
+        default=DocumentStatus.DRAFT,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
