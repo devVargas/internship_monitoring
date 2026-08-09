@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import DashboardLayout from '../components/layout/DashboardLayout.tsx'
 import DocumentStatusBadge from '../components/documents/DocumentStatusBadge.tsx'
 import DocumentTimeline from '../components/documents/DocumentTimeline.tsx'
+import GeneratedDocumentButton from '../components/documents/GeneratedDocumentButton.tsx'
 import { useStudentDocumentHistory } from '../hooks/useStudentDocumentHistory.ts'
 import { DOCUMENT_TYPE_LABELS, formatDate } from '../utils/documents.ts'
 import { useCurrentUser } from '../hooks/useCurrentUser.ts'
@@ -107,8 +108,7 @@ export default function DocumentHistoryPage() {
                         <h2 className="mt-1 text-xl font-semibold text-neutral-950">
                           {DOCUMENT_TYPE_LABELS[document.documentType]}
                         </h2>
-                        {(document.status === 'draft' ||
-                          document.status === 'adjustment_requested') &&
+                        {document.status === 'adjustment_requested' &&
                           (
                             user?.is_superuser ||
                             (
@@ -136,7 +136,14 @@ export default function DocumentHistoryPage() {
                       </p>
                     </div>
 
-                    <DocumentStatusBadge status={document.status} />
+                    <div className="flex flex-col items-start gap-3 sm:items-end">
+                      <DocumentStatusBadge status={document.status} />
+                      <GeneratedDocumentButton
+                        documentId={document.id}
+                        initialStatus={document.pdfGenerationStatus}
+                        initialError={document.pdfGenerationError}
+                      />
+                    </div>
                   </header>
 
                   <section className="pt-5">

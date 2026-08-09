@@ -141,7 +141,6 @@ export function validateMandatoryInternship(form: DocumentFormData): DocumentErr
   addError(errors, 'dificuldadesEncontradas', validateRequired(form.dificuldadesEncontradas) ?? validateLettersAndNumbers(form.dificuldadesEncontradas))
   addError(errors, 'conclusao', validateRequired(form.conclusao) ?? validateLettersAndNumbers(form.conclusao))
   addError(errors, 'cidadeAssinatura', validateRequired(form.cidadeAssinatura) ?? validateLettersPunct(form.cidadeAssinatura))
-  addError(errors, 'attachment', form.attachment ? null : 'Campo obrigatório')
 
   if (form.inicioEstagio && form.fimEstagio && form.fimEstagio <= form.inicioEstagio) {
     errors.fimEstagio = 'A data de fim deve ser posterior à data de início'
@@ -177,7 +176,6 @@ function validateActivityValidation(form: DocumentFormData, requireCampus: boole
   addError(errors, 'totalHorasTrabalhadas', validateRequired(form.totalHorasTrabalhadas) ?? validateNumbersOnly(form.totalHorasTrabalhadas))
   addError(errors, 'descricaoAtividades', validateRequired(form.descricaoAtividades) ?? validateLettersAndNumbers(form.descricaoAtividades))
   addError(errors, 'cidadeAssinatura', validateRequired(form.cidadeAssinatura) ?? validateLettersPunct(form.cidadeAssinatura))
-  addError(errors, 'attachment', form.attachment ? null : 'Campo obrigatório')
 
   if (form.inicioAtividade && form.fimAtividade && form.fimAtividade <= form.inicioAtividade) {
     errors.fimAtividade = 'A data de fim deve ser posterior à data de início'

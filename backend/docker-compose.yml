@@ -12,5 +12,32 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: internship_monitoring_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    container_name: internship_monitoring_celery
+    restart: unless-stopped
+    command: celery -A config worker --loglevel=info
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-unsafe-dev-secret-key}
+      MASTER_USER_PASSWORD: ${MASTER_USER_PASSWORD:-Teste@123}
+      DB_NAME: internship_monitoring
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./media:/app/media
+
 volumes:
   postgres_data:

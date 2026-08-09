@@ -6,7 +6,6 @@ import { selectClass } from '../documentFormStyles.ts'
 import FormField from '../../ui/FormField.tsx'
 import SelectField from '../../ui/SelectField.tsx'
 import TextareaField from '../../ui/TextareaField.tsx'
-import FileUploadField from '../../ui/FileUploadField.tsx'
 import { formatCpfCnpj, formatPhone } from '../../../utils/validation.ts'
 import { IFSUL_CAMPUS_OPTIONS, IFSUL_HIGHER_EDUCATION_COURSE_OPTIONS } from '../../../utils/ifsulAcademicOptions.ts'
 import { BUSINESS_ACTIVITY_OPTIONS, OTHER_BUSINESS_ACTIVITY } from '../../../utils/businessActivityOptions.ts'
@@ -597,17 +596,6 @@ export default function MandatoryInternshipSections({
               error={fieldErrors.totalHorasTrabalhadas}
             />
           </div>
-
-          <FileUploadField
-            id="attachmentMI"
-            label="Comprovante de vínculo com a concedente"
-            value={form.attachment}
-            onChange={(base64) => {
-              updateField('attachment', base64)
-            }}
-            required={!documentId}
-            error={fieldErrors.attachment}
-          />
         </>
       )}
 

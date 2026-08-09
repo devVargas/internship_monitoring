@@ -47,7 +47,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [coordinators, setCoordinators] = useState<Coordinator[]>([])
   const [advisors, setAdvisors] = useState<AcademicAdvisor[]>([])
   const [loadedDocumentStatus, setLoadedDocumentStatus] = useState<DocumentStatus | null>(null)
-  const [hasExistingAttachment, setHasExistingAttachment] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [currentSection, setCurrentSection] = useState(0)
   const [isPreviewing, setIsPreviewing] = useState(false)
@@ -244,7 +243,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           return
         }
 
-        if (data.status !== 'adjustment_requested' && data.status !== 'draft') {
+        if (data.status !== 'adjustment_requested') {
           navigate('/', { replace: true })
           return
         }
@@ -264,16 +263,11 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
         setUserSelectedType(data.document_type)
         setLoadedDocumentStatus(data.status)
-        setHasExistingAttachment(Boolean(data.attachment))
         setRelatedDocumentId(data.related_document ?? undefined)
         setRelatedSupervisorName(data.supervisor_name ?? '')
         setForm(mapBackendDataToForm(data))
 
-        onTitleChange?.(
-          data.status === 'draft'
-            ? `Editar rascunho — ${DOCUMENT_TYPE_LABELS[data.document_type]}`
-            : `Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`,
-        )
+        onTitleChange?.(`Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`)
       } catch {
         if (!cancelled) {
           setLoadError(
@@ -409,9 +403,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   function validateCurrentSection(): DocumentErrors {
     if (currentSection < sectionOffset) return {}
     const allErrors = validateForm(documentType, form)
-    if (documentId && hasExistingAttachment) {
-      delete allErrors.attachment
-    }
     const sectionFields = SECTION_FIELDS[documentType][currentSection - sectionOffset]
     const sectionErrors: DocumentErrors = {}
     for (const field of sectionFields) {
@@ -439,7 +430,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     setFieldErrors({})
   }
 
-  function updateField(field: DocumentField, value: string | File | null) {
+  function updateField(field: DocumentField, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
   }
@@ -478,7 +469,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       supervisor.company_address_number,
       supervisor.company_address_complement,
     ]
-      .map((value) => value.trim())
+      .map((value) => (value ?? '').trim())
       .filter(Boolean)
       .join(', ')
 
@@ -602,10 +593,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   function openPreview() {
     const errors = validateForm(documentType, form)
 
-    if (documentId && hasExistingAttachment) {
-      delete errors.attachment
-    }
-
     setFieldErrors(errors)
 
     if (Object.keys(errors).length > 0) {
@@ -634,10 +621,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
     const errors = validateForm(documentType, form)
 
-    if (documentId && hasExistingAttachment) {
-      delete errors.attachment
-    }
-
     setFieldErrors(errors)
 
     if (Object.keys(errors).length > 0) {
@@ -648,42 +631,31 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       documentType,
       form,
       relatedDocumentId,
-      false,
     )
+
+    // Abre a aba enquanto ainda estamos dentro do clique do usuário.
+    // Se esperássemos o POST terminar para chamar window.open, o navegador
+    // poderia bloquear a nova aba como popup.
+    const pdfViewerWindow = window.open('about:blank', '_blank')
 
     const savedDocumentId = documentId
       ? await update(documentId, payload)
       : await register(payload)
 
     if (savedDocumentId !== null) {
-      navigate('/', { replace: true })
-    }
-  }
+      const viewerPath = `/documentos/${String(savedDocumentId)}/pdf`
 
-  async function saveDraft(): Promise<void> {
-    setSuccessMessage('')
-    setFieldErrors({})
-
-    const payload = buildPayload(
-      documentType,
-      form,
-      relatedDocumentId,
-      true,
-    )
-
-    if (documentId) {
-      const savedDocumentId = await update(documentId, payload)
-      if (savedDocumentId !== null) {
-        setLoadedDocumentStatus('draft')
-        setSuccessMessage('Rascunho salvo com sucesso.')
+      if (pdfViewerWindow) {
+        pdfViewerWindow.opener = null
+        pdfViewerWindow.location.href = viewerPath
+      } else {
+        // Fallback caso o navegador esteja bloqueando novas abas.
+        navigate(viewerPath)
       }
       return
     }
 
-    const savedDocumentId = await register(payload)
-    if (savedDocumentId !== null) {
-      navigate(`/editar-documento/${String(savedDocumentId)}`, { replace: true })
-    }
+    pdfViewerWindow?.close()
   }
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -772,10 +744,10 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
               {isLoading || isUpdating
                 ? 'Salvando...'
                 : loadedDocumentStatus === 'adjustment_requested'
-                  ? 'Salvar alterações'
+                  ? 'Salvar alterações e gerar PDF'
                   : documentType === 'supervisor_evaluation'
-                    ? 'Enviar avaliação'
-                    : 'Enviar documento'}
+                    ? 'Gerar PDF da avaliação'
+                    : 'Gerar PDF'}
             </Button>
           </div>
         </>
@@ -928,19 +900,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             </Button>
           )}
 
-          {canSeeStudentOptions &&
-            documentType !== 'supervisor_evaluation' &&
-            currentSection >= sectionOffset &&
-            (!documentId || loadedDocumentStatus === 'draft') && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => { void saveDraft() }}
-                disabled={isLoading || isUpdating}
-              >
-                {isLoading || isUpdating ? 'Salvando...' : 'Salvar rascunho'}
-              </Button>
-            )}
         </div>
 
         {currentSection < totalSections - 1 && (

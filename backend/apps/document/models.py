@@ -10,7 +10,6 @@ class DocumentType(models.TextChoices):
 
 
 class DocumentStatus(models.TextChoices):
-    DRAFT = ("draft",)
     SUBMITTED = ("submitted",)
     WAITING_SUPERVISOR = ("waiting_supervisor",)
     IN_REVIEW = ("in_review",)
@@ -18,6 +17,14 @@ class DocumentStatus(models.TextChoices):
     APPROVED = ("approved",)
     REJECTED = ("rejected",)
     CANCELLED = ("cancelled",)
+
+
+class PdfGenerationStatus(models.TextChoices):
+    NOT_GENERATED = ("not_generated",)
+    PENDING = ("pending",)
+    PROCESSING = ("processing",)
+    READY = ("ready",)
+    FAILED = ("failed",)
 
 
 class Document(models.Model):
@@ -73,11 +80,23 @@ class Document(models.Model):
         null=True,
         blank=True,
     )
+    generated_pdf = models.FileField(
+        upload_to="documents/generated/",
+        null=True,
+        blank=True,
+    )
+    pdf_generation_status = models.CharField(
+        max_length=20,
+        choices=PdfGenerationStatus.choices,
+        default=PdfGenerationStatus.NOT_GENERATED,
+    )
+    pdf_generation_error = models.TextField(blank=True)
+    pdf_generated_at = models.DateTimeField(null=True, blank=True)
     form_data = models.JSONField(default=dict, blank=True)
     status = models.CharField(
         max_length=40,
         choices=DocumentStatus.choices,
-        default=DocumentStatus.DRAFT,
+        default=DocumentStatus.SUBMITTED,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

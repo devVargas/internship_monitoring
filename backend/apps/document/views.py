@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.http import FileResponse
 from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -12,7 +13,7 @@ from apps.accounts.constants import GROUP_COORDINATOR, GROUP_PROFESSOR, GROUP_SU
 from apps.accounts.models import SupervisorProfile
 from apps.doc_activity.models import DocumentActivityAction
 from apps.doc_activity.services import register_activity
-from apps.document.models import Document, DocumentStatus, DocumentType
+from apps.document.models import Document, DocumentStatus, DocumentType, PdfGenerationStatus
 from apps.document.serializers import (
     DocumentAdvisorAssignmentSerializer,
     DocumentRequiredCommentSerializer,
@@ -21,6 +22,7 @@ from apps.document.serializers import (
     DocumentSerializer,
     DocumentWriteSerializer,
 )
+from apps.document.pdf_generation import queue_document_pdf
 from apps.document.services import set_document_status
 
 User = get_user_model()
@@ -66,34 +68,25 @@ class DocumentViewSet(viewsets.ModelViewSet):
             return queryset.all()
 
         # Professor só recebe estágio obrigatório quando foi designado como
-        # orientador. Rascunhos ainda pertencem somente ao aluno.
+        # orientador e o documento já chegou à revisão acadêmica.
         if user.groups.filter(name=GROUP_PROFESSOR).exists():
             return queryset.filter(
                 document_type=DocumentType.MANDATORY_INTERNSHIP,
                 advisor=user,
             ).exclude(
                 status__in=[
-                    DocumentStatus.DRAFT,
                     DocumentStatus.WAITING_SUPERVISOR,
                     DocumentStatus.CANCELLED,
                 ]
             )
 
         if user.groups.filter(name=GROUP_SUPERVISOR).exists():
-            return queryset.filter(supervisor__user=user).exclude(
-                status=DocumentStatus.DRAFT,
-                document_type__in=[
-                    DocumentType.MANDATORY_INTERNSHIP,
-                    DocumentType.NON_MANDATORY_INTERNSHIP_CREDIT,
-                    DocumentType.PROFESSIONAL_PRACTICE_CREDIT,
-                ],
-            )
+            return queryset.filter(supervisor__user=user)
 
         return queryset.filter(student__user=user)
 
     @transaction.atomic
     def perform_create(self, serializer):
-        save_as_draft = serializer.validated_data.pop("save_as_draft", False)
         supervisor_id = serializer.validated_data.pop("supervisor_id", None)
         advisor_id = serializer.validated_data.pop("advisor_id", None)
         related_document_id = serializer.validated_data.pop("related_document_id", None)
@@ -104,7 +97,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
             document = self.create_supervisor_document(
                 serializer,
                 related_document,
-                save_as_draft=save_as_draft,
             )
         else:
             document = self.create_student_document(
@@ -112,19 +104,15 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 supervisor_id,
                 advisor_id,
                 related_document,
-                save_as_draft=save_as_draft,
             )
 
         register_activity(
             document=document,
             action=DocumentActivityAction.CREATED,
             user=self.request.user,
-            description=(
-                "Rascunho criado."
-                if document.status == DocumentStatus.DRAFT
-                else "Documento criado."
-            ),
+            description="Documento criado.",
         )
+        queue_document_pdf(document)
 
     def create_student_document(
         self,
@@ -132,8 +120,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
         supervisor_id,
         advisor_id,
         related_document,
-        *,
-        save_as_draft,
     ):
         user = self.request.user
 
@@ -145,11 +131,8 @@ class DocumentViewSet(viewsets.ModelViewSet):
         supervisor = self.get_supervisor(supervisor_id)
         advisor = self.get_advisor(advisor_id)
         form_data = dict(serializer.validated_data.get("form_data", {}))
-        status_value = (
-            DocumentStatus.DRAFT
-            if save_as_draft
-            else self.get_submission_status(supervisor)
-        )
+        document_type = serializer.validated_data.get("document_type")
+        status_value = self.get_submission_status(document_type, supervisor)
 
         student_snapshot = self.build_student_snapshot(
             student=student,
@@ -177,8 +160,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
         self,
         serializer,
         related_document,
-        *,
-        save_as_draft,
     ):
         if not related_document:
             raise ValidationError(
@@ -237,11 +218,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
             supervisor=supervisor,
             advisor=related_document.advisor,
             related_document=related_document,
-            status=(
-                DocumentStatus.DRAFT
-                if save_as_draft
-                else DocumentStatus.SUBMITTED
-            ),
+            status=DocumentStatus.SUBMITTED,
             student_name=related_document.student_name,
             student_email=related_document.student_email,
             student_registration_number=(
@@ -256,10 +233,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
             document_date=timezone.localdate(),
         )
 
-        if not save_as_draft:
-            self.release_related_document_after_supervisor_evaluation(
-                related_document,
-            )
+        self.release_related_document_after_supervisor_evaluation(
+            related_document,
+        )
 
         return document
 
@@ -271,7 +247,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
         self.validate_update_permission(document, user)
 
-        save_as_draft = serializer.validated_data.pop("save_as_draft", False)
         supervisor_id = serializer.validated_data.pop("supervisor_id", None)
         advisor_id = serializer.validated_data.pop("advisor_id", None)
         related_document_id = serializer.validated_data.pop("related_document_id", None)
@@ -291,11 +266,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if advisor_id is not None:
             requested_advisor = self.get_advisor(advisor_id)
             if requested_advisor != document.advisor:
-                can_student_change_draft_advisor = (
-                    previous_status == DocumentStatus.DRAFT
-                    and document.student.user_id == user.id
-                )
-                if not can_student_change_draft_advisor and not self.can_manage_advisor(user):
+                if not self.can_manage_advisor(user):
                     raise PermissionDenied(
                         "Somente a coordenação pode alterar o orientador após o envio."
                     )
@@ -344,40 +315,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
             document=document,
             action=DocumentActivityAction.UPDATED,
             user=user,
-            description=(
-                "Rascunho salvo."
-                if previous_status == DocumentStatus.DRAFT and save_as_draft
-                else "Documento atualizado."
-            ),
+            description="Documento atualizado.",
         )
 
-        if previous_status == DocumentStatus.DRAFT and not save_as_draft:
-            document.document_date = timezone.localdate()
-            document.save(update_fields=["document_date"])
-
-            if document.document_type == DocumentType.SUPERVISOR_EVALUATION:
-                set_document_status(
-                    document=document,
-                    status=DocumentStatus.SUBMITTED,
-                    user=user,
-                    description="Ficha de avaliação enviada.",
-                )
-                if related_document:
-                    self.release_related_document_after_supervisor_evaluation(
-                        related_document,
-                    )
-            else:
-                set_document_status(
-                    document=document,
-                    status=self.get_submission_status(document.supervisor),
-                    user=user,
-                    description="Documento enviado.",
-                )
-
-        elif (
-            previous_status == DocumentStatus.ADJUSTMENT_REQUESTED
-            and not save_as_draft
-        ):
+        if previous_status == DocumentStatus.ADJUSTMENT_REQUESTED:
             document.reviewed_by = None
             document.save(update_fields=["reviewed_by"])
             set_document_status(
@@ -387,16 +328,15 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 description="Documento reenviado após os ajustes.",
             )
 
+        queue_document_pdf(document)
+
     def validate_update_permission(self, document, user):
         if user.is_superuser:
             return
 
-        if document.status not in {
-            DocumentStatus.DRAFT,
-            DocumentStatus.ADJUSTMENT_REQUESTED,
-        }:
+        if document.status != DocumentStatus.ADJUSTMENT_REQUESTED:
             raise PermissionDenied(
-                "Somente rascunhos ou documentos com ajustes solicitados podem ser editados."
+                "Somente documentos com ajustes solicitados podem ser editados."
             )
 
         if document.document_type == DocumentType.SUPERVISOR_EVALUATION:
@@ -444,7 +384,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
         queryset = self.get_queryset().exclude(
             status__in=[
-                DocumentStatus.DRAFT,
                 DocumentStatus.WAITING_SUPERVISOR,
                 DocumentStatus.CANCELLED,
             ]
@@ -522,7 +461,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
             )
 
         if document.status in {
-            DocumentStatus.DRAFT,
             DocumentStatus.APPROVED,
             DocumentStatus.REJECTED,
             DocumentStatus.CANCELLED,
@@ -582,7 +520,48 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 description=f"Orientador alterado de {old_name} para {new_name}.",
             )
 
+        queue_document_pdf(document)
         return Response(DocumentSerializer(document, context={"request": request}).data)
+
+    @action(detail=True, methods=["get"], url_path="pdf-status")
+    def pdf_status(self, request, pk=None):
+        document = self.get_object()
+        return Response(
+            {
+                "status": document.pdf_generation_status,
+                "error": document.pdf_generation_error,
+                "generated_at": document.pdf_generated_at,
+            }
+        )
+
+    @action(detail=True, methods=["post"], url_path="generate-pdf")
+    def generate_pdf(self, request, pk=None):
+        document = self.get_object()
+        if document.status == DocumentStatus.CANCELLED:
+            raise ValidationError("Documento cancelado não pode gerar um novo PDF.")
+
+        queue_document_pdf(document)
+        return Response(
+            DocumentSerializer(document, context={"request": request}).data,
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+    @action(detail=True, methods=["get"], url_path="generated-pdf")
+    def generated_pdf(self, request, pk=None):
+        document = self.get_object()
+        if (
+            document.pdf_generation_status != PdfGenerationStatus.READY
+            or not document.generated_pdf
+        ):
+            raise ValidationError("O PDF ainda não está disponível.")
+
+        document.generated_pdf.open("rb")
+        return FileResponse(
+            document.generated_pdf.file,
+            content_type="application/pdf",
+            as_attachment=False,
+            filename=document.generated_pdf.name.rsplit("/", 1)[-1],
+        )
 
     @extend_schema(
         request=DocumentReviewActionSerializer,
@@ -736,12 +715,14 @@ class DocumentViewSet(viewsets.ModelViewSet):
             raise ValidationError({"related_document_id": "Related document not found."}) from exc
 
     @staticmethod
-    def get_submission_status(supervisor):
-        return (
-            DocumentStatus.WAITING_SUPERVISOR
-            if supervisor
-            else DocumentStatus.SUBMITTED
-        )
+    def get_submission_status(document_type, supervisor):
+        if (
+            document_type == DocumentType.MANDATORY_INTERNSHIP
+            and supervisor is not None
+        ):
+            return DocumentStatus.WAITING_SUPERVISOR
+
+        return DocumentStatus.SUBMITTED
 
     @staticmethod
     def build_student_snapshot(student, form_data, previous_snapshot=None):

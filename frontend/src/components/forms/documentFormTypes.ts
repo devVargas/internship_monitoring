@@ -96,9 +96,6 @@ export type DocumentFormData = {
   // Assinatura. A data vem de document_date no backend.
   cidadeAssinatura: string
 
-  // Anexo/comprovante do fluxo atual.
-  attachment: File | null
-
   // Ficha de avaliação do supervisor.
   dataFormatura: string
   funcaoPrincipalAluno: string
@@ -151,7 +148,7 @@ export type BackendDocumentResponse = {
 export type SectionProps = {
   form: DocumentFormData
   fieldErrors: DocumentErrors
-  updateField: (field: DocumentField, value: string | File | null) => void
+  updateField: (field: DocumentField, value: string) => void
   sectionOffset: number
   currentSection: number
   supervisors: Supervisor[]

@@ -57,18 +57,15 @@ export function buildPayload(
   documentType: DocumentType,
   form: DocumentFormData,
   relatedDocumentId?: number,
-  saveAsDraft = false,
 ): RegisterDocumentPayload {
   switch (documentType) {
     case 'mandatory_internship':
       return {
         document_type: 'mandatory_internship',
         city: form.cidadeAssinatura,
-        attachment: form.attachment,
         company: form.razaoSocial,
         supervisor_id: Number(form.supervisor_id),
         advisor_id: form.advisor_id ? Number(form.advisor_id) : undefined,
-        save_as_draft: saveAsDraft,
         form_data: {
           nomeAluno: form.nomeAluno,
           matriculaAluno: form.matriculaAluno,
@@ -106,11 +103,9 @@ export function buildPayload(
         document_type: 'non_mandatory_internship_credit',
         city: form.cidadeAssinatura,
         company: form.razaoSocial,
-        attachment: form.attachment,
         coordinator_name: form.nomeCoordenador,
         supervisor_id: Number(form.supervisor_id),
         advisor_id: form.advisor_id ? Number(form.advisor_id) : undefined,
-        save_as_draft: saveAsDraft,
         form_data: {
           ...buildActivityValidationData(form),
           campusAluno: form.campusAluno,
@@ -119,9 +114,7 @@ export function buildPayload(
     case 'professional_practice_credit':
       return {
         document_type: 'professional_practice_credit',
-        attachment: form.attachment,
         supervisor_id: Number(form.supervisor_id),
-        save_as_draft: saveAsDraft,
         company: form.razaoSocial,
         city: form.cidadeAssinatura,
         form_data: buildActivityValidationData(form),
@@ -129,7 +122,6 @@ export function buildPayload(
     case 'supervisor_evaluation':
       return {
         document_type: 'supervisor_evaluation',
-        save_as_draft: saveAsDraft,
         city: form.cidadeAssinatura,
         form_data: {
           nomeAluno: form.nomeAluno,

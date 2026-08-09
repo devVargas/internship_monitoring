@@ -6,7 +6,6 @@ import {
 } from './http.ts'
 
 export const DOCUMENT_STATUSES = [
-  'draft',
   'submitted',
   'waiting_supervisor',
   'in_review',
@@ -28,6 +27,17 @@ export type DocumentStatus =
 
 export type DocumentType =
   (typeof DOCUMENT_TYPES)[number]
+
+export const PDF_GENERATION_STATUSES = [
+  'not_generated',
+  'pending',
+  'processing',
+  'ready',
+  'failed',
+] as const
+
+export type PdfGenerationStatus =
+  (typeof PDF_GENERATION_STATUSES)[number]
 
 export type MandatoryInternshipFormData = {
   nomeAluno: string
@@ -156,8 +166,6 @@ export type RegisterDocumentPayload =
       city: string
       supervisor_id: number
       advisor_id?: number
-      save_as_draft?: boolean
-      attachment: File | null
       form_data: MandatoryInternshipFormData
     }
   | {
@@ -167,8 +175,6 @@ export type RegisterDocumentPayload =
       coordinator_name: string
       supervisor_id: number
       advisor_id?: number
-      save_as_draft?: boolean
-      attachment: File | null
       form_data: NonMandatoryInternshipCreditFormData
     }
   | {
@@ -176,14 +182,11 @@ export type RegisterDocumentPayload =
       company: string
       city: string
       supervisor_id: number
-      save_as_draft?: boolean
-      attachment: File | null
       form_data: ProfessionalPracticeCreditFormData
     }
   | {
       document_type: 'supervisor_evaluation'
       city: string
-      save_as_draft?: boolean
       form_data: MandatoryInternshipEvaluationFormData
       related_document_id?: number
     }
@@ -225,6 +228,10 @@ export type DocumentDetail =
     coordinatorName: string
     city: string
     attachment: string | null
+    generatedPdf: string | null
+    pdfGenerationStatus: PdfGenerationStatus
+    pdfGenerationError: string
+    pdfGeneratedAt: string | null
     formData: unknown
     activities: DocumentActivity[]
     createdAt: string
@@ -273,6 +280,10 @@ type DocumentDetailResponse =
     coordinator_name: string
     city: string
     attachment: string | null
+    generated_pdf: string | null
+    pdf_generation_status: PdfGenerationStatus
+    pdf_generation_error: string
+    pdf_generated_at: string | null
     form_data: unknown
     activities: DocumentActivityResponse[]
     created_at: string
@@ -298,6 +309,15 @@ function isDocumentStatus(
     DOCUMENT_STATUSES.some(
       (status) => status === value,
     )
+  )
+}
+
+function isPdfGenerationStatus(
+  value: unknown,
+): value is PdfGenerationStatus {
+  return (
+    typeof value === 'string' &&
+    PDF_GENERATION_STATUSES.some((status) => status === value)
   )
 }
 
@@ -386,6 +406,10 @@ function isDocumentDetail(
     typeof value.coordinator_name === 'string' &&
     typeof value.city === 'string' &&
     isNullableString(value.attachment) &&
+    isNullableString(value.generated_pdf) &&
+    isPdfGenerationStatus(value.pdf_generation_status) &&
+    typeof value.pdf_generation_error === 'string' &&
+    isNullableString(value.pdf_generated_at) &&
     Array.isArray(activities) &&
     activities.every(isDocumentActivity) &&
     typeof value.created_at === 'string'
@@ -429,6 +453,10 @@ function mapDocumentDetail(
     coordinatorName: document.coordinator_name,
     city: document.city,
     attachment: document.attachment,
+    generatedPdf: document.generated_pdf,
+    pdfGenerationStatus: document.pdf_generation_status,
+    pdfGenerationError: document.pdf_generation_error,
+    pdfGeneratedAt: document.pdf_generated_at,
     formData: document.form_data,
     activities: document.activities.map(
       (activity) => ({
@@ -496,17 +524,11 @@ export async function registerDocumentRequest(
     formData.append('advisor_id', String(data.advisor_id))
   }
 
-  if (data.save_as_draft !== undefined) {
-    formData.append('save_as_draft', data.save_as_draft ? 'true' : 'false')
-  }
 
   if ('related_document_id' in data && data.related_document_id !== undefined) {
     formData.append('related_document_id', String(data.related_document_id))
   }
 
-  if ('attachment' in data && data.attachment) {
-    formData.append('attachment', data.attachment)
-  }
 
   const response = await httpClient(
     '/api/documents/',
@@ -563,17 +585,11 @@ export async function updateDocumentRequest(
     formData.append('advisor_id', String(data.advisor_id))
   }
 
-  if (data.save_as_draft !== undefined) {
-    formData.append('save_as_draft', data.save_as_draft ? 'true' : 'false')
-  }
 
   if ('related_document_id' in data && data.related_document_id !== undefined) {
     formData.append('related_document_id', String(data.related_document_id))
   }
 
-  if ('attachment' in data && data.attachment) {
-    formData.append('attachment', data.attachment)
-  }
 
   const response = await httpClient(
     `/api/documents/${String(documentId)}/`,
@@ -698,6 +714,76 @@ export async function getDocumentRequest(
     response,
     'Não foi possível carregar o documento',
   )
+}
+
+export type PdfGenerationState = {
+  status: PdfGenerationStatus
+  error: string
+  generatedAt: string | null
+}
+
+export async function getDocumentPdfStatusRequest(
+  documentId: number,
+  httpClient: HttpClient,
+): Promise<PdfGenerationState> {
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/pdf-status/`,
+  )
+  const payload = await readJson(response)
+
+  if (!response.ok) {
+    throw new Error(
+      getApiErrorMessage(payload, 'Não foi possível consultar a geração do PDF'),
+    )
+  }
+
+  if (
+    !isRecord(payload) ||
+    !isPdfGenerationStatus(payload.status) ||
+    typeof payload.error !== 'string' ||
+    !isNullableString(payload.generated_at)
+  ) {
+    throw new Error('Resposta de geração do PDF inválida')
+  }
+
+  return {
+    status: payload.status,
+    error: payload.error,
+    generatedAt: payload.generated_at,
+  }
+}
+
+export async function requestDocumentPdfGeneration(
+  documentId: number,
+  httpClient: HttpClient,
+): Promise<DocumentDetail> {
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/generate-pdf/`,
+    { method: 'POST' },
+  )
+
+  return readDocumentDetail(
+    response,
+    'Não foi possível iniciar a geração do PDF',
+  )
+}
+
+export async function getGeneratedDocumentPdfRequest(
+  documentId: number,
+  httpClient: HttpClient,
+): Promise<Blob> {
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/generated-pdf/`,
+  )
+
+  if (!response.ok) {
+    const payload = await readJson(response)
+    throw new Error(
+      getApiErrorMessage(payload, 'Não foi possível abrir o PDF'),
+    )
+  }
+
+  return response.blob()
 }
 
 async function sendReviewAction(
