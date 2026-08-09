@@ -54,7 +54,7 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
   mandatory_internship: [
     [
       'nomeAluno', 'matriculaAluno', 'campusAluno', 'cursoAluno',
-      'semestreAnoConclusao', 'situacao', 'especificarSituacao', 'dataFormatura',
+      'semestreAnoConclusao', 'advisor_id', 'situacao', 'especificarSituacao', 'dataFormatura',
       'emailAluno', 'telefoneAluno', 'celularAluno', 'cepAluno', 'enderecoAluno',
       'numeroEnderecoAluno', 'complementoEnderecoAluno', 'bairroAluno',
       'cidadeAluno', 'ufAluno',
@@ -97,7 +97,7 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
   ],
   non_mandatory_internship_credit: [
     [
-      'nomeCoordenador', 'nomeAluno', 'matriculaAluno', 'campusAluno',
+      'nomeCoordenador', 'advisor_id', 'nomeAluno', 'matriculaAluno', 'campusAluno',
       'cursoAluno', 'modalidade', 'especificarModalidade', 'emailAluno', 'telefoneAluno',
       'semestreAnoConclusao', 'situacao', 'especificarSituacao', 'cargo', 'setor',
     ],
@@ -161,6 +161,7 @@ const INITIAL_FORM: DocumentFormData = {
   telefoneConcedente: '',
   ramoAtividade: '',
   outroRamoAtividade: '',
+  advisor_id: '',
   supervisor_id: '',
   cargoFuncaoSupervisor: '',
   emailSupervisor: '',

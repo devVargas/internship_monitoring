@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import type { CurrentUser } from '../../api/auth.ts'
 import { getCurrentUserRequest } from '../../api/auth.ts'
 import { getUserProfileRequest } from '../../api/profile.ts'
-import type { DocumentType } from '../../api/documents.ts'
+import type { DocumentStatus, DocumentType } from '../../api/documents.ts'
+import { listAcademicAdvisorsRequest, type AcademicAdvisor } from '../../api/students.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
 import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
@@ -43,6 +44,9 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [supervisors, setSupervisors] = useState<Supervisor[]>([])
   const [coordinators, setCoordinators] = useState<Coordinator[]>([])
+  const [advisors, setAdvisors] = useState<AcademicAdvisor[]>([])
+  const [loadedDocumentStatus, setLoadedDocumentStatus] = useState<DocumentStatus | null>(null)
+  const [hasExistingAttachment, setHasExistingAttachment] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [currentSection, setCurrentSection] = useState(0)
   const { register, isLoading, error } = useRegisterDocument()
@@ -236,7 +240,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           return
         }
 
-        if (data.status !== 'adjustment_requested') {
+        if (data.status !== 'adjustment_requested' && data.status !== 'draft') {
           navigate('/', { replace: true })
           return
         }
@@ -255,11 +259,15 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         }
 
         setUserSelectedType(data.document_type)
+        setLoadedDocumentStatus(data.status)
+        setHasExistingAttachment(Boolean(data.attachment))
         setRelatedDocumentId(data.related_document ?? undefined)
         setForm(mapBackendDataToForm(data))
 
         onTitleChange?.(
-          `Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`,
+          data.status === 'draft'
+            ? `Editar rascunho — ${DOCUMENT_TYPE_LABELS[data.document_type]}`
+            : `Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`,
         )
       } catch {
         if (!cancelled) {
@@ -346,6 +354,30 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   }, [fetchWithAuth])
 
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAdvisors() {
+      try {
+        const data = await listAcademicAdvisorsRequest(fetchWithAuth)
+        if (!cancelled) {
+          setAdvisors(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError('Não foi possível carregar a lista de orientadores')
+        }
+      }
+    }
+
+    void loadAdvisors()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
+
   const defaultDocumentType = useMemo<DocumentType>(() => {
     if (canSeeStudentOptions) return 'mandatory_internship'
     if (canSeeSupervisorOptions) return 'supervisor_evaluation'
@@ -372,7 +404,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   function validateCurrentSection(): DocumentErrors {
     if (currentSection < sectionOffset) return {}
     const allErrors = validateForm(documentType, form)
-    if (documentId) {
+    if (documentId && hasExistingAttachment) {
       delete allErrors.attachment
     }
     const sectionFields = SECTION_FIELDS[documentType][currentSection - sectionOffset]
@@ -550,7 +582,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
     const errors = validateForm(documentType, form)
 
-    if (documentId) {
+    if (documentId && hasExistingAttachment) {
       delete errors.attachment
     }
 
@@ -560,14 +592,45 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       return
     }
 
-    const payload = buildPayload(documentType, form, relatedDocumentId)
+    const payload = buildPayload(
+      documentType,
+      form,
+      relatedDocumentId,
+      false,
+    )
 
-    const success = documentId
+    const savedDocumentId = documentId
       ? await update(documentId, payload)
       : await register(payload)
 
-    if (success) {
+    if (savedDocumentId !== null) {
       navigate('/', { replace: true })
+    }
+  }
+
+  async function saveDraft(): Promise<void> {
+    setSuccessMessage('')
+    setFieldErrors({})
+
+    const payload = buildPayload(
+      documentType,
+      form,
+      relatedDocumentId,
+      true,
+    )
+
+    if (documentId) {
+      const savedDocumentId = await update(documentId, payload)
+      if (savedDocumentId !== null) {
+        setLoadedDocumentStatus('draft')
+        setSuccessMessage('Rascunho salvo com sucesso.')
+      }
+      return
+    }
+
+    const savedDocumentId = await register(payload)
+    if (savedDocumentId !== null) {
+      navigate(`/editar-documento/${String(savedDocumentId)}`, { replace: true })
     }
   }
 
@@ -659,6 +722,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           supervisors={supervisors}
           handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
+          advisors={advisors}
           handleCepChange={handleCepChange}
           documentId={documentId}
           cepAlunoLoading={cepAlunoLoading}
@@ -678,6 +742,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           supervisors={supervisors}
           handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
+          advisors={advisors}
           handleCepChange={handleCepChange}
           documentId={documentId}
           cepAlunoLoading={cepAlunoLoading}
@@ -697,6 +762,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           supervisors={supervisors}
           handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
+          advisors={advisors}
           handleCepChange={handleCepChange}
           documentId={documentId}
           cepAlunoLoading={cepAlunoLoading}
@@ -716,6 +782,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           supervisors={supervisors}
           handleSupervisorChange={handleSupervisorChange}
           coordinators={coordinators}
+          advisors={advisors}
           handleCepChange={handleCepChange}
           documentId={documentId}
           cepAlunoLoading={cepAlunoLoading}
@@ -743,12 +810,29 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        {currentSection > 0 && (
-          <Button type="button" variant="secondary" onClick={handlePrevSection}>
-            Seção anterior
-          </Button>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {currentSection > 0 && (
+            <Button type="button" variant="secondary" onClick={handlePrevSection}>
+              Seção anterior
+            </Button>
+          )}
+
+          {canSeeStudentOptions &&
+            documentType !== 'supervisor_evaluation' &&
+            currentSection >= sectionOffset &&
+            (!documentId || loadedDocumentStatus === 'draft') && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => { void saveDraft() }}
+                disabled={isLoading || isUpdating}
+              >
+                {isLoading || isUpdating ? 'Salvando...' : 'Salvar rascunho'}
+              </Button>
+            )}
+        </div>
+
         {currentSection < totalSections - 1 && (
           <Button type="button" onClick={handleNextSection} className="ml-auto">
             Próxima seção
@@ -761,10 +845,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
             className="ml-auto"
           >
             {isLoading || isUpdating
-              ? documentId
-                ? 'Salvando...'
-                : 'Enviando...'
-              : documentId
+              ? 'Salvando...'
+              : loadedDocumentStatus === 'adjustment_requested'
                 ? 'Salvar alterações'
                 : 'Enviar'}
           </Button>

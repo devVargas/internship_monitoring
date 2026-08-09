@@ -122,6 +122,7 @@ export function validateMandatoryInternship(form: DocumentFormData): DocumentErr
     ...validateSupervisor(form),
   }
 
+  addError(errors, 'advisor_id', validateRequired(form.advisor_id))
   addError(errors, 'situacao', validateRequired(form.situacao))
   if (form.situacao === 'outra') {
     addError(errors, 'especificarSituacao', validateRequired(form.especificarSituacao))

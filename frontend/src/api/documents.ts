@@ -6,6 +6,7 @@ import {
 } from './http.ts'
 
 export const DOCUMENT_STATUSES = [
+  'draft',
   'submitted',
   'waiting_supervisor',
   'in_review',
@@ -31,6 +32,7 @@ export type DocumentType =
 export type MandatoryInternshipFormData = {
   nomeAluno: string
   matriculaAluno: string
+  campusAluno: string
   cursoAluno: string
   emailAluno: string
   telefoneAluno: string
@@ -43,6 +45,10 @@ export type MandatoryInternshipFormData = {
   cidadeAluno: string
   ufAluno: string
   semestreAnoConclusao: string
+  situacao: string
+  especificarSituacao: string
+  dataFormatura: string
+  funcaoPrincipalAluno: string
   cnpjCpf: string
   registroConselhoProfissional: string
   cepConcedente: string
@@ -70,6 +76,7 @@ export type MandatoryInternshipFormData = {
 export type ActivityValidationFormData = {
   nomeAluno: string
   matriculaAluno: string
+  campusAluno: string
   cursoAluno: string
   emailAluno: string
   telefoneAluno: string
@@ -148,6 +155,8 @@ export type RegisterDocumentPayload =
       company: string
       city: string
       supervisor_id: number
+      advisor_id?: number
+      save_as_draft?: boolean
       attachment: File | null
       form_data: MandatoryInternshipFormData
     }
@@ -157,6 +166,8 @@ export type RegisterDocumentPayload =
       city: string
       coordinator_name: string
       supervisor_id: number
+      advisor_id?: number
+      save_as_draft?: boolean
       attachment: File | null
       form_data: NonMandatoryInternshipCreditFormData
     }
@@ -165,12 +176,14 @@ export type RegisterDocumentPayload =
       company: string
       city: string
       supervisor_id: number
+      save_as_draft?: boolean
       attachment: File | null
       form_data: ProfessionalPracticeCreditFormData
     }
   | {
       document_type: 'supervisor_evaluation'
       city: string
+      save_as_draft?: boolean
       form_data: MandatoryInternshipEvaluationFormData
       related_document_id?: number
     }
@@ -192,6 +205,7 @@ export type DocumentReviewSummary = {
   company: string
   documentDate: string
   status: DocumentStatus
+  advisorName: string | null
   reviewerName: string | null
   updatedAt: string
 }
@@ -203,6 +217,9 @@ export type DocumentDetail =
     supervisorName: string | null
     supervisorEmail: string | null
     supervisorCompany: string | null
+    advisorId: number | null
+    advisorName: string | null
+    advisorEmail: string | null
     reviewerEmail: string | null
     relatedDocument: number | null
     coordinatorName: string
@@ -228,6 +245,7 @@ type DocumentReviewSummaryResponse = {
   company: string
   document_date: string
   status: DocumentStatus
+  advisor_name: string | null
   reviewer_name: string | null
   updated_at: string
 }
@@ -247,6 +265,9 @@ type DocumentDetailResponse =
     supervisor_name: string | null
     supervisor_email: string | null
     supervisor_company: string | null
+    advisor_id: number | null
+    advisor_name: string | null
+    advisor_email: string | null
     reviewer_email: string | null
     related_document: number | null
     coordinator_name: string
@@ -308,6 +329,7 @@ function isDocumentReviewSummary(
     typeof value.company === 'string' &&
     typeof value.document_date === 'string' &&
     isDocumentStatus(value.status) &&
+    isNullableString(value.advisor_name) &&
     isNullableString(value.reviewer_name) &&
     typeof value.updated_at === 'string'
   )
@@ -348,6 +370,7 @@ function isDocumentDetail(
     typeof value.company === 'string' &&
     typeof value.document_date === 'string' &&
     isDocumentStatus(value.status) &&
+    isNullableString(value.advisor_name) &&
     isNullableString(value.reviewer_name) &&
     typeof value.updated_at === 'string' &&
     typeof value.student_email === 'string' &&
@@ -355,6 +378,9 @@ function isDocumentDetail(
     isNullableString(value.supervisor_name) &&
     isNullableString(value.supervisor_email) &&
     isNullableString(value.supervisor_company) &&
+    isNullableNumber(value.advisor_id) &&
+    isNullableString(value.advisor_name) &&
+    isNullableString(value.advisor_email) &&
     isNullableString(value.reviewer_email) &&
     isNullableNumber(value.related_document) &&
     typeof value.coordinator_name === 'string' &&
@@ -379,6 +405,7 @@ function mapDocumentSummary(
     company: document.company,
     documentDate: document.document_date,
     status: document.status,
+    advisorName: document.advisor_name,
     reviewerName: document.reviewer_name,
     updatedAt: document.updated_at,
   }
@@ -394,6 +421,9 @@ function mapDocumentDetail(
     supervisorName: document.supervisor_name,
     supervisorEmail: document.supervisor_email,
     supervisorCompany: document.supervisor_company,
+    advisorId: document.advisor_id,
+    advisorName: document.advisor_name,
+    advisorEmail: document.advisor_email,
     reviewerEmail: document.reviewer_email,
     relatedDocument: document.related_document,
     coordinatorName: document.coordinator_name,
@@ -441,7 +471,7 @@ async function readDocumentDetail(
 export async function registerDocumentRequest(
   data: RegisterDocumentPayload,
   httpClient: HttpClient,
-): Promise<void> {
+): Promise<number> {
   const formData = new FormData()
   formData.append('document_type', data.document_type)
   formData.append('form_data', JSON.stringify(data.form_data))
@@ -460,6 +490,14 @@ export async function registerDocumentRequest(
 
   if ('supervisor_id' in data) {
     formData.append('supervisor_id', String(data.supervisor_id))
+  }
+
+  if ('advisor_id' in data && data.advisor_id !== undefined && data.advisor_id > 0) {
+    formData.append('advisor_id', String(data.advisor_id))
+  }
+
+  if (data.save_as_draft !== undefined) {
+    formData.append('save_as_draft', data.save_as_draft ? 'true' : 'false')
   }
 
   if ('related_document_id' in data && data.related_document_id !== undefined) {
@@ -479,7 +517,11 @@ export async function registerDocumentRequest(
   )
 
   if (response.ok) {
-    return
+    const payload = await readJson(response)
+    if (isRecord(payload) && typeof payload.id === 'number') {
+      return payload.id
+    }
+    throw new Error('Resposta de documento inválida')
   }
 
   const payload = await readJson(response)
@@ -496,7 +538,7 @@ export async function updateDocumentRequest(
   documentId: number,
   data: RegisterDocumentPayload,
   httpClient: HttpClient,
-): Promise<void> {
+): Promise<number> {
   const formData = new FormData()
   formData.append('document_type', data.document_type)
   formData.append('form_data', JSON.stringify(data.form_data))
@@ -517,6 +559,14 @@ export async function updateDocumentRequest(
     formData.append('supervisor_id', String(data.supervisor_id))
   }
 
+  if ('advisor_id' in data && data.advisor_id !== undefined && data.advisor_id > 0) {
+    formData.append('advisor_id', String(data.advisor_id))
+  }
+
+  if (data.save_as_draft !== undefined) {
+    formData.append('save_as_draft', data.save_as_draft ? 'true' : 'false')
+  }
+
   if ('related_document_id' in data && data.related_document_id !== undefined) {
     formData.append('related_document_id', String(data.related_document_id))
   }
@@ -534,7 +584,11 @@ export async function updateDocumentRequest(
   )
 
   if (response.ok) {
-    return
+    const payload = await readJson(response)
+    if (isRecord(payload) && typeof payload.id === 'number') {
+      return payload.id
+    }
+    throw new Error('Resposta de documento inválida')
   }
 
   const payload = await readJson(response)
@@ -721,5 +775,25 @@ export function rejectDocumentRequest(
     'reject',
     httpClient,
     comment,
+  )
+}
+
+export async function assignDocumentAdvisorRequest(
+  documentId: number,
+  advisorId: number,
+  httpClient: HttpClient,
+): Promise<DocumentDetail> {
+  const response = await httpClient(
+    `/api/documents/${String(documentId)}/assign-advisor/`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ advisor_id: advisorId }),
+    },
+  )
+
+  return readDocumentDetail(
+    response,
+    'Não foi possível alterar o orientador',
   )
 }

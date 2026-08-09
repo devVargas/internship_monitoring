@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react'
 import type { DocumentType, DocumentStatus } from '../../api/documents.ts'
+import type { AcademicAdvisor } from '../../api/students.ts'
 
 export type Supervisor = {
   id: number
@@ -60,7 +61,8 @@ export type DocumentFormData = {
   ramoAtividade: string
   outroRamoAtividade: string
 
-  // Supervisor/a ou chefia imediata.
+  // Orientação acadêmica e supervisor/a ou chefia imediata.
+  advisor_id: string
   supervisor_id: string
   cargoFuncaoSupervisor: string
   emailSupervisor: string
@@ -136,6 +138,9 @@ export type BackendDocumentResponse = {
   company?: string
   city?: string
   supervisor_id: number | null
+  advisor_id: number | null
+  advisor_name?: string | null
+  advisor_email?: string | null
   supervisor_email?: string | null
   coordinator_name?: string
   attachment?: string | null
@@ -152,6 +157,7 @@ export type SectionProps = {
   supervisors: Supervisor[]
   handleSupervisorChange: (supervisorId: string) => void
   coordinators: Coordinator[]
+  advisors: AcademicAdvisor[]
   handleCepChange: (
     field: 'cepAluno' | 'cepConcedente',
     event: ChangeEvent<HTMLInputElement>,

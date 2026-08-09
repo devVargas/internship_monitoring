@@ -18,6 +18,7 @@ export default function MandatoryInternshipSections({
   sectionOffset,
   currentSection,
   supervisors,
+  advisors,
   handleSupervisorChange,
   handleCepChange,
   documentId,
@@ -84,6 +85,22 @@ export default function MandatoryInternshipSections({
             />
           </div>
 
+          <SelectField
+            id="advisorIdMI"
+            label="Orientador(a)"
+            value={form.advisor_id}
+            onChange={(event) => {
+              updateField('advisor_id', event.target.value)
+            }}
+            options={advisors.map((advisor) => ({
+              value: String(advisor.id),
+              label: advisor.displayName,
+            }))}
+            placeholder="Selecione o orientador"
+            required
+            error={fieldErrors.advisor_id}
+          />
+
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               id="semestreAnoConclusaoMI"
@@ -99,7 +116,7 @@ export default function MandatoryInternshipSections({
 
             <SelectField
               id="situacaoMI"
-              label="Situação"
+              label="Situação profissional na concedente"
               value={form.situacao}
               onChange={(event) => {
                 updateField('situacao', event.target.value)

@@ -54,6 +54,7 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
         ...common,
         razaoSocial: data.company ?? '',
         cidadeAssinatura: data.city ?? '',
+        advisor_id: data.advisor_id != null ? String(data.advisor_id) : '',
         supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : formData.supervisorIdReferencia ?? '',
         situacao: formData.situacao ?? '',
         especificarSituacao: formData.especificarSituacao ?? '',
@@ -74,6 +75,7 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
         razaoSocial: data.company ?? '',
         cidadeAssinatura: data.city ?? '',
         nomeCoordenador: data.coordinator_name ?? '',
+        advisor_id: data.advisor_id != null ? String(data.advisor_id) : '',
         supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : formData.supervisorIdReferencia ?? '',
         situacao: formData.situacao ?? '',
         especificarSituacao: formData.especificarSituacao ?? '',
@@ -94,6 +96,7 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
         ...common,
         razaoSocial: data.company ?? '',
         cidadeAssinatura: data.city ?? '',
+        advisor_id: data.advisor_id != null ? String(data.advisor_id) : '',
         supervisor_id: data.supervisor_id != null ? String(data.supervisor_id) : formData.supervisorIdReferencia ?? '',
         situacao: formData.situacao ?? '',
         especificarSituacao: formData.especificarSituacao ?? '',
@@ -120,6 +123,7 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
         emailAluno: formData.emailAluno ?? data.student_email ?? '',
         razaoSocial: data.company ?? formData.razaoSocial ?? '',
         cidadeAssinatura: data.city ?? '',
+        advisor_id: data.advisor_id != null ? String(data.advisor_id) : '',
         supervisor_id:
           data.supervisor_id != null
             ? String(data.supervisor_id)

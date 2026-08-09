@@ -2,11 +2,62 @@
 -- PostgreSQL
 -- Execute após: python manage.py migrate
 -- Requer a coluna document_document.reviewed_by_id.
--- Compatível com feat/expand-student-registration e feat/align-document-forms.
+-- VERSION: review-permissions-v2-2026-08-09
+-- Compatível com as branches até feat/document-review-permissions.
 -- Senha de todas as contas demo: Teste@123
 -- Não execute em produção.
 
 BEGIN;
+SET LOCAL client_encoding = 'UTF8';
+
+-- Validação rápida do schema esperado antes de inserir qualquer dado.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'accounts_supervisorprofile'
+          AND column_name = 'company_document'
+    ) THEN
+        RAISE EXCEPTION 'Schema incompatível: accounts_supervisorprofile.company_document não existe. Recrie o banco/migrations da branch atual.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'accounts_supervisorprofile'
+          AND column_name = 'job_title'
+    ) THEN
+        RAISE EXCEPTION 'Schema incompatível: accounts_supervisorprofile.job_title não existe.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'document_document'
+          AND column_name = 'student_snapshot'
+    ) THEN
+        RAISE EXCEPTION 'Schema incompatível: document_document.student_snapshot não existe.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'document_document'
+          AND column_name = 'advisor_id'
+    ) THEN
+        RAISE EXCEPTION 'Schema incompatível: document_document.advisor_id não existe.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'students_studentprofile'
+          AND column_name = 'address_number'
+    ) THEN
+        RAISE EXCEPTION 'Schema incompatível: students_studentprofile.address_number não existe.';
+    END IF;
+END $$;
 
 -- 1. Grupos -------------------------------------------------------------------
 
@@ -537,6 +588,7 @@ VALUES
         CURRENT_DATE - 20,
         jsonb_build_object(
             'nomeAluno', 'Bruno Costa',
+            'campusAluno', 'Pelotas',
             'matriculaAluno', '2026002',
             'cursoAluno', 'Análise e Desenvolvimento de Sistemas',
             'emailAluno', 'aluno02@demo.local',
@@ -550,6 +602,9 @@ VALUES
             'cidadeAluno', 'Pelotas',
             'ufAluno', 'RS',
             'semestreAnoConclusao', '2026/2',
+            'situacao', 'estagiario',
+            'especificarSituacao', '',
+            'dataFormatura', '',
             'cnpjCpf', '12.345.678/0001-95',
             'registroConselhoProfissional', 'CREA-RS 123456',
             'cepConcedente', '92010-300',
@@ -557,6 +612,7 @@ VALUES
             'bairroConcedente', 'Marechal Rondon',
             'cidadeConcedente', 'Canoas',
             'ufConcedente', 'RS',
+            'emailConcedente', 'contato@techsul.demo.local',
             'telefoneConcedente', '(51) 98888-2001',
             'ramoAtividade', 'Tecnologia da informação e comunicação',
             'outroRamoAtividade', '',
@@ -568,6 +624,7 @@ VALUES
             'fimEstagio', to_char(CURRENT_DATE + 60, 'YYYY-MM-DD'),
             'horasSemanais', '30',
             'totalHorasTrabalhadas', '180',
+            'funcaoPrincipalAluno', 'Desenvolvimento e testes de software',
             'atividadesProfissionais', 'Desenvolvimento de funcionalidades, correção de defeitos e criação de testes de software.',
             'dificuldadesEncontradas', 'Adaptação inicial às ferramentas e ao fluxo de revisão de código da equipe.',
             'conclusao', 'O estágio permitiu aplicar conhecimentos do curso em situações reais de desenvolvimento.'
@@ -639,6 +696,7 @@ VALUES
         CURRENT_DATE - 15,
         jsonb_build_object(
             'nomeAluno', 'Ana Silva',
+            'campusAluno', 'Sapucaia do Sul',
             'matriculaAluno', '2026001',
             'cursoAluno', 'Engenharia Civil',
             'emailAluno', 'aluno01@demo.local',
@@ -652,6 +710,9 @@ VALUES
             'cidadeAluno', 'Sapucaia do Sul',
             'ufAluno', 'RS',
             'semestreAnoConclusao', '2027/1',
+            'situacao', 'estagiario',
+            'especificarSituacao', '',
+            'dataFormatura', '',
             'cnpjCpf', '34.567.890/0001-30',
             'registroConselhoProfissional', '',
             'cepConcedente', '93510-060',
@@ -659,6 +720,7 @@ VALUES
             'bairroConcedente', 'Centro',
             'cidadeConcedente', 'Novo Hamburgo',
             'ufConcedente', 'RS',
+            'emailConcedente', 'contato@dadosesolucoes.demo.local',
             'telefoneConcedente', '(51) 98888-2003',
             'ramoAtividade', 'Tecnologia da informação e comunicação',
             'outroRamoAtividade', '',
@@ -670,6 +732,7 @@ VALUES
             'fimEstagio', to_char(CURRENT_DATE + 75, 'YYYY-MM-DD'),
             'horasSemanais', '30',
             'totalHorasTrabalhadas', '120',
+            'funcaoPrincipalAluno', 'Análise de dados e automação de relatórios',
             'atividadesProfissionais', 'Tratamento de dados, manutenção de relatórios e apoio à automação de rotinas.',
             'dificuldadesEncontradas', 'A descrição inicial das atividades ficou genérica e precisa ser detalhada.',
             'conclusao', 'As atividades contribuíram para o desenvolvimento profissional e integração com a equipe.'
@@ -790,6 +853,7 @@ VALUES
         CURRENT_DATE - 3,
         jsonb_build_object(
             'nomeAluno', 'Ana Silva',
+            'campusAluno', 'Sapucaia do Sul',
             'matriculaAluno', '2026001',
             'cursoAluno', 'Engenharia Civil',
             'emailAluno', 'aluno01@demo.local',
@@ -803,6 +867,9 @@ VALUES
             'cidadeAluno', 'Sapucaia do Sul',
             'ufAluno', 'RS',
             'semestreAnoConclusao', '2027/1',
+            'situacao', 'estagiario',
+            'especificarSituacao', '',
+            'dataFormatura', '',
             'cnpjCpf', '23.456.789/0001-95',
             'registroConselhoProfissional', '',
             'cepConcedente', '93010-010',
@@ -810,6 +877,7 @@ VALUES
             'bairroConcedente', 'Centro',
             'cidadeConcedente', 'São Leopoldo',
             'ufConcedente', 'RS',
+            'emailConcedente', 'contato@inovasoftware.demo.local',
             'telefoneConcedente', '(51) 98888-2002',
             'ramoAtividade', 'Tecnologia da informação e comunicação',
             'outroRamoAtividade', '',
@@ -821,6 +889,7 @@ VALUES
             'fimEstagio', to_char(CURRENT_DATE + 110, 'YYYY-MM-DD'),
             'horasSemanais', '20',
             'totalHorasTrabalhadas', '40',
+            'funcaoPrincipalAluno', 'Testes de software e controle de qualidade',
             'atividadesProfissionais', 'Execução de testes, registro de defeitos e acompanhamento de correções.',
             'dificuldadesEncontradas', 'Aprendizado inicial do processo de qualidade e das ferramentas internas.',
             'conclusao', 'O estágio está em andamento e já contribuiu para ampliar a experiência prática.'
@@ -881,6 +950,16 @@ VALUES
         CURRENT_TIMESTAMP - INTERVAL '38 days'
     );
 
+-- Ajusta os revisores demo às regras atuais: aproveitamentos são avaliados
+-- pela coordenação; estágio obrigatório é revisado pelo orientador designado.
+UPDATE demo_document_source
+SET reviewer_username = CASE reference_name
+    WHEN 'in-review' THEN 'coordenador03@demo.local'
+    WHEN 'rejected' THEN 'coordenador02@demo.local'
+    ELSE reviewer_username
+END
+WHERE reference_name IN ('in-review', 'rejected');
+
 -- O formulário atual armazena a referência do supervisor dentro de form_data.
 -- O ID é resolvido dinamicamente para o script continuar idempotente.
 UPDATE demo_document_source AS source
@@ -897,6 +976,7 @@ WITH inserted_documents AS (
     INSERT INTO document_document (
         student_id,
         supervisor_id,
+        advisor_id,
         reviewed_by_id,
         related_document_id,
         document_type,
@@ -905,6 +985,7 @@ WITH inserted_documents AS (
         student_registration_number,
         student_course,
         student_campus,
+        student_snapshot,
         coordinator_name,
         company,
         city,
@@ -918,6 +999,7 @@ WITH inserted_documents AS (
     SELECT
         student_profile.id,
         supervisor_profile.id,
+        NULL,
         reviewer.id,
         NULL,
         source.document_type,
@@ -940,6 +1022,37 @@ WITH inserted_documents AS (
         COALESCE(
             NULLIF(source.form_data->>'campusAluno', ''),
             student_profile.campus
+        ),
+        jsonb_build_object(
+            'name', COALESCE(
+                NULLIF(source.form_data->>'nomeAluno', ''),
+                student_user.first_name || ' ' || student_user.last_name
+            ),
+            'email', COALESCE(
+                NULLIF(source.form_data->>'emailAluno', ''),
+                student_user.email
+            ),
+            'registration_number', COALESCE(
+                NULLIF(source.form_data->>'matriculaAluno', ''),
+                student_profile.registration_number
+            ),
+            'course', COALESCE(
+                NULLIF(source.form_data->>'cursoAluno', ''),
+                student_profile.course
+            ),
+            'campus', COALESCE(
+                NULLIF(source.form_data->>'campusAluno', ''),
+                student_profile.campus
+            ),
+            'phone_number', COALESCE(NULLIF(source.form_data->>'telefoneAluno', ''), student_profile.phone_number, ''),
+            'mobile_number', COALESCE(NULLIF(source.form_data->>'celularAluno', ''), student_profile.mobile_number, ''),
+            'zip_code', COALESCE(NULLIF(source.form_data->>'cepAluno', ''), student_profile.zip_code, ''),
+            'address', COALESCE(NULLIF(source.form_data->>'enderecoAluno', ''), student_profile.address, ''),
+            'address_number', COALESCE(NULLIF(source.form_data->>'numeroEnderecoAluno', ''), student_profile.address_number, ''),
+            'address_complement', COALESCE(source.form_data->>'complementoEnderecoAluno', student_profile.address_complement, ''),
+            'neighborhood', COALESCE(NULLIF(source.form_data->>'bairroAluno', ''), student_profile.neighborhood, ''),
+            'city', COALESCE(NULLIF(source.form_data->>'cidadeAluno', ''), student_profile.city, ''),
+            'state', COALESCE(NULLIF(source.form_data->>'ufAluno', ''), student_profile.state, '')
         ),
         source.coordinator_name,
         source.company,
@@ -985,6 +1098,48 @@ JOIN inserted_documents AS inserted
    AND inserted.status = source.status
    AND inserted.created_at = source.created_at;
 
+-- Orientador é uma atribuição acadêmica independente do perfil. Pode ser um
+-- professor ou um coordenador. Professores só verão estágios obrigatórios em
+-- que aparecem nesta relação.
+WITH advisor_map (reference_name, advisor_username) AS (
+    VALUES
+        ('submitted-with-evaluation', 'professor01@demo.local'),
+        ('adjustment-requested', 'professor02@demo.local'),
+        ('waiting-supervisor', 'professor03@demo.local'),
+        ('in-review', 'professor01@demo.local')
+)
+UPDATE document_document AS document
+SET advisor_id = advisor.id
+FROM demo_document_refs AS refs
+JOIN advisor_map
+    ON advisor_map.reference_name = refs.reference_name
+JOIN auth_user AS advisor
+    ON advisor.username = advisor_map.advisor_username
+WHERE document.id = refs.document_id;
+
+-- Snapshot dos dados do aluno. A partir deste ponto o documento possui sua
+-- própria cópia e mudanças futuras no perfil não alteram o que foi registrado.
+UPDATE document_document AS document
+SET student_snapshot = jsonb_build_object(
+    'name', document.student_name,
+    'email', document.student_email,
+    'registration_number', document.student_registration_number,
+    'course', document.student_course,
+    'campus', document.student_campus,
+    'phone_number', COALESCE(NULLIF(document.form_data->>'telefoneAluno', ''), student.phone_number, ''),
+    'mobile_number', COALESCE(NULLIF(document.form_data->>'celularAluno', ''), student.mobile_number, ''),
+    'zip_code', COALESCE(NULLIF(document.form_data->>'cepAluno', ''), student.zip_code, ''),
+    'address', COALESCE(NULLIF(document.form_data->>'enderecoAluno', ''), student.address, ''),
+    'address_number', COALESCE(NULLIF(document.form_data->>'numeroEnderecoAluno', ''), student.address_number, ''),
+    'address_complement', COALESCE(document.form_data->>'complementoEnderecoAluno', student.address_complement, ''),
+    'neighborhood', COALESCE(NULLIF(document.form_data->>'bairroAluno', ''), student.neighborhood, ''),
+    'city', COALESCE(NULLIF(document.form_data->>'cidadeAluno', ''), student.city, ''),
+    'state', COALESCE(NULLIF(document.form_data->>'ufAluno', ''), student.state, '')
+)
+FROM demo_document_refs AS refs, students_studentprofile AS student
+WHERE document.id = refs.document_id
+  AND student.id = document.student_id;
+
 -- 7. Avaliação aprovada vinculada ao documento submitted-with-evaluation -------
 
 WITH related_document AS (
@@ -998,6 +1153,7 @@ inserted_evaluation AS (
     INSERT INTO document_document (
         student_id,
         supervisor_id,
+        advisor_id,
         reviewed_by_id,
         related_document_id,
         document_type,
@@ -1006,6 +1162,7 @@ inserted_evaluation AS (
         student_registration_number,
         student_course,
         student_campus,
+        student_snapshot,
         coordinator_name,
         company,
         city,
@@ -1019,6 +1176,7 @@ inserted_evaluation AS (
     SELECT
         related_document.student_id,
         supervisor_profile.id,
+        related_document.advisor_id,
         coordinator.id,
         related_document.id,
         'supervisor_evaluation',
@@ -1027,6 +1185,7 @@ inserted_evaluation AS (
         related_document.student_registration_number,
         related_document.student_course,
         related_document.student_campus,
+        related_document.student_snapshot,
         'Carlos Ribeiro',
         related_document.company,
         'Canoas',
@@ -1100,7 +1259,7 @@ WITH activity_data (
 
         ('in-review', 'created', 'Solicitação de aproveitamento criada.', 'aluno03@demo.local', CURRENT_TIMESTAMP - INTERVAL '9 days'),
         ('in-review', 'submitted', 'Documento enviado para revisão.', 'aluno03@demo.local', CURRENT_TIMESTAMP - INTERVAL '8 days'),
-        ('in-review', 'in_review', 'Revisão iniciada pelo professor João Ferreira.', 'professor01@demo.local', CURRENT_TIMESTAMP - INTERVAL '1 day'),
+        ('in-review', 'in_review', 'Revisão iniciada pela coordenadora Patrícia Nunes.', 'coordenador03@demo.local', CURRENT_TIMESTAMP - INTERVAL '1 day'),
 
         ('adjustment-requested', 'created', 'Documento criado pelo aluno.', 'aluno01@demo.local', CURRENT_TIMESTAMP - INTERVAL '15 days'),
         ('adjustment-requested', 'submitted', 'Documento enviado para revisão.', 'aluno01@demo.local', CURRENT_TIMESTAMP - INTERVAL '14 days'),
@@ -1114,8 +1273,8 @@ WITH activity_data (
 
         ('rejected', 'created', 'Documento criado pelo aluno.', 'aluno03@demo.local', CURRENT_TIMESTAMP - INTERVAL '28 days'),
         ('rejected', 'submitted', 'Documento enviado para revisão.', 'aluno03@demo.local', CURRENT_TIMESTAMP - INTERVAL '27 days'),
-        ('rejected', 'in_review', 'Revisão iniciada pelo professor Rafael Lima.', 'professor03@demo.local', CURRENT_TIMESTAMP - INTERVAL '21 days'),
-        ('rejected', 'rejected', 'Documento rejeitado: carga horária abaixo do mínimo exigido.', 'professor03@demo.local', CURRENT_TIMESTAMP - INTERVAL '20 days'),
+        ('rejected', 'in_review', 'Revisão iniciada pelo coordenador Carlos Ribeiro.', 'coordenador02@demo.local', CURRENT_TIMESTAMP - INTERVAL '21 days'),
+        ('rejected', 'rejected', 'Documento rejeitado: carga horária abaixo do mínimo exigido.', 'coordenador02@demo.local', CURRENT_TIMESTAMP - INTERVAL '20 days'),
 
         ('waiting-supervisor', 'created', 'Documento criado pelo aluno.', 'aluno01@demo.local', CURRENT_TIMESTAMP - INTERVAL '3 days'),
         ('waiting-supervisor', 'waiting_supervisor', 'Documento aguardando validação do supervisor.', 'aluno01@demo.local', CURRENT_TIMESTAMP - INTERVAL '2 days'),

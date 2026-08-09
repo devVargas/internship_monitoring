@@ -28,6 +28,7 @@ export default function ActivityValidationSections({
   sectionOffset,
   currentSection,
   supervisors,
+  advisors,
   handleSupervisorChange,
   coordinators,
   handleCepChange,
@@ -58,6 +59,23 @@ export default function ActivityValidationSections({
               }))}
               required
               error={fieldErrors.nomeCoordenador}
+            />
+          )}
+
+          {includeRequestData && (
+            <SelectField
+              id="advisorIdAV"
+              label="Orientador(a) sugerido(a)"
+              value={form.advisor_id}
+              onChange={(event) => {
+                updateField('advisor_id', event.target.value)
+              }}
+              options={advisors.map((advisor) => ({
+                value: String(advisor.id),
+                label: advisor.displayName,
+              }))}
+              placeholder="Selecione um orientador (opcional)"
+              error={fieldErrors.advisor_id}
             />
           )}
 
@@ -182,7 +200,7 @@ export default function ActivityValidationSections({
           <div className="grid gap-5 sm:grid-cols-2">
             <SelectField
               id="situacaoAV"
-              label="Situação"
+              label="Situação profissional na concedente"
               value={form.situacao}
               onChange={(event) => {
                 updateField('situacao', event.target.value)

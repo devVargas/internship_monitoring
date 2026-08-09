@@ -144,6 +144,30 @@ class CoordinatorUserSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
 
 
+class AcademicAdvisorSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ("id", "full_name", "email", "role", "display_name")
+        read_only_fields = fields
+
+    def get_full_name(self, obj):
+        return obj.get_full_name() or obj.email
+
+    def get_role(self, obj):
+        group_names = set(obj.groups.values_list("name", flat=True))
+        if "Coordinator" in group_names:
+            return "Coordinator"
+        return "Teacher"
+
+    def get_display_name(self, obj):
+        role_label = "Coordenador(a)" if self.get_role(obj) == "Coordinator" else "Professor(a)"
+        return f"{self.get_full_name(obj)} [{role_label}]"
+
+
 class StudentProfileSerializer(serializers.ModelSerializer):
     user = StudentUserSerializer(read_only=True)
     phone_number = serializers.CharField(
