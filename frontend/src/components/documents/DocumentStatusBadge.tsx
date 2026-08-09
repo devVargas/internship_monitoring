@@ -6,7 +6,6 @@ type DocumentStatusBadgeProps = {
 }
 
 const STATUS_CLASSES: Record<DocumentStatus, string> = {
-  draft: 'bg-neutral-50 text-neutral-700 ring-neutral-300',
   submitted: 'bg-blue-50 text-blue-700 ring-blue-200',
   waiting_supervisor: 'bg-neutral-100 text-neutral-600 ring-neutral-200',
   in_review: 'bg-amber-50 text-amber-800 ring-amber-200',

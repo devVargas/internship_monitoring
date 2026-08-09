@@ -135,7 +135,6 @@ export default function DocumentReviewPage() {
             >
               <option value="">Todos</option>
               {Object.entries(DOCUMENT_STATUS_LABELS)
-                .filter(([value]) => value !== 'draft')
                 .map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}

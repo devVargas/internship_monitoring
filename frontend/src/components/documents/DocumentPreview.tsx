@@ -192,13 +192,7 @@ function MandatoryInternshipPreview({
     .filter(hasText)
     .join(', ')
 
-  const companyAddress = [
-    form.enderecoConcedente,
-    form.numeroEnderecoConcedente,
-    form.complementoEnderecoConcedente,
-  ]
-    .filter(hasText)
-    .join(', ')
+  const companyAddress = display(form.enderecoConcedente)
 
   const businessActivity =
     form.ramoAtividade === 'Outro'
@@ -364,13 +358,7 @@ function ActivityValidationPreview({
   const workSchedule = form.outroHorario?.trim()
     ? form.outroHorario
     : `${display(form.inicioHorarioAtividade)} às ${display(form.fimHorarioAtividade)}`
-  const companyAddress = [
-    form.enderecoConcedente,
-    form.numeroEnderecoConcedente,
-    form.complementoEnderecoConcedente,
-  ]
-    .filter(hasText)
-    .join(', ')
+  const companyAddress = display(form.enderecoConcedente)
 
   return (
     <PreviewPage>
@@ -610,13 +598,7 @@ function SupervisorEvaluationPreview({
     form.ramoAtividade === 'Outro'
       ? form.outroRamoAtividade
       : form.ramoAtividade
-  const companyAddress = [
-    form.enderecoConcedente,
-    form.numeroEnderecoConcedente,
-    form.complementoEnderecoConcedente,
-  ]
-    .filter(hasText)
-    .join(', ')
+  const companyAddress = display(form.enderecoConcedente)
 
   return (
     <div className="space-y-6">

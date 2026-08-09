@@ -198,7 +198,9 @@ cat populate_demo_data.sql | docker compose exec -T postgres psql -U postgres -d
 **PowerShell:**
 
 ```powershell
-Get-Content .\populate_demo_data.sql |
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+
+Get-Content -Raw -Encoding UTF8 .\populate_demo_data.sql |
   docker compose exec -T postgres psql -U postgres -d internship_monitoring
 ```
 

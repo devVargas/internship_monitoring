@@ -12,7 +12,6 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
     company = serializers.CharField(required=False, allow_blank=True)
     city = serializers.CharField(required=False, allow_blank=True)
     form_data = serializers.JSONField(required=True)
-    save_as_draft = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = Document
@@ -25,9 +24,7 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
             "coordinator_name",
             "company",
             "city",
-            "attachment",
             "form_data",
-            "save_as_draft",
         )
 
     def validate(self, attrs):
@@ -39,7 +36,6 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
             "related_document_id",
             self.instance.related_document_id if self.instance else None,
         )
-        save_as_draft = attrs.get("save_as_draft", False)
 
         if self.instance and document_type != self.instance.document_type:
             raise serializers.ValidationError(
@@ -70,11 +66,6 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
                     )
                 }
             )
-
-        # Rascunhos podem ser incompletos. As regras obrigatórias só são
-        # aplicadas quando o documento é efetivamente enviado.
-        if save_as_draft:
-            return attrs
 
         supervisor_id = attrs.get(
             "supervisor_id",
@@ -110,12 +101,6 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
         if not is_supervisor_eval and not company:
             raise serializers.ValidationError(
                 {"company": "Company is required for this document type."}
-            )
-
-        current_attachment = self.instance.attachment if self.instance else None
-        if not is_supervisor_eval and not attrs.get("attachment") and not current_attachment:
-            raise serializers.ValidationError(
-                {"attachment": "Attachment is required for this document type."}
             )
 
         if (
@@ -238,6 +223,10 @@ class DocumentSerializer(serializers.ModelSerializer):
             "city",
             "document_date",
             "attachment",
+            "generated_pdf",
+            "pdf_generation_status",
+            "pdf_generation_error",
+            "pdf_generated_at",
             "form_data",
             "status",
             "status_display",

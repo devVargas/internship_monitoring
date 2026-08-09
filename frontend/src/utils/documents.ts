@@ -1,7 +1,6 @@
 import type { DocumentStatus, DocumentType } from '../api/documents.ts'
 
 export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
-  draft: 'Rascunho',
   submitted: 'Enviado',
   waiting_supervisor: 'Aguardando supervisor',
   in_review: 'Em revisão',

@@ -25,6 +25,7 @@ export function useSupervisorEvaluationQueue() {
 
         const pendingDocuments = result.filter(
           (document) =>
+            document.documentType === 'mandatory_internship' &&
             document.status === 'waiting_supervisor',
         )
 

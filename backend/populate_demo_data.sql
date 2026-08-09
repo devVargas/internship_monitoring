@@ -2,8 +2,8 @@
 -- PostgreSQL
 -- Execute após: python manage.py migrate
 -- Requer a coluna document_document.reviewed_by_id.
--- VERSION: review-permissions-v2-2026-08-09
--- Compatível com as branches até feat/document-review-permissions.
+-- VERSION: pdf-generation-v1-2026-08-09
+-- Compatível com as branches até geração assíncrona de PDF e visualizador do documento gerado.
 -- Senha de todas as contas demo: Teste@123
 -- Não execute em produção.
 
@@ -56,6 +56,24 @@ BEGIN
           AND column_name = 'address_number'
     ) THEN
         RAISE EXCEPTION 'Schema incompatível: students_studentprofile.address_number não existe.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'document_document'
+          AND column_name = 'pdf_generation_status'
+    ) THEN
+        RAISE EXCEPTION 'Schema incompatível: document_document.pdf_generation_status não existe.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'document_document'
+          AND column_name = 'pdf_generation_error'
+    ) THEN
+        RAISE EXCEPTION 'Schema incompatível: document_document.pdf_generation_error não existe.';
     END IF;
 END $$;
 
@@ -991,6 +1009,8 @@ WITH inserted_documents AS (
         city,
         document_date,
         attachment,
+        pdf_generation_status,
+        pdf_generation_error,
         form_data,
         status,
         created_at,
@@ -1059,6 +1079,8 @@ WITH inserted_documents AS (
         source.city,
         source.document_date,
         NULL,
+        'not_generated',
+        '',
         source.form_data,
         source.status,
         source.created_at,
@@ -1168,6 +1190,8 @@ inserted_evaluation AS (
         city,
         document_date,
         attachment,
+        pdf_generation_status,
+        pdf_generation_error,
         form_data,
         status,
         created_at,
@@ -1191,6 +1215,8 @@ inserted_evaluation AS (
         'Canoas',
         CURRENT_DATE - 5,
         NULL,
+        'not_generated',
+        '',
         jsonb_build_object(
             'situacao', 'estagiario',
             'especificarSituacao', '',

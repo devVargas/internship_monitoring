@@ -18,6 +18,7 @@ import RegisterSupervisorPage from '../pages/RegisterSupervisorPage.tsx'
 import StudentsPage from '../pages/StudentsPage.tsx'
 import UserProfilePage from '../pages/UserProfilePage.tsx'
 import SupervisorEvaluationQueuePage from '../pages/SupervisorEvaluationQueuePage.tsx'
+import GeneratedDocumentViewerPage from '../pages/GeneratedDocumentViewerPage.tsx'
 
 const ACADEMIC_GROUPS = [
   'Teacher',
@@ -85,6 +86,15 @@ export default function Router() {
             >
               <DocumentHistoryPage />
             </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/documentos/:documentId/pdf"
+          element={
+            <ProtectedRoute>
+              <GeneratedDocumentViewerPage />
+            </ProtectedRoute>
           }
         />
 
