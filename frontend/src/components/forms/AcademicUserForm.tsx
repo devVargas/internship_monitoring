@@ -2,7 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import type { AcademicUserType } from '../../api/auth.ts'
 import { useRegisterAcademicUser } from '../../hooks/useRegisterAcademicUser.ts'
 import {
-  validateEmail,
+  validateAcademicEmail,
   validateName,
   validatePassword,
   validatePasswordConfirmation,
@@ -11,6 +11,7 @@ import {
 import Button from '../ui/Button.tsx'
 import FormField from '../ui/FormField.tsx'
 import PasswordField from '../ui/PasswordField.tsx'
+import AcademicEmailField from '../ui/AcademicEmailField.tsx'
 
 type AcademicUserFormProps = {
   userType: AcademicUserType
@@ -46,7 +47,7 @@ function validateForm(form: AcademicUserFormData): AcademicUserErrors {
 
   addError('firstName', validateRequired(form.firstName) ?? validateName(form.firstName))
   addError('lastName', validateName(form.lastName))
-  addError('email', validateRequired(form.email) ?? validateEmail(form.email))
+  addError('email', validateRequired(form.email) ?? validateAcademicEmail(form.email))
   addError('password', validateRequired(form.password) ?? validatePassword(form.password))
   addError('confirmPassword', validatePasswordConfirmation(form.password, form.confirmPassword))
 
@@ -123,16 +124,14 @@ export default function AcademicUserForm({ userType }: AcademicUserFormProps) {
         />
       </div>
 
-      <FormField
-        id="academicEmail"
-        label="Email"
-        type="email"
+      <AcademicEmailField
+        id="academicUserEmail"
         value={form.email}
-        onChange={(event) => {
-          updateField('email', event.target.value)
+        onChange={(value) => {
+          updateField('email', value)
         }}
-        autoComplete="email"
         required
+        disabled={isLoading}
         error={fieldErrors.email}
       />
 

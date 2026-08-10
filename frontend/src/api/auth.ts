@@ -29,6 +29,14 @@ export type RegisterStudentData = {
   campus: string
   course: string
   phone_number: string
+  mobile_number: string
+  zip_code: string
+  address: string
+  address_number: string
+  address_complement: string
+  neighborhood: string
+  city: string
+  state: string
 }
 
 export type RegisterAcademicUserData = {
@@ -39,9 +47,23 @@ export type RegisterAcademicUserData = {
 }
 
 export type RegisterSupervisorData = RegisterAcademicUserData & {
-  company_name: string
-  company_cnpj: string
   phone_number: string
+  job_title: string
+  professional_registration: string
+  company_name: string
+  company_document: string
+  company_professional_registration: string
+  company_zip_code: string
+  company_address: string
+  company_address_number: string
+  company_address_complement: string
+  company_neighborhood: string
+  company_city: string
+  company_state: string
+  company_email: string
+  company_phone_number: string
+  company_business_activity: string
+  company_business_activity_other: string
 }
 
 function isLoginResponse(value: unknown): value is LoginResponse {

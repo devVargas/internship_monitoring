@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { listMyDocumentsRequest, type DocumentDetail } from '../api/documents.ts'
 import { useAPI } from '../context/api-context.ts'
 import { getErrorMessage } from '../utils/errors.ts'
@@ -9,39 +9,32 @@ export function useStudentDocumentHistory() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
+  const loadDocuments = useCallback(async (): Promise<void> => {
+    setError(null)
 
-    async function loadDocuments() {
-      try {
-        const result = await listMyDocumentsRequest(fetchWithAuth)
-
-        if (!cancelled) {
-          setDocuments(result)
-        }
-      } catch (requestError) {
-        if (!cancelled) {
-          setError(
-            getErrorMessage(requestError, 'Não foi possível carregar o histórico de documentos'),
-          )
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadDocuments()
-
-    return () => {
-      cancelled = true
+    try {
+      const result = await listMyDocumentsRequest(fetchWithAuth)
+      setDocuments(result)
+    } catch (requestError) {
+      setError(
+        getErrorMessage(
+          requestError,
+          'Não foi possível carregar o histórico de documentos',
+        ),
+      )
+    } finally {
+      setIsLoading(false)
     }
   }, [fetchWithAuth])
+
+  useEffect(() => {
+    void loadDocuments()
+  }, [loadDocuments])
 
   return {
     documents,
     isLoading,
     error,
+    reload: loadDocuments,
   }
 }

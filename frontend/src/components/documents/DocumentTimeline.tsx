@@ -38,6 +38,24 @@ function getActivityPresentation(action: string): ActivityPresentation {
         icon: faPen,
         iconClass: 'bg-blue-100 text-blue-700',
       }
+    case 'awaiting_signature':
+      return {
+        label: 'Aguardando assinatura',
+        icon: faPen,
+        iconClass: 'bg-purple-100 text-purple-700',
+      }
+    case 'signed':
+      return {
+        label: 'Documento assinado',
+        icon: faCircleCheck,
+        iconClass: 'bg-green-100 text-green-700',
+      }
+    case 'waiting_student_confirmation':
+      return {
+        label: 'Aguardando confirmação do aluno',
+        icon: faUserClock,
+        iconClass: 'bg-blue-100 text-blue-700',
+      }
     case 'submitted':
       return {
         label: 'Documento enviado',

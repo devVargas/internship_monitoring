@@ -6,7 +6,7 @@ import StudentForm from '../components/forms/StudentForm.tsx'
 export default function RegisterStudentPage() {
   return (
     <main className="min-h-screen bg-green-950 px-5 py-10 sm:px-8">
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="mx-auto w-full max-w-3xl">
         <div className="mb-6 flex items-center justify-between gap-4 text-white">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-green-950">

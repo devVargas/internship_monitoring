@@ -4,10 +4,21 @@ from rest_framework import permissions, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from apps.accounts.constants import (
+    GROUP_COORDINATOR,
+    GROUP_PROFESSOR,
+    GROUP_STUDENT,
+    GROUP_SUPERVISOR,
+)
 from apps.accounts.models import SupervisorProfile
 from apps.students.models import StudentProfile
-from apps.accounts.constants import (GROUP_SUPERVISOR, GROUP_PROFESSOR, GROUP_STUDENT, GROUP_COORDINATOR)
-from apps.students.serializers import CoordinatorUserSerializer, StudentProfileSerializer, SupervisorUserSerializer
+from apps.students.serializers import (
+    AcademicAdvisorSerializer,
+    CoordinatorUserSerializer,
+    StudentProfileSerializer,
+    SupervisorUserSerializer,
+)
 
 User = get_user_model()
 
@@ -23,6 +34,7 @@ class SupervisorsListView(APIView):
         serializer = SupervisorUserSerializer(supervisors, many=True)
         return Response(serializer.data)
 
+
 class CoordinatorsListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -30,9 +42,28 @@ class CoordinatorsListView(APIView):
     def get(self, request):
         coordinators = User.objects.filter(
             groups__name=GROUP_COORDINATOR,
-        )
+            is_active=True,
+        ).distinct().order_by("first_name", "last_name", "email")
         serializer = CoordinatorUserSerializer(coordinators, many=True)
         return Response(serializer.data)
+
+
+class AcademicAdvisorsListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses=AcademicAdvisorSerializer(many=True))
+    def get(self, request):
+        advisors = User.objects.filter(
+            groups__name__in=[GROUP_PROFESSOR, GROUP_COORDINATOR],
+            is_active=True,
+        ).distinct().prefetch_related("groups").order_by(
+            "first_name",
+            "last_name",
+            "email",
+        )
+        serializer = AcademicAdvisorSerializer(advisors, many=True)
+        return Response(serializer.data)
+
 
 class StudentProfileViewSet(viewsets.ModelViewSet):
     serializer_class = StudentProfileSerializer

@@ -49,7 +49,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 DB_NAME=
 DB_USER=
 DB_PASSWORD=
-DB_HOST=localhost
+DB_HOST=postgres
 DB_PORT=5432
 
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
@@ -198,7 +198,9 @@ cat populate_demo_data.sql | docker compose exec -T postgres psql -U postgres -d
 **PowerShell:**
 
 ```powershell
-Get-Content .\populate_demo_data.sql |
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+
+Get-Content -Raw -Encoding UTF8 .\populate_demo_data.sql |
   docker compose exec -T postgres psql -U postgres -d internship_monitoring
 ```
 

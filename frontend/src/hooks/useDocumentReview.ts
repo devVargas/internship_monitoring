@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   approveDocumentRequest,
+  assignDocumentAdvisorRequest,
   getDocumentRequest,
   rejectDocumentRequest,
   requestDocumentAdjustmentRequest,
@@ -10,7 +11,7 @@ import {
 import { useAPI } from '../context/api-context.ts'
 import { getErrorMessage } from '../utils/errors.ts'
 
-type ReviewAction = 'start' | 'approve' | 'adjustment' | 'reject'
+type ReviewAction = 'start' | 'approve' | 'adjustment' | 'reject' | 'advisor'
 
 export function useDocumentReview(documentId: number) {
   const { fetchWithAuth } = useAPI()
@@ -101,6 +102,12 @@ export function useDocumentReview(documentId: number) {
     )
   }
 
+  function assignAdvisor(advisorId: number): Promise<boolean> {
+    return runAction('advisor', () =>
+      assignDocumentAdvisorRequest(documentId, advisorId, fetchWithAuth),
+    )
+  }
+
   function approve(comment: string): Promise<boolean> {
     return runAction('approve', () =>
       approveDocumentRequest(documentId, comment, fetchWithAuth),
@@ -126,6 +133,7 @@ export function useDocumentReview(documentId: number) {
     error,
     reload: loadDocument,
     startReview,
+    assignAdvisor,
     approve,
     requestAdjustment,
     reject,

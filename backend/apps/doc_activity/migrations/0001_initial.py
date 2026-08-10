@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             name='DocumentActivity',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('action', models.CharField(choices=[('created', 'Created'), ('updated', 'Updated'), ('submitted', 'Submitted'), ('waiting_supervisor', 'Waiting Supervisor'), ('in_review', 'In Review'), ('adjustment_requested', 'Adjustment Requested'), ('approved', 'Approved'), ('rejected', 'Rejected'), ('cancelled', 'Cancelled')], max_length=40)),
+                ('action', models.CharField(choices=[('created', 'Created'), ('updated', 'Updated'), ('awaiting_signature', 'Awaiting Signature'), ('signed', 'Signed'), ('waiting_supervisor', 'Waiting Supervisor'), ('waiting_student_confirmation', 'Waiting Student Confirmation'), ('submitted', 'Submitted'), ('in_review', 'In Review'), ('adjustment_requested', 'Adjustment Requested'), ('approved', 'Approved'), ('rejected', 'Rejected'), ('cancelled', 'Cancelled')], max_length=40)),
                 ('description', models.TextField(blank=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='activities', to='document.document')),

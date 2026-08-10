@@ -31,7 +31,7 @@ export default function RatingSelect({ id, label, value, error, onChange }: Rati
         <option value="MB">Muito bom</option>
         <option value="B">Bom</option>
         <option value="R">Regular</option>
-        <option value="I">Insatisfatório</option>
+        <option value="I">Insuficiente</option>
       </select>
 
       {error && (

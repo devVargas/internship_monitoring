@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState, type ChangeEvent, type SubmitEvent } from
 import { useNavigate } from 'react-router-dom'
 import type { CurrentUser } from '../../api/auth.ts'
 import { getCurrentUserRequest } from '../../api/auth.ts'
-import type { DocumentType } from '../../api/documents.ts'
+import { getUserProfileRequest } from '../../api/profile.ts'
+import type { DocumentStatus, DocumentType } from '../../api/documents.ts'
+import { listAcademicAdvisorsRequest, type AcademicAdvisor } from '../../api/students.ts'
 import { useRegisterDocument } from '../../hooks/useRegisterDocument.ts'
 import { useUpdateDocument } from '../../hooks/useUpdateDocument.ts'
 import { useAPI } from '../../context/api-context.ts'
 import { getErrorMessage } from '../../utils/errors.ts'
-import { formatCep, formatPhone } from '../../utils/validation.ts'
+import { formatCep, formatCpfCnpj, formatPhone } from '../../utils/validation.ts'
 import { useCepLookup } from '../../hooks/useCepLookup.ts'
 import Button from '../ui/Button.tsx'
 import type { DocumentFormData, DocumentField, DocumentErrors, Supervisor, Coordinator, BackendDocumentResponse } from './documentFormTypes.ts'
@@ -15,11 +17,19 @@ import INITIAL_FORM, { DOCUMENT_TYPE_LABELS, SECTION_FIELDS } from './documentFo
 import { validateForm } from './documentFormValidation.ts'
 import { buildPayload } from './documentFormPayload.ts'
 import { mapBackendDataToForm } from './documentFormDataMapping.ts'
+import {
+  mapMandatoryDocumentToSupervisorEvaluationDefaults,
+  mapStudentProfileToDocumentDefaults,
+  mapSupervisorProfileToDocumentDefaults,
+  mergeStudentProfileDefaults,
+  type StudentProfileFormDefaults,
+} from './documentFormAutofill.ts'
 import { selectClass } from './documentFormStyles.ts'
 import MandatoryInternshipSections from './sections/MandatoryInternshipSections.tsx'
 import NonMandatoryInternshipCreditSections from './sections/NonMandatoryInternshipCreditSections.tsx'
 import ProfessionalPracticeCreditSections from './sections/ProfessionalPracticeCreditSections.tsx'
 import SupervisorEvaluationSections from './sections/SupervisorEvaluationSections.tsx'
+import DocumentPreview from '../documents/DocumentPreview.tsx'
 
 export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdProp, documentId, onTitleChange }: { relatedDocumentIdProp?: number, documentId?: number, onTitleChange?: (title: string) => void } = {}) {
   const [userSelectedType, setUserSelectedType] = useState<DocumentType | null>(null)
@@ -28,16 +38,24 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [fieldErrors, setFieldErrors] = useState<DocumentErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [studentProfileDefaults, setStudentProfileDefaults] =
+    useState<StudentProfileFormDefaults>({})
+  const [isLoadingStudentProfile, setIsLoadingStudentProfile] = useState(false)
+  const [studentProfileError, setStudentProfileError] = useState<string | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [supervisors, setSupervisors] = useState<Supervisor[]>([])
   const [coordinators, setCoordinators] = useState<Coordinator[]>([])
+  const [advisors, setAdvisors] = useState<AcademicAdvisor[]>([])
+  const [loadedDocumentStatus, setLoadedDocumentStatus] = useState<DocumentStatus | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [currentSection, setCurrentSection] = useState(0)
+  const [isPreviewing, setIsPreviewing] = useState(false)
+  const [relatedSupervisorName, setRelatedSupervisorName] = useState('')
   const { register, isLoading, error } = useRegisterDocument()
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
   const { fetchWithAuth } = useAPI()
-  const { isLoading: cepLoading, error: cepError, lookup: lookupCep } = useCepLookup()
+  const { isLoading: cepAlunoLoading, error: cepAlunoError, lookup: lookupCepAluno } = useCepLookup()
   const { isLoading: cepConcedenteLoading, error: cepConcedenteError, lookup: lookupCepConcedente } = useCepLookup()
 
   const canSeeStudentOptions = Boolean(
@@ -76,6 +94,126 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       cancelled = true
     }
   }, [fetchWithAuth])
+
+  useEffect(() => {
+    if (
+      documentId ||
+      !currentUser ||
+      (!currentUser.groups.includes('Student') &&
+        !currentUser.groups.includes('Supervisor'))
+    ) {
+      return
+    }
+
+    let cancelled = false
+
+    async function loadProfileDefaults() {
+      setIsLoadingStudentProfile(true)
+      setStudentProfileError(null)
+
+      try {
+        const profile = await getUserProfileRequest(fetchWithAuth)
+
+        if (cancelled) return
+
+        if (currentUser.groups.includes('Student')) {
+          const defaults = mapStudentProfileToDocumentDefaults(profile)
+          setStudentProfileDefaults(defaults)
+          setForm((current) =>
+            mergeStudentProfileDefaults(current, defaults),
+          )
+          return
+        }
+
+        const defaults = mapSupervisorProfileToDocumentDefaults(profile)
+        setForm((current) =>
+          mergeStudentProfileDefaults(current, defaults),
+        )
+      } catch (requestError) {
+        if (!cancelled) {
+          setStudentProfileError(
+            getErrorMessage(
+              requestError,
+              'Não foi possível preencher os dados do seu perfil automaticamente',
+            ),
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingStudentProfile(false)
+        }
+      }
+    }
+
+    void loadProfileDefaults()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentUser, documentId, fetchWithAuth])
+
+  useEffect(() => {
+    if (
+      documentId ||
+      !relatedDocumentIdProp ||
+      !(currentUser?.is_superuser || currentUser?.groups.includes('Supervisor'))
+    ) {
+      return
+    }
+
+    let cancelled = false
+
+    async function loadRelatedMandatoryDocument() {
+      try {
+        const response = await fetchWithAuth(
+          `/api/documents/${String(relatedDocumentIdProp)}/`,
+        )
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar o estágio relacionado')
+        }
+
+        const data = (await response.json()) as BackendDocumentResponse
+
+        if (cancelled) return
+
+        if (data.document_type !== 'mandatory_internship') {
+          throw new Error('Documento relacionado inválido')
+        }
+
+        const defaults =
+          mapMandatoryDocumentToSupervisorEvaluationDefaults(data)
+
+        setRelatedSupervisorName(data.supervisor_name ?? '')
+        setForm((current) =>
+          mergeStudentProfileDefaults(current, defaults),
+        )
+        setRelatedDocumentId(relatedDocumentIdProp)
+        onTitleChange?.(DOCUMENT_TYPE_LABELS.supervisor_evaluation)
+      } catch (requestError) {
+        if (!cancelled) {
+          setLoadError(
+            getErrorMessage(
+              requestError,
+              'Não foi possível carregar os dados do estágio para avaliação',
+            ),
+          )
+        }
+      }
+    }
+
+    void loadRelatedMandatoryDocument()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    currentUser,
+    documentId,
+    fetchWithAuth,
+    onTitleChange,
+    relatedDocumentIdProp,
+  ])
 
   useEffect(() => {
     if (!documentId || !currentUser) {
@@ -124,12 +262,12 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         }
 
         setUserSelectedType(data.document_type)
+        setLoadedDocumentStatus(data.status)
         setRelatedDocumentId(data.related_document ?? undefined)
+        setRelatedSupervisorName(data.supervisor_name ?? '')
         setForm(mapBackendDataToForm(data))
 
-        onTitleChange?.(
-          `Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`,
-        )
+        onTitleChange?.(`Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`)
       } catch {
         if (!cancelled) {
           setLoadError(
@@ -215,6 +353,30 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   }, [fetchWithAuth])
 
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAdvisors() {
+      try {
+        const data = await listAcademicAdvisorsRequest(fetchWithAuth)
+        if (!cancelled) {
+          setAdvisors(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setLoadError('Não foi possível carregar a lista de orientadores')
+        }
+      }
+    }
+
+    void loadAdvisors()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithAuth])
+
+
   const defaultDocumentType = useMemo<DocumentType>(() => {
     if (canSeeStudentOptions) return 'mandatory_internship'
     if (canSeeSupervisorOptions) return 'supervisor_evaluation'
@@ -227,13 +389,20 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const formSectionCount = SECTION_FIELDS[documentType].length
   const sectionOffset = showTypeSelector ? 1 : 0
   const totalSections = formSectionCount + sectionOffset
+  const formProgress =
+    formSectionCount <= 1
+      ? 100
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            ((currentSection - sectionOffset) / (formSectionCount - 1)) * 100,
+          ),
+        )
 
   function validateCurrentSection(): DocumentErrors {
     if (currentSection < sectionOffset) return {}
     const allErrors = validateForm(documentType, form)
-    if (documentId) {
-      delete allErrors.attachment
-    }
     const sectionFields = SECTION_FIELDS[documentType][currentSection - sectionOffset]
     const sectionErrors: DocumentErrors = {}
     for (const field of sectionFields) {
@@ -261,9 +430,91 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     setFieldErrors({})
   }
 
-  function updateField(field: DocumentField, value: string | File | null) {
+  function updateField(field: DocumentField, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
+  }
+
+  function handleSupervisorChange(supervisorId: string) {
+    const supervisor = supervisors.find(
+      (item) => String(item.id) === supervisorId,
+    )
+
+    if (!supervisor) {
+      setForm((current) => ({
+        ...current,
+        supervisor_id: '',
+        razaoSocial: '',
+        cnpjCpf: '',
+        registroConselhoProfissional: '',
+        cepConcedente: '',
+        enderecoConcedente: '',
+        bairroConcedente: '',
+        cidadeConcedente: '',
+        ufConcedente: '',
+        emailConcedente: '',
+        telefoneConcedente: '',
+        ramoAtividade: '',
+        outroRamoAtividade: '',
+        cargoFuncaoSupervisor: '',
+        emailSupervisor: '',
+        telefoneSupervisor: '',
+        registroConselhoSupervisor: '',
+      }))
+      return
+    }
+
+    const companyAddress = [
+      supervisor.company_address,
+      supervisor.company_address_number,
+      supervisor.company_address_complement,
+    ]
+      .map((value) => (value ?? '').trim())
+      .filter(Boolean)
+      .join(', ')
+
+    setForm((current) => ({
+      ...current,
+      supervisor_id: supervisorId,
+      razaoSocial: supervisor.company_name,
+      cnpjCpf: formatCpfCnpj(supervisor.company_document),
+      registroConselhoProfissional:
+        supervisor.company_professional_registration,
+      cepConcedente: formatCep(supervisor.company_zip_code),
+      enderecoConcedente: companyAddress,
+      bairroConcedente: supervisor.company_neighborhood,
+      cidadeConcedente: supervisor.company_city,
+      ufConcedente: supervisor.company_state,
+      emailConcedente: supervisor.company_email,
+      telefoneConcedente: formatPhone(supervisor.company_phone_number),
+      ramoAtividade: supervisor.company_business_activity,
+      outroRamoAtividade: supervisor.company_business_activity_other,
+      cargoFuncaoSupervisor: supervisor.job_title,
+      emailSupervisor: supervisor.email,
+      telefoneSupervisor: formatPhone(supervisor.phone_number),
+      registroConselhoSupervisor: supervisor.professional_registration,
+    }))
+
+    setFieldErrors((current) => ({
+      ...current,
+      supervisor_id: undefined,
+      razaoSocial: undefined,
+      cnpjCpf: undefined,
+      registroConselhoProfissional: undefined,
+      cepConcedente: undefined,
+      enderecoConcedente: undefined,
+      bairroConcedente: undefined,
+      cidadeConcedente: undefined,
+      ufConcedente: undefined,
+      emailConcedente: undefined,
+      telefoneConcedente: undefined,
+      ramoAtividade: undefined,
+      outroRamoAtividade: undefined,
+      cargoFuncaoSupervisor: undefined,
+      emailSupervisor: undefined,
+      telefoneSupervisor: undefined,
+      registroConselhoSupervisor: undefined,
+    }))
   }
 
   function handleDocumentTypeChange(event: ChangeEvent<HTMLSelectElement>) {
@@ -276,23 +527,26 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       value === 'supervisor_evaluation'
     ) {
       setUserSelectedType(value)
-      setForm(INITIAL_FORM)
+      setForm({ ...INITIAL_FORM, ...studentProfileDefaults })
       setFieldErrors({})
       setSuccessMessage('')
       setCurrentSection(0)
+      setIsPreviewing(false)
     }
   }
 
-  function handleCepChange(field: 'cep' | 'cepConcedente', event: ChangeEvent<HTMLInputElement>) {
+  function handleCepChange(
+    field: 'cepAluno' | 'cepConcedente',
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
     const formatted = formatCep(event.target.value)
     updateField(field, formatted)
 
-    if (field === 'cep') {
-      updateField('endereco', '')
-      updateField('bairro', '')
-      updateField('cidade', '')
-      updateField('uf', '')
-      updateField('estado', '')
+    if (field === 'cepAluno') {
+      updateField('enderecoAluno', '')
+      updateField('bairroAluno', '')
+      updateField('cidadeAluno', '')
+      updateField('ufAluno', '')
     } else {
       updateField('enderecoConcedente', '')
       updateField('bairroConcedente', '')
@@ -300,17 +554,16 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       updateField('ufConcedente', '')
     }
 
-    const lookup = field === 'cep' ? lookupCep : lookupCepConcedente
+    const lookup = field === 'cepAluno' ? lookupCepAluno : lookupCepConcedente
 
     void lookup(formatted).then((address) => {
       if (!address) return
 
-      if (field === 'cep') {
-        updateField('endereco', address.logradouro)
-        updateField('bairro', address.bairro)
-        updateField('cidade', address.localidade)
-        updateField('uf', address.uf)
-        updateField('estado', address.uf)
+      if (field === 'cepAluno') {
+        updateField('enderecoAluno', address.logradouro)
+        updateField('bairroAluno', address.bairro)
+        updateField('cidadeAluno', address.localidade)
+        updateField('ufAluno', address.uf)
         return
       }
 
@@ -321,8 +574,46 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     })
   }
 
-  function handlePhoneChange(event: ChangeEvent<HTMLInputElement>) {
-    updateField('telefone', formatPhone(event.target.value))
+  const selectedSupervisorName = useMemo(() => {
+    const supervisor = supervisors.find(
+      (item) => String(item.id) === form.supervisor_id,
+    )
+
+    return supervisor?.full_name || relatedSupervisorName || form.emailSupervisor
+  }, [form.emailSupervisor, form.supervisor_id, relatedSupervisorName, supervisors])
+
+  const selectedAdvisorName = useMemo(() => {
+    const advisor = advisors.find(
+      (item) => String(item.id) === form.advisor_id,
+    )
+
+    return advisor?.displayName ?? ''
+  }, [advisors, form.advisor_id])
+
+  function openPreview() {
+    const errors = validateForm(documentType, form)
+
+    setFieldErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      const firstSectionWithError = SECTION_FIELDS[documentType].findIndex(
+        (sectionFields) => sectionFields.some((field) => Boolean(errors[field])),
+      )
+
+      if (firstSectionWithError >= 0) {
+        setCurrentSection(firstSectionWithError + sectionOffset)
+      }
+      return
+    }
+
+    setFieldErrors({})
+    setIsPreviewing(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function closePreview() {
+    setIsPreviewing(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function submitForm(): Promise<void> {
@@ -330,25 +621,43 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
 
     const errors = validateForm(documentType, form)
 
-    if (documentId) {
-      delete errors.attachment
-    }
-
     setFieldErrors(errors)
 
     if (Object.keys(errors).length > 0) {
       return
     }
 
-    const payload = buildPayload(documentType, form, relatedDocumentId)
+    const payload = buildPayload(
+      documentType,
+      form,
+      relatedDocumentId,
+    )
 
-    const success = documentId
+    // Abre a aba enquanto ainda estamos dentro do clique do usuário.
+    // Se esperássemos o POST terminar para chamar window.open, o navegador
+    // poderia bloquear a nova aba como popup.
+    const pdfViewerWindow = window.open('about:blank', '_blank')
+
+    const savedDocumentId = documentId
       ? await update(documentId, payload)
       : await register(payload)
 
-    if (success) {
-      navigate('/', { replace: true })
+    if (savedDocumentId !== null) {
+      const viewerPath = `/documentos/${String(savedDocumentId)}/pdf`
+
+      if (pdfViewerWindow) {
+        pdfViewerWindow.opener = null
+        pdfViewerWindow.location.href = viewerPath
+        navigate(`/historico-documentos?document=${String(savedDocumentId)}`)
+      } else {
+        // Se o navegador bloquear a nova aba, mantemos o usuário na aplicação.
+        // O PDF continua disponível pelo histórico.
+        navigate(`/historico-documentos?document=${String(savedDocumentId)}`)
+      }
+      return
     }
+
+    pdfViewerWindow?.close()
   }
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -371,13 +680,89 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         </div>
       )}
 
+      {studentProfileError && !documentId && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          {studentProfileError}. Você pode continuar preenchendo o formulário manualmente.
+        </div>
+      )}
+
+      {isLoadingStudentProfile && !documentId && (
+        <p className="text-sm text-neutral-600">
+          Preenchendo seus dados de cadastro...
+        </p>
+      )}
+
       {!isLoadingUser && !loadError && (
         <>
-      {totalSections > 1 && currentSection > 0 && documentType !== 'non_mandatory_internship_credit' && (
+      {isPreviewing ? (
+        <>
+          <div className="mb-5">
+            <p className="text-sm font-semibold text-green-800">Pré-visualização</p>
+            <h3 className="mt-1 text-xl font-semibold text-neutral-950">
+              Confira o documento antes de continuar
+            </h3>
+            <p className="mt-1 text-sm text-neutral-600">
+              Esta visualização usa os dados preenchidos no formulário. Volte para corrigir qualquer informação antes de gerar o PDF.
+            </p>
+          </div>
+
+          <div className="-mx-2 overflow-x-auto bg-neutral-100 px-2 py-5 sm:-mx-4 sm:px-4">
+            <DocumentPreview
+              documentType={documentType}
+              form={form}
+              advisorName={selectedAdvisorName}
+              supervisorName={selectedSupervisorName}
+            />
+          </div>
+
+          {successMessage && (
+            <div
+              role="status"
+              className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+            >
+              {successMessage}
+            </div>
+          )}
+
+          {(error || updateError) && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {error || updateError}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-5">
+            <Button type="button" variant="secondary" onClick={closePreview}>
+              Voltar e editar
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={isLoading || isUpdating}
+              className="ml-auto"
+            >
+              {isLoading || isUpdating
+                ? 'Salvando...'
+                : loadedDocumentStatus === 'adjustment_requested'
+                  ? 'Salvar alterações e gerar PDF'
+                  : documentType === 'supervisor_evaluation'
+                    ? 'Gerar PDF da avaliação'
+                    : 'Gerar PDF'}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+      {totalSections > 1 && currentSection > 0 && (
         <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-900 transition-all duration-300"
-            style={{ width: `${String(((currentSection - 1) / (totalSections - 2)) * 100)}%` }}
+            style={{ width: `${String(formProgress)}%` }}
           />
         </div>
       )}
@@ -414,13 +799,85 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       </div>
       )}
 
-      {documentType === 'mandatory_internship' && <MandatoryInternshipSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepConcedenteLoading={cepConcedenteLoading} cepError={cepError} cepConcedenteError={cepConcedenteError} />}
+      {documentType === 'mandatory_internship' && (
+        <MandatoryInternshipSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
+          coordinators={coordinators}
+          advisors={advisors}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
-      {documentType === 'non_mandatory_internship_credit' && <NonMandatoryInternshipCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
+      {documentType === 'non_mandatory_internship_credit' && (
+        <NonMandatoryInternshipCreditSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
+          coordinators={coordinators}
+          advisors={advisors}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
-      {documentType === 'professional_practice_credit' && <ProfessionalPracticeCreditSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} cepLoading={cepLoading} cepError={cepError} />}
+      {documentType === 'professional_practice_credit' && (
+        <ProfessionalPracticeCreditSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
+          coordinators={coordinators}
+          advisors={advisors}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
-      {documentType === 'supervisor_evaluation' && <SupervisorEvaluationSections form={form} fieldErrors={fieldErrors} updateField={updateField} sectionOffset={sectionOffset} currentSection={currentSection} supervisors={supervisors} coordinators={coordinators} handleCepChange={handleCepChange} handlePhoneChange={handlePhoneChange} documentId={documentId} />}
+      {documentType === 'supervisor_evaluation' && (
+        <SupervisorEvaluationSections
+          form={form}
+          fieldErrors={fieldErrors}
+          updateField={updateField}
+          sectionOffset={sectionOffset}
+          currentSection={currentSection}
+          supervisors={supervisors}
+          handleSupervisorChange={handleSupervisorChange}
+          coordinators={coordinators}
+          advisors={advisors}
+          handleCepChange={handleCepChange}
+          documentId={documentId}
+          cepAlunoLoading={cepAlunoLoading}
+          cepConcedenteLoading={cepConcedenteLoading}
+          cepAlunoError={cepAlunoError}
+          cepConcedenteError={cepConcedenteError}
+        />
+      )}
 
       {successMessage && (
         <div
@@ -440,12 +897,16 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        {currentSection > 0 && (
-          <Button type="button" variant="secondary" onClick={handlePrevSection}>
-            Seção anterior
-          </Button>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {currentSection > 0 && (
+            <Button type="button" variant="secondary" onClick={handlePrevSection}>
+              Seção anterior
+            </Button>
+          )}
+
+        </div>
+
         {currentSection < totalSections - 1 && (
           <Button type="button" onClick={handleNextSection} className="ml-auto">
             Próxima seção
@@ -453,20 +914,17 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         )}
         {currentSection === totalSections - 1 && (
           <Button
-            type="submit"
+            type="button"
+            onClick={openPreview}
             disabled={isLoading || isUpdating}
             className="ml-auto"
           >
-            {isLoading || isUpdating
-              ? documentId
-                ? 'Salvando...'
-                : 'Enviando...'
-              : documentId
-                ? 'Salvar alterações'
-                : 'Enviar'}
+            Visualizar documento
           </Button>
         )}
       </div>
+        </>
+      )}
         </>
       )}
     </form>
