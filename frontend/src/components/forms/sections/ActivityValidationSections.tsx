@@ -316,7 +316,7 @@ export default function ActivityValidationSections({
 
             <FormField
               id="registroConselhoProfissionalAV"
-              label="Registro no conselho profissional"
+              label="Registro no conselho profissional da concedente"
               value={form.registroConselhoProfissional}
               onChange={(event) => {
                 updateField('registroConselhoProfissional', event.target.value)

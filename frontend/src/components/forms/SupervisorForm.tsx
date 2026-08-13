@@ -430,7 +430,7 @@ export default function SupervisorForm() {
 
             <FormField
               id="supervisorProfessionalRegistration"
-              label="Registro no conselho profissional"
+              label="Registro no conselho profissional do supervisor"
               value={form.professionalRegistration}
               onChange={(event) => {
                 updateField('professionalRegistration', event.target.value)
@@ -487,7 +487,7 @@ export default function SupervisorForm() {
               error={fieldErrors.companyName}
             />
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2 [&_label]:min-h-10">
               <FormField
                 id="companyDocument"
                 label="CNPJ ou CPF"
@@ -505,7 +505,7 @@ export default function SupervisorForm() {
 
               <FormField
                 id="companyProfessionalRegistration"
-                label="Registro no conselho profissional"
+                label="Registro no conselho profissional da concedente"
                 value={form.companyProfessionalRegistration}
                 onChange={(event) => {
                   updateField(

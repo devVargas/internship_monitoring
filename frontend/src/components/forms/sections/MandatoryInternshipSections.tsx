@@ -345,7 +345,7 @@ export default function MandatoryInternshipSections({
 
             <FormField
               id="registroConselhoProfissionalMI"
-              label="Registro no conselho profissional"
+              label="Registro no conselho profissional da concedente"
               value={form.registroConselhoProfissional}
               onChange={(event) => {
                 updateField('registroConselhoProfissional', event.target.value)
@@ -526,7 +526,7 @@ export default function MandatoryInternshipSections({
 
           <FormField
             id="registroConselhoSupervisorMI"
-            label="Registro no conselho profissional"
+            label="Registro no conselho profissional do supervisor"
             value={form.registroConselhoSupervisor}
             onChange={(event) => {
               updateField('registroConselhoSupervisor', event.target.value)

@@ -681,7 +681,7 @@ export default function UserProfileForm({
             <div className="mt-5">
               <FormField
                 id="profileSupervisorProfessionalRegistration"
-                label="Registro no conselho profissional"
+                label="Registro no conselho profissional do supervisor"
                 value={form.professionalRegistration}
                 onChange={(event) => {
                   updateField('professionalRegistration', event.target.value)
@@ -729,7 +729,7 @@ export default function UserProfileForm({
 
               <FormField
                 id="profileCompanyProfessionalRegistration"
-                label="Registro no conselho profissional"
+                label="Registro no conselho profissional da concedente"
                 value={form.companyProfessionalRegistration}
                 onChange={(event) => {
                   updateField(

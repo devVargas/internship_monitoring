@@ -127,7 +127,7 @@ const SUPERVISOR_FIELDS: readonly DocumentFormField[] = [
   { key: 'telefoneSupervisor', label: 'Telefone' },
   {
     key: 'registroConselhoSupervisor',
-    label: 'Registro no conselho profissional',
+    label: 'Registro no conselho profissional do supervisor',
   },
 ]
 
@@ -226,7 +226,7 @@ const DOCUMENT_FORM_FIELDS: Record<DocumentType, readonly DocumentFormField[]> =
     { key: 'observacoes', label: 'Observações' },
     {
       key: 'registroConselhoSupervisor',
-      label: 'Registro no conselho profissional',
+      label: 'Registro no conselho profissional do supervisor',
     },
   ],
 }
