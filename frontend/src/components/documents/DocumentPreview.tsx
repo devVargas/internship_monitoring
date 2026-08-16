@@ -240,17 +240,6 @@ function MandatoryInternshipPreview({
             }
             value={form.cnpjCpf}
           />
-          {form.registroConselhoProfissional && (
-            <FieldLine
-              label={
-                <>
-                  Registro ATIVO no Conselho Profissional{' '}
-                  <span className="font-normal italic">(somente para profissional liberal)</span>
-                </>
-              }
-              value={form.registroConselhoProfissional}
-            />
-          )}
           <FieldLine label="Endereço" value={companyAddress} />
           <FieldLine label="Bairro" value={form.bairroConcedente} />
           <TwoColumns>
@@ -392,17 +381,6 @@ function ActivityValidationPreview({
           }
           value={form.cnpjCpf}
         />
-        {form.registroConselhoProfissional && (
-          <FieldLine
-            label={
-              <>
-                Registro ATIVO no Conselho Profissional{' '}
-                <span className="font-normal italic">(somente para profissional liberal)</span>
-              </>
-            }
-            value={form.registroConselhoProfissional}
-          />
-        )}
         <FieldLine label="Endereço" value={companyAddress} />
         <FieldLine label="Bairro" value={form.bairroConcedente} />
         <TwoColumns>
@@ -638,17 +616,6 @@ function SupervisorEvaluationPreview({
             }
             value={form.cnpjCpf}
           />
-          {form.registroConselhoProfissional && (
-            <FieldLine
-              label={
-                <>
-                  Registro ATIVO no Conselho Profissional{' '}
-                  <span className="font-normal italic">(somente para profissional liberal)</span>
-                </>
-              }
-              value={form.registroConselhoProfissional}
-            />
-          )}
           <FieldLine label="Endereço" value={companyAddress} />
           <FieldLine label="Bairro" value={form.bairroConcedente} />
           <TwoColumns>

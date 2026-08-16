@@ -102,10 +102,6 @@ const STUDENT_IDENTITY_FIELDS: readonly DocumentFormField[] = [
 
 const COMPANY_FIELDS: readonly DocumentFormField[] = [
   { key: 'cnpjCpf', label: 'CNPJ/CPF da concedente' },
-  {
-    key: 'registroConselhoProfissional',
-    label: 'Registro no conselho profissional da concedente',
-  },
   { key: 'cepConcedente', label: 'CEP da concedente' },
   { key: 'enderecoConcedente', label: 'Endereço da concedente' },
   { key: 'bairroConcedente', label: 'Bairro da concedente' },

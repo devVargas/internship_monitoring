@@ -60,7 +60,8 @@ export function mapSupervisorProfileToDocumentDefaults(
   profile: UserProfile,
 ): SupervisorProfileFormDefaults {
   return {
-    registroConselhoSupervisor: profile.professional_registration,
+    registroConselhoSupervisor:
+      profile.professional_registration || profile.company_professional_registration,
     cidadeAssinatura: profile.company_city,
   }
 }
@@ -98,10 +99,6 @@ export function mapMandatoryDocumentToSupervisorEvaluationDefaults(
     semestreAnoConclusao: readString(formData, 'semestreAnoConclusao'),
     razaoSocial: document.company || readString(formData, 'razaoSocial'),
     cnpjCpf: readString(formData, 'cnpjCpf'),
-    registroConselhoProfissional: readString(
-      formData,
-      'registroConselhoProfissional',
-    ),
     cepConcedente: formatCep(readString(formData, 'cepConcedente')),
     enderecoConcedente: readString(formData, 'enderecoConcedente'),
     bairroConcedente: readString(formData, 'bairroConcedente'),
@@ -117,6 +114,9 @@ export function mapMandatoryDocumentToSupervisorEvaluationDefaults(
     emailSupervisor:
       readString(formData, 'emailSupervisor') || document.supervisor_email || '',
     telefoneSupervisor: formatPhone(readString(formData, 'telefoneSupervisor')),
+    registroConselhoSupervisor:
+      readString(formData, 'registroConselhoSupervisor') ||
+      readString(formData, 'registroConselhoProfissional'),
     inicioEstagio: readString(formData, 'inicioEstagio'),
     fimEstagio: readString(formData, 'fimEstagio'),
     funcaoPrincipalAluno: readString(formData, 'funcaoPrincipalAluno'),

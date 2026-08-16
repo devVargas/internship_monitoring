@@ -60,7 +60,7 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
       'cidadeAluno', 'ufAluno',
     ],
     [
-      'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
+      'razaoSocial', 'cnpjCpf', 'cepConcedente',
       'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
       'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
       'outroRamoAtividade', 'supervisor_id',
@@ -80,7 +80,7 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
       'especificarSituacao', 'cargo', 'setor',
     ],
     [
-      'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
+      'razaoSocial', 'cnpjCpf', 'cepConcedente',
       'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
       'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
       'outroRamoAtividade', 'supervisor_id',
@@ -101,7 +101,7 @@ export const SECTION_FIELDS: Record<DocumentType, DocumentField[][]> = {
       'semestreAnoConclusao', 'situacao', 'especificarSituacao', 'cargo', 'setor',
     ],
     [
-      'razaoSocial', 'cnpjCpf', 'registroConselhoProfissional', 'cepConcedente',
+      'razaoSocial', 'cnpjCpf', 'cepConcedente',
       'enderecoConcedente', 'bairroConcedente', 'cidadeConcedente',
       'ufConcedente', 'emailConcedente', 'telefoneConcedente', 'ramoAtividade',
       'outroRamoAtividade', 'supervisor_id',
@@ -150,7 +150,6 @@ const INITIAL_FORM: DocumentFormData = {
   semestreAnoConclusao: '',
   razaoSocial: '',
   cnpjCpf: '',
-  registroConselhoProfissional: '',
   cepConcedente: '',
   enderecoConcedente: '',
   bairroConcedente: '',

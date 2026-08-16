@@ -50,7 +50,6 @@ export type DocumentFormData = {
   // Dados da concedente.
   razaoSocial: string
   cnpjCpf: string
-  registroConselhoProfissional: string
   cepConcedente: string
   enderecoConcedente: string
   bairroConcedente: string

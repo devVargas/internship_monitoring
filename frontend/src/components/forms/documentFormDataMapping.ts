@@ -26,7 +26,6 @@ function mapCommonFormData(formData: Record<string, string | undefined>) {
     especificarModalidade: formData.especificarModalidade ?? '',
     semestreAnoConclusao: formData.semestreAnoConclusao ?? '',
     cnpjCpf: formData.cnpjCpf ?? '',
-    registroConselhoProfissional: formData.registroConselhoProfissional ?? '',
     cepConcedente: formatCep(formData.cepConcedente ?? ''),
     enderecoConcedente: formData.enderecoConcedente ?? '',
     bairroConcedente: formData.bairroConcedente ?? '',
@@ -39,7 +38,10 @@ function mapCommonFormData(formData: Record<string, string | undefined>) {
     cargoFuncaoSupervisor: formData.cargoFuncaoSupervisor ?? '',
     emailSupervisor: formData.emailSupervisor ?? '',
     telefoneSupervisor: formData.telefoneSupervisor ?? '',
-    registroConselhoSupervisor: formData.registroConselhoSupervisor ?? '',
+    registroConselhoSupervisor:
+      formData.registroConselhoSupervisor ??
+      formData.registroConselhoProfissional ??
+      '',
   }
 }
 
@@ -157,7 +159,10 @@ export function mapBackendDataToForm(data: BackendDocumentResponse): DocumentFor
         outraPeriodicidadeAvaliacao: formData.outraPeriodicidadeAvaliacao ?? '',
         contratacaoAposTce: formData.contratacaoAposTce ?? '',
         observacoes: formData.observacoes ?? '',
-        registroConselhoSupervisor: formData.registroConselhoSupervisor ?? '',
+        registroConselhoSupervisor:
+          formData.registroConselhoSupervisor ??
+          formData.registroConselhoProfissional ??
+          '',
       }
   }
 }

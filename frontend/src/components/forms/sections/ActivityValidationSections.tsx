@@ -302,28 +302,16 @@ export default function ActivityValidationSections({
             error={fieldErrors.razaoSocial}
           />
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="cnpjCpfAV"
-              label="CNPJ ou CPF"
-              value={form.cnpjCpf}
-              onChange={(event) => {
-                updateField('cnpjCpf', formatCpfCnpj(event.target.value))
-              }}
-              required
-              error={fieldErrors.cnpjCpf}
-            />
-
-            <FormField
-              id="registroConselhoProfissionalAV"
-              label="Registro no conselho profissional da concedente"
-              value={form.registroConselhoProfissional}
-              onChange={(event) => {
-                updateField('registroConselhoProfissional', event.target.value)
-              }}
-              error={fieldErrors.registroConselhoProfissional}
-            />
-          </div>
+          <FormField
+            id="cnpjCpfAV"
+            label="CNPJ ou CPF"
+            value={form.cnpjCpf}
+            onChange={(event) => {
+              updateField('cnpjCpf', formatCpfCnpj(event.target.value))
+            }}
+            required
+            error={fieldErrors.cnpjCpf}
+          />
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="relative">

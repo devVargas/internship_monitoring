@@ -446,7 +446,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         supervisor_id: '',
         razaoSocial: '',
         cnpjCpf: '',
-        registroConselhoProfissional: '',
         cepConcedente: '',
         enderecoConcedente: '',
         bairroConcedente: '',
@@ -478,8 +477,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       supervisor_id: supervisorId,
       razaoSocial: supervisor.company_name,
       cnpjCpf: formatCpfCnpj(supervisor.company_document),
-      registroConselhoProfissional:
-        supervisor.company_professional_registration,
       cepConcedente: formatCep(supervisor.company_zip_code),
       enderecoConcedente: companyAddress,
       bairroConcedente: supervisor.company_neighborhood,
@@ -492,7 +489,9 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       cargoFuncaoSupervisor: supervisor.job_title,
       emailSupervisor: supervisor.email,
       telefoneSupervisor: formatPhone(supervisor.phone_number),
-      registroConselhoSupervisor: supervisor.professional_registration,
+      registroConselhoSupervisor:
+        supervisor.professional_registration ||
+        supervisor.company_professional_registration,
     }))
 
     setFieldErrors((current) => ({
@@ -500,7 +499,6 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       supervisor_id: undefined,
       razaoSocial: undefined,
       cnpjCpf: undefined,
-      registroConselhoProfissional: undefined,
       cepConcedente: undefined,
       enderecoConcedente: undefined,
       bairroConcedente: undefined,
