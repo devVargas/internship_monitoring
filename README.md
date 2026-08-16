@@ -1,4 +1,4 @@
-# Sistema de Acompanhamento de Estágio
+# Sistema de Acompanhamento de Estágio - Projeto para residência em TIC 55 Unisinos São Leopoldo
 
 Plataforma web para cadastro, gerenciamento, revisão e acompanhamento de processos de estágio.
 
