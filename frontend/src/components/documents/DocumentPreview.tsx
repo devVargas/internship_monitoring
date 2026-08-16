@@ -344,7 +344,7 @@ function ActivityValidationPreview({
     form.ramoAtividade === 'Outro'
       ? form.outroRamoAtividade
       : form.ramoAtividade
-  const workSchedule = form.outroHorario?.trim()
+  const workSchedule = form.outroHorario.trim()
     ? form.outroHorario
     : `${display(form.inicioHorarioAtividade)} às ${display(form.fimHorarioAtividade)}`
   const companyAddress = display(form.enderecoConcedente)
@@ -546,7 +546,7 @@ function RatingTable({ fields, form }: { fields: typeof RATING_FIELDS; form: Doc
           <tr key={field}>
             <td className="border border-black px-1 py-[5px]">{label}</td>
             <td className="border border-black px-1 py-[5px] text-center font-semibold">
-              {display(String(form[field] ?? ''))}
+              {display(form[field])}
             </td>
           </tr>
         ))}

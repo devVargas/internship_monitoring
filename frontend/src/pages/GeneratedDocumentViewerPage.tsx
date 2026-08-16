@@ -13,55 +13,67 @@ import { getErrorMessage } from '../utils/errors.ts'
 export default function GeneratedDocumentViewerPage() {
   const { documentId } = useParams()
   const id = Number(documentId)
+  const isValidDocumentId = Number.isInteger(id) && id > 0
   const { fetchWithAuth } = useAPI()
-  const [status, setStatus] = useState<PdfGenerationStatus>('pending')
-  const [error, setError] = useState('')
+  const [status, setStatus] = useState<PdfGenerationStatus>(() =>
+    isValidDocumentId ? 'pending' : 'failed',
+  )
+  const [error, setError] = useState(() =>
+    isValidDocumentId ? '' : 'Documento inválido.',
+  )
   const [isOpening, setIsOpening] = useState(false)
 
   useEffect(() => {
-    if (!Number.isInteger(id) || id <= 0) {
-      setStatus('failed')
-      setError('Documento inválido.')
+    if (!isValidDocumentId) {
       return
     }
 
-    let cancelled = false
+    const cancelled = { current: false }
     let timer: number | undefined
 
     async function checkStatus() {
       try {
         const state = await getDocumentPdfStatusRequest(id, fetchWithAuth)
-        if (cancelled) return
 
-        setStatus(state.status)
-        setError(state.error)
+        if (!cancelled.current) {
+          setStatus(state.status)
+          setError(state.error)
+        }
 
         if (state.status === 'not_generated') {
           const document = await requestDocumentPdfGeneration(id, fetchWithAuth)
-          if (cancelled) return
 
-          setStatus(document.pdfGenerationStatus)
-          setError(document.pdfGenerationError)
-          timer = window.setTimeout(() => { void checkStatus() }, 1200)
+          if (!cancelled.current) {
+            setStatus(document.pdfGenerationStatus)
+            setError(document.pdfGenerationError)
+            timer = window.setTimeout(() => {
+              void checkStatus()
+            }, 1200)
+          }
           return
         }
 
         if (state.status === 'ready') {
-          setIsOpening(true)
           const blob = await getGeneratedDocumentPdfRequest(id, fetchWithAuth)
-          if (cancelled) return
 
-          const objectUrl = URL.createObjectURL(blob)
-          window.location.replace(objectUrl)
-          window.setTimeout(() => URL.revokeObjectURL(objectUrl), 300_000)
+          if (!cancelled.current) {
+            setIsOpening(true)
+            const objectUrl = URL.createObjectURL(blob)
+            window.location.replace(objectUrl)
+            window.setTimeout(() => {
+              URL.revokeObjectURL(objectUrl)
+            }, 300_000)
+          }
           return
         }
 
         if (state.status === 'pending' || state.status === 'processing') {
-          timer = window.setTimeout(() => { void checkStatus() }, 1200)
+          timer = window.setTimeout(() => {
+            void checkStatus()
+          }, 1200)
         }
       } catch (requestError) {
-        if (!cancelled) {
+        if (!cancelled.current) {
           setStatus('failed')
           setError(
             getErrorMessage(requestError, 'Não foi possível abrir o PDF gerado'),
@@ -73,10 +85,10 @@ export default function GeneratedDocumentViewerPage() {
     void checkStatus()
 
     return () => {
-      cancelled = true
+      cancelled.current = true
       if (timer !== undefined) window.clearTimeout(timer)
     }
-  }, [fetchWithAuth, id])
+  }, [fetchWithAuth, id, isValidDocumentId])
 
   async function retry() {
     setError('')

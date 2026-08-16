@@ -25,13 +25,21 @@ export default function GeneratedDocumentButton({
   const { fetchWithAuth } = useAPI()
   const [status, setStatus] = useState<PdfGenerationStatus>(initialStatus)
   const [generationError, setGenerationError] = useState(initialError)
+  const [prevInitial, setPrevInitial] = useState({
+    status: initialStatus,
+    error: initialError,
+  })
   const [actionError, setActionError] = useState('')
   const [isOpening, setIsOpening] = useState(false)
 
-  useEffect(() => {
+  if (
+    prevInitial.status !== initialStatus ||
+    prevInitial.error !== initialError
+  ) {
+    setPrevInitial({ status: initialStatus, error: initialError })
     setStatus(initialStatus)
     setGenerationError(initialError)
-  }, [initialError, initialStatus])
+  }
 
   useEffect(() => {
     if (status !== 'pending' && status !== 'processing') return
@@ -44,7 +52,7 @@ export default function GeneratedDocumentButton({
           setStatus(state.status)
           setGenerationError(state.error)
         })
-        .catch((requestError) => {
+        .catch((requestError: unknown) => {
           if (!cancelled) {
             setActionError(
               getErrorMessage(requestError, 'Não foi possível acompanhar a geração do PDF'),
@@ -87,7 +95,9 @@ export default function GeneratedDocumentButton({
         window.location.href = objectUrl
       }
 
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl)
+      }, 60_000)
     } catch (requestError) {
       viewer?.close()
       setActionError(

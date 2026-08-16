@@ -110,6 +110,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     let cancelled = false
 
     async function loadProfileDefaults() {
+      if (!currentUser) return
+
       setIsLoadingStudentProfile(true)
       setStudentProfileError(null)
 
@@ -472,7 +474,7 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       supervisor.company_address_number,
       supervisor.company_address_complement,
     ]
-      .map((value) => (value ?? '').trim())
+      .map((value) => value.trim())
       .filter(Boolean)
       .join(', ')
 

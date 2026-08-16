@@ -134,6 +134,7 @@ export type BackendDocumentResponse = {
   company?: string
   city?: string
   supervisor_id: number | null
+  supervisor_name?: string | null
   advisor_id: number | null
   advisor_name?: string | null
   advisor_email?: string | null

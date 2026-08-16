@@ -215,7 +215,7 @@ export function validateSupervisorEvaluation(form: DocumentFormData): DocumentEr
   ]
 
   for (const field of ratingFields) {
-    addError(errors, field, validateRequired(String(form[field])))
+    addError(errors, field, validateRequired(form[field]))
   }
 
   addError(errors, 'modoAvaliacao', validateRequired(form.modoAvaliacao))

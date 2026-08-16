@@ -117,7 +117,10 @@ export function buildPayload(
         supervisor_id: Number(form.supervisor_id),
         company: form.razaoSocial,
         city: form.cidadeAssinatura,
-        form_data: buildActivityValidationData(form),
+        form_data: {
+          ...buildActivityValidationData(form),
+          campusAluno: form.campusAluno,
+        },
       }
     case 'supervisor_evaluation':
       return {

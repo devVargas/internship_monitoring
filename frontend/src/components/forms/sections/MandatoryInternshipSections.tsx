@@ -20,7 +20,6 @@ export default function MandatoryInternshipSections({
   advisors,
   handleSupervisorChange,
   handleCepChange,
-  documentId,
   cepAlunoLoading,
   cepConcedenteLoading,
   cepAlunoError,

@@ -78,7 +78,7 @@ function readString(
 export function mapMandatoryDocumentToSupervisorEvaluationDefaults(
   document: BackendDocumentResponse,
 ): SupervisorProfileFormDefaults {
-  const formData = (document.form_data ?? {}) as Record<string, unknown>
+  const formData = document.form_data ?? {}
 
   return {
     nomeAluno: readString(formData, 'nomeAluno') || document.student_name || '',

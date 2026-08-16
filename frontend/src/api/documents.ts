@@ -139,11 +139,37 @@ export type ProfessionalPracticeCreditFormData =
   ActivityValidationFormData
 
 export type MandatoryInternshipEvaluationFormData = {
+  nomeAluno: string
+  matriculaAluno: string
+  campusAluno: string
+  cursoAluno: string
+  emailAluno: string
+  celularAluno: string
+  razaoSocial: string
+  cnpjCpf: string
+  registroConselhoProfissional: string
+  cepConcedente: string
+  enderecoConcedente: string
+  bairroConcedente: string
+  cidadeConcedente: string
+  ufConcedente: string
+  emailConcedente: string
+  telefoneConcedente: string
+  ramoAtividade: string
+  outroRamoAtividade: string
+  supervisorIdReferencia: string
+  cargoFuncaoSupervisor: string
+  emailSupervisor: string
+  telefoneSupervisor: string
   situacao: string
   especificarSituacao: string
   dataFormatura: string
   semestreAnoConclusao: string
   funcaoPrincipalAluno: string
+  inicioEstagio: string
+  fimEstagio: string
+  horasSemanais: string
+  totalHorasTrabalhadas: string
   aprendizadoNoEstagio: string
   segurancaExecucao: string
   interessePeloTrabalho: string

@@ -303,9 +303,6 @@ export default function StudentForm() {
           <h2 className="text-lg font-semibold text-neutral-950">
             {section.title}
           </h2>
-          <p className="mt-1 text-sm text-neutral-600">
-            {section.description}
-          </p>
         </div>
 
         {currentSection === 0 && (

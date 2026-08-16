@@ -35,7 +35,6 @@ export default function ActivityValidationSections({
   handleSupervisorChange,
   coordinators,
   handleCepChange,
-  documentId,
   cepConcedenteLoading,
   cepConcedenteError,
   includeRequestData,
