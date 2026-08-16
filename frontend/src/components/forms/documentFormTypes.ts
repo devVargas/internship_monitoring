@@ -163,4 +163,7 @@ export type SectionProps = {
   cepConcedenteLoading?: boolean
   cepAlunoError?: string | null
   cepConcedenteError?: string | null
+  attachment?: File | null
+  onAttachmentChange?: (file: File | null) => void
+  attachmentError?: string | null
 }

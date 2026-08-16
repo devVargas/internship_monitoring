@@ -51,6 +51,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
   const [currentSection, setCurrentSection] = useState(0)
   const [isPreviewing, setIsPreviewing] = useState(false)
   const [relatedSupervisorName, setRelatedSupervisorName] = useState('')
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const { register, isLoading, error } = useRegisterDocument()
   const { update, isLoading: isUpdating, error: updateError } = useUpdateDocument()
   const navigate = useNavigate()
@@ -266,6 +268,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
         setRelatedDocumentId(data.related_document ?? undefined)
         setRelatedSupervisorName(data.supervisor_name ?? '')
         setForm(mapBackendDataToForm(data))
+        setAttachment(null)
+        setAttachmentError(null)
 
         onTitleChange?.(`Editar ${DOCUMENT_TYPE_LABELS[data.document_type]}`)
       } catch {
@@ -530,6 +534,24 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
       setSuccessMessage('')
       setCurrentSection(0)
       setIsPreviewing(false)
+      setAttachment(null)
+      setAttachmentError(null)
+    }
+  }
+
+  function handleAttachmentChange(file: File | null) {
+    setAttachment(file)
+    setAttachmentError(null)
+
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setAttachmentError('Envie um arquivo em formato PDF.')
+      return
+    }
+
+    if (file.size > 25 * 1024 * 1024) {
+      setAttachmentError('O arquivo deve ter no máximo 25 MB.')
     }
   }
 
@@ -637,8 +659,8 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
     const pdfViewerWindow = window.open('about:blank', '_blank')
 
     const savedDocumentId = documentId
-      ? await update(documentId, payload)
-      : await register(payload)
+      ? await update(documentId, payload, attachment ?? undefined)
+      : await register(payload, attachment ?? undefined)
 
     if (savedDocumentId !== null) {
       const viewerPath = `/documentos/${String(savedDocumentId)}/pdf`
@@ -834,6 +856,9 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           cepConcedenteLoading={cepConcedenteLoading}
           cepAlunoError={cepAlunoError}
           cepConcedenteError={cepConcedenteError}
+          attachment={attachment}
+          onAttachmentChange={handleAttachmentChange}
+          attachmentError={attachmentError}
         />
       )}
 
@@ -854,6 +879,9 @@ export default function DocumentForm({ relatedDocumentIdProp: relatedDocumentIdP
           cepConcedenteLoading={cepConcedenteLoading}
           cepAlunoError={cepAlunoError}
           cepConcedenteError={cepConcedenteError}
+          attachment={attachment}
+          onAttachmentChange={handleAttachmentChange}
+          attachmentError={attachmentError}
         />
       )}
 

@@ -1,9 +1,22 @@
+from io import BytesIO
+
 from celery import shared_task
 from django.core.files.base import ContentFile
 from django.utils import timezone
+from pypdf import PdfReader, PdfWriter
 
 from apps.document.models import Document, PdfGenerationStatus
 from apps.document.pdf_generator import build_pdf_filename, render_document_pdf
+
+
+def append_pdf(base_pdf: bytes, extra_pdf: bytes) -> bytes:
+    writer = PdfWriter()
+    writer.append(PdfReader(BytesIO(base_pdf)))
+    writer.append(PdfReader(BytesIO(extra_pdf)))
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
 
 
 @shared_task
@@ -27,6 +40,11 @@ def generate_document_pdf(document_id: int) -> None:
 
     try:
         pdf_bytes = render_document_pdf(document)
+
+        if document.attachment and not document.signed_at:
+            with document.attachment.open("rb") as extra:
+                pdf_bytes = append_pdf(pdf_bytes, extra.read())
+
         filename = build_pdf_filename(document)
 
         if document.generated_pdf:

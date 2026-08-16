@@ -259,6 +259,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
         advisor_id = serializer.validated_data.pop("advisor_id", None)
         related_document_id = serializer.validated_data.pop("related_document_id", None)
 
+        new_attachment = serializer.validated_data.get("attachment", None)
+        if new_attachment and document.attachment:
+            document.attachment.delete(save=False)
+
         supervisor = (
             self.get_supervisor(supervisor_id)
             if supervisor_id is not None

@@ -532,10 +532,15 @@ async function readDocumentDetail(
 export async function registerDocumentRequest(
   data: RegisterDocumentPayload,
   httpClient: HttpClient,
+  attachment?: File,
 ): Promise<number> {
   const formData = new FormData()
   formData.append('document_type', data.document_type)
   formData.append('form_data', JSON.stringify(data.form_data))
+
+  if (attachment) {
+    formData.append('attachment', attachment)
+  }
 
   if ('company' in data) {
     formData.append('company', data.company)
@@ -593,10 +598,15 @@ export async function updateDocumentRequest(
   documentId: number,
   data: RegisterDocumentPayload,
   httpClient: HttpClient,
+  attachment?: File,
 ): Promise<number> {
   const formData = new FormData()
   formData.append('document_type', data.document_type)
   formData.append('form_data', JSON.stringify(data.form_data))
+
+  if (attachment) {
+    formData.append('attachment', attachment)
+  }
 
   if ('company' in data) {
     formData.append('company', data.company)
