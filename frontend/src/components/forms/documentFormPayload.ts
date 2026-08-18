@@ -4,7 +4,7 @@ import type { RegisterDocumentPayload, DocumentType } from '../../api/documents.
 function buildCompanyData(form: DocumentFormData) {
   return {
     cnpjCpf: form.cnpjCpf,
-    registroConselhoProfissional: form.registroConselhoProfissional,
+    registroConselhoProfissional: '',
     cepConcedente: form.cepConcedente,
     enderecoConcedente: form.enderecoConcedente,
     bairroConcedente: form.bairroConcedente,
@@ -117,7 +117,10 @@ export function buildPayload(
         supervisor_id: Number(form.supervisor_id),
         company: form.razaoSocial,
         city: form.cidadeAssinatura,
-        form_data: buildActivityValidationData(form),
+        form_data: {
+          ...buildActivityValidationData(form),
+          campusAluno: form.campusAluno,
+        },
       }
     case 'supervisor_evaluation':
       return {

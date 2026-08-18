@@ -50,7 +50,6 @@ export type DocumentFormData = {
   // Dados da concedente.
   razaoSocial: string
   cnpjCpf: string
-  registroConselhoProfissional: string
   cepConcedente: string
   enderecoConcedente: string
   bairroConcedente: string
@@ -135,6 +134,7 @@ export type BackendDocumentResponse = {
   company?: string
   city?: string
   supervisor_id: number | null
+  supervisor_name?: string | null
   advisor_id: number | null
   advisor_name?: string | null
   advisor_email?: string | null
@@ -164,4 +164,7 @@ export type SectionProps = {
   cepConcedenteLoading?: boolean
   cepAlunoError?: string | null
   cepConcedenteError?: string | null
+  attachment?: File | null
+  onAttachmentChange?: (file: File | null) => void
+  attachmentError?: string | null
 }

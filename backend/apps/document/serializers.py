@@ -12,6 +12,7 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
     company = serializers.CharField(required=False, allow_blank=True)
     city = serializers.CharField(required=False, allow_blank=True)
     form_data = serializers.JSONField(required=True)
+    attachment = serializers.FileField(required=False, allow_null=True)
 
     class Meta:
         model = Document
@@ -25,7 +26,31 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
             "company",
             "city",
             "form_data",
+            "attachment",
         )
+
+    def validate_attachment(self, value):
+        if value is None:
+            return value
+
+        if value.size > 25 * 1024 * 1024:
+            raise serializers.ValidationError(
+                "O arquivo anexo deve ter no máximo 25 MB."
+            )
+
+        if not value.name.lower().endswith(".pdf"):
+            raise serializers.ValidationError(
+                "Envie o arquivo anexo em formato PDF."
+            )
+
+        header = value.read(5)
+        value.seek(0)
+        if header != b"%PDF-":
+            raise serializers.ValidationError(
+                "O arquivo anexo enviado não é um PDF válido."
+            )
+
+        return value
 
     def validate(self, attrs):
         document_type = attrs.get(
@@ -305,7 +330,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         return obj.reviewed_by.email
 
     def get_signed_pdf_available(self, obj):
-        return bool(obj.attachment)
+        return bool(obj.attachment and obj.signed_at)
 
     def _get_supervisor_evaluation(self, obj):
         if obj.document_type != DocumentType.MANDATORY_INTERNSHIP:

@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.http import FileResponse
 from django.db.models import Q
+from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import parsers, permissions, status, viewsets
@@ -14,6 +14,7 @@ from apps.accounts.models import SupervisorProfile
 from apps.doc_activity.models import DocumentActivityAction
 from apps.doc_activity.services import register_activity
 from apps.document.models import Document, DocumentStatus, DocumentType, PdfGenerationStatus
+from apps.document.pdf_generation import queue_document_pdf
 from apps.document.serializers import (
     DocumentAdvisorAssignmentSerializer,
     DocumentRequiredCommentSerializer,
@@ -23,7 +24,6 @@ from apps.document.serializers import (
     DocumentWriteSerializer,
     SignedDocumentUploadSerializer,
 )
-from apps.document.pdf_generation import queue_document_pdf
 from apps.document.services import set_document_status
 
 User = get_user_model()
@@ -144,7 +144,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
         supervisor = self.get_supervisor(supervisor_id)
         advisor = self.get_advisor(advisor_id)
         form_data = dict(serializer.validated_data.get("form_data", {}))
-        document_type = serializer.validated_data.get("document_type")
 
         student_snapshot = self.build_student_snapshot(
             student=student,
@@ -258,6 +257,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
         supervisor_id = serializer.validated_data.pop("supervisor_id", None)
         advisor_id = serializer.validated_data.pop("advisor_id", None)
         related_document_id = serializer.validated_data.pop("related_document_id", None)
+
+        new_attachment = serializer.validated_data.get("attachment", None)
+        if new_attachment and document.attachment:
+            document.attachment.delete(save=False)
 
         supervisor = (
             self.get_supervisor(supervisor_id)

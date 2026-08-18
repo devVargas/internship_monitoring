@@ -197,8 +197,8 @@ export function validateLettersAndNumbers(value: string): string | null {
   }
 
   const hasLetter = /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(value)
-  const hasNoInvalidChars = /^[A-Za-zÀ-ÖØ-öø-ÿ\s\d.,'-]+$/.test(value)
-  return hasLetter && hasNoInvalidChars
+  //const hasNoInvalidChars = /^[A-Za-zÀ-ÖØ-öø-ÿ\s\d.,'-]+$/.test(value)
+  return hasLetter //&& hasNoInvalidChars
     ? null
     : 'Insira um texto válido'
 }

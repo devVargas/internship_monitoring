@@ -1,5 +1,7 @@
 from rest_framework import serializers
+
 from apps.doc_activity.models import DocumentActivity
+
 
 class DocumentActivitySerializer(serializers.ModelSerializer):
     performed_by_name = serializers.SerializerMethodField()

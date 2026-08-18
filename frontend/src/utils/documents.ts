@@ -102,10 +102,6 @@ const STUDENT_IDENTITY_FIELDS: readonly DocumentFormField[] = [
 
 const COMPANY_FIELDS: readonly DocumentFormField[] = [
   { key: 'cnpjCpf', label: 'CNPJ/CPF da concedente' },
-  {
-    key: 'registroConselhoProfissional',
-    label: 'Registro no conselho profissional da concedente',
-  },
   { key: 'cepConcedente', label: 'CEP da concedente' },
   { key: 'enderecoConcedente', label: 'Endereço da concedente' },
   { key: 'bairroConcedente', label: 'Bairro da concedente' },
@@ -127,7 +123,7 @@ const SUPERVISOR_FIELDS: readonly DocumentFormField[] = [
   { key: 'telefoneSupervisor', label: 'Telefone' },
   {
     key: 'registroConselhoSupervisor',
-    label: 'Registro no conselho profissional',
+    label: 'Registro no conselho profissional do supervisor',
   },
 ]
 
@@ -226,7 +222,7 @@ const DOCUMENT_FORM_FIELDS: Record<DocumentType, readonly DocumentFormField[]> =
     { key: 'observacoes', label: 'Observações' },
     {
       key: 'registroConselhoSupervisor',
-      label: 'Registro no conselho profissional',
+      label: 'Registro no conselho profissional do supervisor',
     },
   ],
 }

@@ -45,7 +45,7 @@ const REVIEW_STATUS_OPTIONS: DocumentStatus[] = [
 export default function DocumentReviewPage() {
   const { user } = useCurrentUser()
   const isProfessorOnly = Boolean(
-    user?.groups.includes('Teacher') && !user?.groups.includes('Coordinator'),
+    user?.groups.includes('Teacher') && !user.groups.includes('Coordinator'),
   )
   const [form, setForm] = useState<FilterForm>(INITIAL_FILTERS)
   const [appliedFilters, setAppliedFilters] =

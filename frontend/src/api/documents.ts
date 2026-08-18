@@ -139,11 +139,37 @@ export type ProfessionalPracticeCreditFormData =
   ActivityValidationFormData
 
 export type MandatoryInternshipEvaluationFormData = {
+  nomeAluno: string
+  matriculaAluno: string
+  campusAluno: string
+  cursoAluno: string
+  emailAluno: string
+  celularAluno: string
+  razaoSocial: string
+  cnpjCpf: string
+  registroConselhoProfissional: string
+  cepConcedente: string
+  enderecoConcedente: string
+  bairroConcedente: string
+  cidadeConcedente: string
+  ufConcedente: string
+  emailConcedente: string
+  telefoneConcedente: string
+  ramoAtividade: string
+  outroRamoAtividade: string
+  supervisorIdReferencia: string
+  cargoFuncaoSupervisor: string
+  emailSupervisor: string
+  telefoneSupervisor: string
   situacao: string
   especificarSituacao: string
   dataFormatura: string
   semestreAnoConclusao: string
   funcaoPrincipalAluno: string
+  inicioEstagio: string
+  fimEstagio: string
+  horasSemanais: string
+  totalHorasTrabalhadas: string
   aprendizadoNoEstagio: string
   segurancaExecucao: string
   interessePeloTrabalho: string
@@ -532,10 +558,15 @@ async function readDocumentDetail(
 export async function registerDocumentRequest(
   data: RegisterDocumentPayload,
   httpClient: HttpClient,
+  attachment?: File,
 ): Promise<number> {
   const formData = new FormData()
   formData.append('document_type', data.document_type)
   formData.append('form_data', JSON.stringify(data.form_data))
+
+  if (attachment) {
+    formData.append('attachment', attachment)
+  }
 
   if ('company' in data) {
     formData.append('company', data.company)
@@ -593,10 +624,15 @@ export async function updateDocumentRequest(
   documentId: number,
   data: RegisterDocumentPayload,
   httpClient: HttpClient,
+  attachment?: File,
 ): Promise<number> {
   const formData = new FormData()
   formData.append('document_type', data.document_type)
   formData.append('form_data', JSON.stringify(data.form_data))
+
+  if (attachment) {
+    formData.append('attachment', attachment)
+  }
 
   if ('company' in data) {
     formData.append('company', data.company)

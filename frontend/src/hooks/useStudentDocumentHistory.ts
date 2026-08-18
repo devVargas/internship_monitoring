@@ -10,11 +10,10 @@ export function useStudentDocumentHistory() {
   const [error, setError] = useState<string | null>(null)
 
   const loadDocuments = useCallback(async (): Promise<void> => {
-    setError(null)
-
     try {
       const result = await listMyDocumentsRequest(fetchWithAuth)
       setDocuments(result)
+      setError(null)
     } catch (requestError) {
       setError(
         getErrorMessage(
@@ -28,8 +27,38 @@ export function useStudentDocumentHistory() {
   }, [fetchWithAuth])
 
   useEffect(() => {
-    void loadDocuments()
-  }, [loadDocuments])
+    let isCancelled = false
+
+    async function loadInitialDocuments(): Promise<void> {
+      try {
+        const result = await listMyDocumentsRequest(fetchWithAuth)
+
+        if (!isCancelled) {
+          setDocuments(result)
+          setError(null)
+        }
+      } catch (requestError) {
+        if (!isCancelled) {
+          setError(
+            getErrorMessage(
+              requestError,
+              'Não foi possível carregar o histórico de documentos',
+            ),
+          )
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadInitialDocuments()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [fetchWithAuth])
 
   return {
     documents,

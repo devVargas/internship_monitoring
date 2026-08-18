@@ -33,7 +33,9 @@ export default function SignedDocumentButton({
         window.location.href = objectUrl
       }
 
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl)
+      }, 60_000)
     } catch (requestError) {
       viewer?.close()
       setError(

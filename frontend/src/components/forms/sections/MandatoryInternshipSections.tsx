@@ -20,7 +20,6 @@ export default function MandatoryInternshipSections({
   advisors,
   handleSupervisorChange,
   handleCepChange,
-  documentId,
   cepAlunoLoading,
   cepConcedenteLoading,
   cepAlunoError,
@@ -331,28 +330,16 @@ export default function MandatoryInternshipSections({
             error={fieldErrors.razaoSocial}
           />
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="cnpjCpfMI"
-              label="CNPJ ou CPF"
-              value={form.cnpjCpf}
-              onChange={(event) => {
-                updateField('cnpjCpf', formatCpfCnpj(event.target.value))
-              }}
-              required
-              error={fieldErrors.cnpjCpf}
-            />
-
-            <FormField
-              id="registroConselhoProfissionalMI"
-              label="Registro no conselho profissional"
-              value={form.registroConselhoProfissional}
-              onChange={(event) => {
-                updateField('registroConselhoProfissional', event.target.value)
-              }}
-              error={fieldErrors.registroConselhoProfissional}
-            />
-          </div>
+          <FormField
+            id="cnpjCpfMI"
+            label="CNPJ ou CPF"
+            value={form.cnpjCpf}
+            onChange={(event) => {
+              updateField('cnpjCpf', formatCpfCnpj(event.target.value))
+            }}
+            required
+            error={fieldErrors.cnpjCpf}
+          />
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="relative">
@@ -526,7 +513,7 @@ export default function MandatoryInternshipSections({
 
           <FormField
             id="registroConselhoSupervisorMI"
-            label="Registro no conselho profissional"
+            label="Registro no conselho profissional do supervisor"
             value={form.registroConselhoSupervisor}
             onChange={(event) => {
               updateField('registroConselhoSupervisor', event.target.value)

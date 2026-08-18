@@ -41,7 +41,6 @@ type SupervisorFormData = {
   confirmPassword: string
   companyName: string
   companyDocument: string
-  companyProfessionalRegistration: string
   companyZipCode: string
   companyAddress: string
   companyAddressNumber: string
@@ -82,7 +81,6 @@ const SECTIONS: readonly SupervisorSection[] = [
     fields: [
       'companyName',
       'companyDocument',
-      'companyProfessionalRegistration',
       'companyZipCode',
       'companyAddress',
       'companyAddressNumber',
@@ -109,7 +107,6 @@ const INITIAL_FORM: SupervisorFormData = {
   confirmPassword: '',
   companyName: '',
   companyDocument: '',
-  companyProfessionalRegistration: '',
   companyZipCode: '',
   companyAddress: '',
   companyAddressNumber: '',
@@ -303,8 +300,7 @@ export default function SupervisorForm() {
       professional_registration: form.professionalRegistration.trim(),
       company_name: form.companyName.trim(),
       company_document: form.companyDocument.trim(),
-      company_professional_registration:
-        form.companyProfessionalRegistration.trim(),
+      company_professional_registration: '',
       company_zip_code: form.companyZipCode.trim(),
       company_address: form.companyAddress.trim(),
       company_address_number: form.companyAddressNumber.trim(),
@@ -352,9 +348,6 @@ export default function SupervisorForm() {
           <h2 className="text-lg font-semibold text-neutral-950">
             {section.title}
           </h2>
-          <p className="mt-1 text-sm text-neutral-600">
-            {section.description}
-          </p>
         </div>
 
         {currentSection === 0 && (
@@ -430,7 +423,7 @@ export default function SupervisorForm() {
 
             <FormField
               id="supervisorProfessionalRegistration"
-              label="Registro no conselho profissional"
+              label="Registro no conselho profissional do supervisor"
               value={form.professionalRegistration}
               onChange={(event) => {
                 updateField('professionalRegistration', event.target.value)
@@ -487,36 +480,20 @@ export default function SupervisorForm() {
               error={fieldErrors.companyName}
             />
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <FormField
-                id="companyDocument"
-                label="CNPJ ou CPF"
-                value={form.companyDocument}
-                onChange={(event) => {
-                  updateField(
-                    'companyDocument',
-                    formatCpfCnpj(event.target.value),
-                  )
-                }}
-                required
-                disabled={isLoading}
-                error={fieldErrors.companyDocument}
-              />
-
-              <FormField
-                id="companyProfessionalRegistration"
-                label="Registro no conselho profissional"
-                value={form.companyProfessionalRegistration}
-                onChange={(event) => {
-                  updateField(
-                    'companyProfessionalRegistration',
-                    event.target.value,
-                  )
-                }}
-                disabled={isLoading}
-                error={fieldErrors.companyProfessionalRegistration}
-              />
-            </div>
+            <FormField
+              id="companyDocument"
+              label="CNPJ ou CPF"
+              value={form.companyDocument}
+              onChange={(event) => {
+                updateField(
+                  'companyDocument',
+                  formatCpfCnpj(event.target.value),
+                )
+              }}
+              required
+              disabled={isLoading}
+              error={fieldErrors.companyDocument}
+            />
 
             <div className="grid gap-5 sm:grid-cols-2">
               <FormField

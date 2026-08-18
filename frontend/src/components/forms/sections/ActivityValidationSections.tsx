@@ -35,10 +35,12 @@ export default function ActivityValidationSections({
   handleSupervisorChange,
   coordinators,
   handleCepChange,
-  documentId,
   cepConcedenteLoading,
   cepConcedenteError,
   includeRequestData,
+  attachment,
+  onAttachmentChange,
+  attachmentError,
 }: ActivityValidationSectionsProps) {
   return (
     <>
@@ -302,28 +304,16 @@ export default function ActivityValidationSections({
             error={fieldErrors.razaoSocial}
           />
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              id="cnpjCpfAV"
-              label="CNPJ ou CPF"
-              value={form.cnpjCpf}
-              onChange={(event) => {
-                updateField('cnpjCpf', formatCpfCnpj(event.target.value))
-              }}
-              required
-              error={fieldErrors.cnpjCpf}
-            />
-
-            <FormField
-              id="registroConselhoProfissionalAV"
-              label="Registro no conselho profissional"
-              value={form.registroConselhoProfissional}
-              onChange={(event) => {
-                updateField('registroConselhoProfissional', event.target.value)
-              }}
-              error={fieldErrors.registroConselhoProfissional}
-            />
-          </div>
+          <FormField
+            id="cnpjCpfAV"
+            label="CNPJ ou CPF"
+            value={form.cnpjCpf}
+            onChange={(event) => {
+              updateField('cnpjCpf', formatCpfCnpj(event.target.value))
+            }}
+            required
+            error={fieldErrors.cnpjCpf}
+          />
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="relative">
@@ -625,6 +615,54 @@ export default function ActivityValidationSections({
             required
             error={fieldErrors.cidadeAssinatura}
           />
+
+          {onAttachmentChange && (
+            <div className="mt-6 border-t border-neutral-200 pt-5">
+              <label
+                htmlFor="anexoPDF"
+                className="mb-1.5 block text-sm font-medium text-neutral-800"
+              >
+                Contrato de estágio ou carteira de trabalho
+              </label>
+
+              <input
+                id="anexoPDF"
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(event) => {
+                  onAttachmentChange(event.target.files?.[0] ?? null)
+                }}
+                className="block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-700 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-2 file:font-medium file:text-neutral-800"
+              />
+
+              {attachment && (
+                <div className="mt-2 flex items-center justify-between gap-3 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-neutral-600">
+                    {attachment.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAttachmentChange(null)
+                    }}
+                    className="whitespace-nowrap rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                  >
+                    Remover
+                  </button>
+                </div>
+              )}
+
+              {attachmentError && (
+                <p role="alert" className="mt-1.5 text-sm text-red-600">
+                  {attachmentError}
+                </p>
+              )}
+
+              <p className="mt-2 text-xs text-neutral-500">
+                Este arquivo será adicionado ao final do PDF gerado. Apenas PDF, até 25 MB.
+              </p>
+            </div>
+          )}
         </>
       )}
     </>

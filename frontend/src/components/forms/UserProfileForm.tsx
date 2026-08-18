@@ -62,7 +62,6 @@ type ProfileFormData = {
   professionalRegistration: string
   companyName: string
   companyDocument: string
-  companyProfessionalRegistration: string
   companyZipCode: string
   companyAddress: string
   companyAddressNumber: string
@@ -100,7 +99,6 @@ function createInitialForm(profile: UserProfile): ProfileFormData {
     professionalRegistration: profile.professional_registration,
     companyName: profile.company_name,
     companyDocument: profile.company_document,
-    companyProfessionalRegistration: profile.company_professional_registration,
     companyZipCode: profile.company_zip_code,
     companyAddress: profile.company_address,
     companyAddressNumber: profile.company_address_number,
@@ -344,8 +342,7 @@ export default function UserProfileForm({
       professional_registration: form.professionalRegistration.trim(),
       company_name: form.companyName.trim(),
       company_document: form.companyDocument.trim(),
-      company_professional_registration:
-        form.companyProfessionalRegistration.trim(),
+      company_professional_registration: '',
       company_zip_code: form.companyZipCode.trim(),
       company_address: form.companyAddress.trim(),
       company_address_number: form.companyAddressNumber.trim(),
@@ -681,7 +678,7 @@ export default function UserProfileForm({
             <div className="mt-5">
               <FormField
                 id="profileSupervisorProfessionalRegistration"
-                label="Registro no conselho profissional"
+                label="Registro no conselho profissional do supervisor"
                 value={form.professionalRegistration}
                 onChange={(event) => {
                   updateField('professionalRegistration', event.target.value)
@@ -711,7 +708,7 @@ export default function UserProfileForm({
               />
             </div>
 
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div className="mt-5">
               <FormField
                 id="profileCompanyDocument"
                 label="CNPJ ou CPF"
@@ -725,20 +722,6 @@ export default function UserProfileForm({
                 required
                 disabled={isSaving}
                 error={fieldErrors.companyDocument}
-              />
-
-              <FormField
-                id="profileCompanyProfessionalRegistration"
-                label="Registro no conselho profissional"
-                value={form.companyProfessionalRegistration}
-                onChange={(event) => {
-                  updateField(
-                    'companyProfessionalRegistration',
-                    event.target.value,
-                  )
-                }}
-                disabled={isSaving}
-                error={fieldErrors.companyProfessionalRegistration}
               />
             </div>
 

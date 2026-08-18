@@ -42,6 +42,17 @@ export default function DocumentReviewDetailPage() {
     reject,
   } = useDocumentReview(parsedDocumentId)
 
+  const [prevAdvisorId, setPrevAdvisorId] = useState(
+    document?.advisorId ?? null,
+  )
+
+  if (prevAdvisorId !== (document?.advisorId ?? null)) {
+    setPrevAdvisorId(document?.advisorId ?? null)
+    setSelectedAdvisorId(
+      document?.advisorId ? String(document.advisorId) : '',
+    )
+  }
+
   const isCoordinator = Boolean(
     user?.is_superuser || user?.groups.includes('Coordinator'),
   )
@@ -66,12 +77,6 @@ export default function DocumentReviewDetailPage() {
       cancelled = true
     }
   }, [fetchWithAuth, isCoordinator])
-
-  useEffect(() => {
-    setSelectedAdvisorId(
-      document?.advisorId ? String(document.advisorId) : '',
-    )
-  }, [document?.advisorId])
 
   const formEntries =
     document && isRecord(document.formData)

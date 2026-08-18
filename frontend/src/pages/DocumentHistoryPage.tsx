@@ -264,7 +264,9 @@ export default function DocumentHistoryPage() {
               {selectedDocumentId !== 'all' && (
                 <button
                   type="button"
-                  onClick={() => setSearchParams({})}
+                  onClick={() => {
+                    setSearchParams({})
+                  }}
                   className="mt-3 text-sm font-semibold text-green-800 transition hover:text-green-950"
                 >
                   Ver todos os documentos

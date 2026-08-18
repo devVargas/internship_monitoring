@@ -1,4 +1,4 @@
-from django.contrib.auth.models import Group, Permission, User
+from django.contrib.auth.models import Group, Permission
 from django.core.management.base import BaseCommand
 
 from apps.accounts.constants import (
@@ -9,7 +9,6 @@ from apps.accounts.constants import (
     GROUP_SUPERVISOR,
 )
 
-from apps.students.models import StudentProfile
 
 def get_permissions(app_label: str, codenames: list[str]):
     return Permission.objects.filter(

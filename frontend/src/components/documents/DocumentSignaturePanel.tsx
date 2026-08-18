@@ -25,14 +25,17 @@ export default function DocumentSignaturePanel({
   const [pdfStatus, setPdfStatus] = useState<PdfGenerationStatus>(
     document.pdfGenerationStatus,
   )
+  const [prevGenerationStatus, setPrevGenerationStatus] =
+    useState<PdfGenerationStatus>(document.pdfGenerationStatus)
   const [method, setMethod] = useState<SignatureMethod | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  if (prevGenerationStatus !== document.pdfGenerationStatus) {
+    setPrevGenerationStatus(document.pdfGenerationStatus)
     setPdfStatus(document.pdfGenerationStatus)
-  }, [document.pdfGenerationStatus])
+  }
 
   useEffect(() => {
     if (pdfStatus !== 'pending' && pdfStatus !== 'processing') return
@@ -48,7 +51,9 @@ export default function DocumentSignaturePanel({
         .catch(() => undefined)
     }, 1500)
 
-    return () => window.clearInterval(timer)
+    return () => {
+      window.clearInterval(timer)
+    }
   }, [document.id, fetchWithAuth, pdfStatus])
 
   function chooseGovbr(): void {

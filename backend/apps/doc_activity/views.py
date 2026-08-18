@@ -1,7 +1,9 @@
 from rest_framework import permissions, viewsets
+
 from apps.accounts.constants import GROUP_COORDINATOR, GROUP_PROFESSOR, GROUP_SUPERVISOR
 from apps.doc_activity.models import DocumentActivity
 from apps.doc_activity.serializers import DocumentActivitySerializer
+
 
 class DocumentActivityViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DocumentActivitySerializer
